@@ -1,0 +1,776 @@
+{
+  "tasks": [
+    {
+      "id": 1,
+      "title": "Setup Project Repository and Initial Configuration",
+      "description": "Initialize the project repository with Next.js, shadcn/ui, Tailwind CSS, Convex, and Clerk. Configure basic project structure and dependencies.",
+      "details": "Create a new Next.js project (v14.2.0+). Install shadcn/ui (latest), Tailwind CSS (v3.4.0+), Convex (v1.0.0+), and Clerk (v5.0.0+). Set up initial folder structure for pages, components, and utilities. Configure Clerk for authentication and Convex for database connection. Use npm or yarn for dependency management.",
+      "testStrategy": "Verify project builds and runs without errors. Confirm Clerk and Convex are initialized and accessible.",
+      "priority": "high",
+      "dependencies": [],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Initialize Next.js Project",
+          "description": "Create a new Next.js project using create-next-app with the required version and options.",
+          "dependencies": [],
+          "details": "Run 'npx create-next-app@latest' and select Next.js v14.2.0+, enabling TypeScript, ESLint, Tailwind CSS, src directory, and App Router as prompted.",
+          "status": "pending",
+          "testStrategy": "Verify that the project folder is created with the correct Next.js version and selected options by checking package.json and the initial folder structure."
+        },
+        {
+          "id": 2,
+          "title": "Install and Configure shadcn/ui and Tailwind CSS",
+          "description": "Install the latest shadcn/ui and Tailwind CSS v3.4.0+ and configure them in the project.",
+          "dependencies": [
+            1
+          ],
+          "details": "Install shadcn/ui and Tailwind CSS using npm or yarn. Configure Tailwind by editing tailwind.config.js and ensuring shadcn/ui components are available.",
+          "status": "pending",
+          "testStrategy": "Check that Tailwind CSS classes apply correctly and shadcn/ui components render without errors."
+        },
+        {
+          "id": 3,
+          "title": "Install and Set Up Convex",
+          "description": "Add Convex (v1.0.0+) to the project and configure the initial database connection.",
+          "dependencies": [
+            1
+          ],
+          "details": "Install Convex using npm or yarn. Initialize Convex in the project and set up the connection to the Convex backend.",
+          "status": "pending",
+          "testStrategy": "Verify Convex is connected by running a test query or mutation and confirming successful communication with the backend."
+        },
+        {
+          "id": 4,
+          "title": "Install and Configure Clerk Authentication",
+          "description": "Install Clerk (v5.0.0+) and set up authentication in the Next.js project.",
+          "dependencies": [
+            1
+          ],
+          "details": "Install Clerk using npm or yarn. Configure Clerk in the project, set up environment variables, and add authentication components to the app.",
+          "status": "pending",
+          "testStrategy": "Test user sign-up, sign-in, and authentication flows to ensure Clerk is working as expected."
+        },
+        {
+          "id": 5,
+          "title": "Establish Initial Project Structure and Integrate Dependencies",
+          "description": "Create the initial folder structure for pages, components, and utilities. Integrate Tailwind, shadcn/ui, Convex, and Clerk into the project.",
+          "dependencies": [
+            2,
+            3,
+            4
+          ],
+          "details": "Organize the src directory into pages, components, and utilities. Ensure all installed dependencies are properly configured and imported where needed.",
+          "status": "pending",
+          "testStrategy": "Confirm that the project builds and runs, and that all dependencies (Tailwind, shadcn/ui, Convex, Clerk) are functional in the initial structure."
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Implement Clerk Authentication Integration",
+      "description": "Integrate Clerk authentication to secure the application and manage user sessions.",
+      "details": "Add Clerk provider to the Next.js app. Implement sign-in, sign-up, and sign-out flows. Protect routes using Clerk middleware. Store user metadata in Convex if needed. Use Clerk’s React hooks for session management.",
+      "testStrategy": "Test all authentication flows (sign-in, sign-up, sign-out). Verify protected routes are inaccessible without authentication.",
+      "priority": "high",
+      "dependencies": [
+        1
+      ],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 3,
+      "title": "Design and Implement Dashboard UI",
+      "description": "Create a dashboard page with key metrics for property portfolio overview.",
+      "details": "Design dashboard UI using shadcn/ui and Tailwind CSS. Display total rent, number of properties, and occupancy rate. Fetch data from Convex using custom hooks. Ensure responsive layout and accessibility.",
+      "testStrategy": "Test UI renders correctly. Verify data is fetched and displayed accurately. Check responsiveness on different devices.",
+      "priority": "medium",
+      "dependencies": [
+        1,
+        2
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Define Dashboard Layout and Structure",
+          "description": "Plan the overall layout, including sidebar, navbar, and main content areas, ensuring responsiveness and accessibility.",
+          "dependencies": [],
+          "details": "Reference Shadcn UI dashboard examples for best practices in layout and accessibility. Decide on placement of key metrics and navigation components.",
+          "status": "pending",
+          "testStrategy": "Verify layout adapts to different screen sizes and meets accessibility standards using browser dev tools and accessibility checkers."
+        },
+        {
+          "id": 2,
+          "title": "Set Up Shadcn/UI and Tailwind CSS",
+          "description": "Integrate Shadcn/UI components and configure Tailwind CSS in the project environment.",
+          "dependencies": [
+            1
+          ],
+          "details": "Install necessary dependencies and ensure Shadcn/UI and Tailwind CSS are properly configured for component styling and theming.",
+          "status": "pending",
+          "testStrategy": "Check that Shadcn/UI components render correctly and Tailwind classes apply as expected."
+        },
+        {
+          "id": 3,
+          "title": "Implement Data Fetching with Convex Custom Hooks",
+          "description": "Create and integrate custom hooks to fetch total rent, number of properties, and occupancy rate from Convex backend.",
+          "dependencies": [
+            2
+          ],
+          "details": "Develop hooks for each metric, handle loading and error states, and ensure data is available for UI components.",
+          "status": "pending",
+          "testStrategy": "Mock Convex API responses and verify hooks return correct data and handle edge cases."
+        },
+        {
+          "id": 4,
+          "title": "Design and Build Metric Display Components",
+          "description": "Create UI components to display total rent, number of properties, and occupancy rate using Shadcn/UI and Tailwind CSS.",
+          "dependencies": [
+            3
+          ],
+          "details": "Use Shadcn/UI cards or stat blocks for each metric, ensuring clear visual hierarchy and accessibility.",
+          "status": "pending",
+          "testStrategy": "Test components with sample data, check for correct rendering, and validate accessibility with screen readers."
+        },
+        {
+          "id": 5,
+          "title": "Ensure Responsive Design and Accessibility Compliance",
+          "description": "Test and refine the dashboard to guarantee it is fully responsive and accessible across devices and assistive technologies.",
+          "dependencies": [
+            4
+          ],
+          "details": "Use Tailwind's responsive utilities and Shadcn/UI accessibility features. Conduct manual and automated accessibility testing.",
+          "status": "pending",
+          "testStrategy": "Perform cross-device testing, use accessibility tools (e.g., axe, Lighthouse), and gather feedback from users with assistive needs."
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Define Convex Database Schema for Properties",
+      "description": "Design and implement the database schema for property management.",
+      "details": "Define Convex tables for properties (id, name, address, rent, etc.). Implement CRUD operations using Convex functions. Use TypeScript for type safety. Store property data in Convex.",
+      "testStrategy": "Test CRUD operations for properties. Verify data integrity and schema validation.",
+      "priority": "medium",
+      "dependencies": [
+        1
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design Property Table Schema in Convex",
+          "description": "Define the Convex table schema for properties, specifying fields such as id, name, address, rent, and other relevant attributes using TypeScript for type safety.",
+          "dependencies": [],
+          "details": "Create or update the schema.ts file in the convex/ directory. Use defineTable and appropriate validators to specify property fields. Ensure TypeScript types are enforced for all fields.",
+          "status": "pending",
+          "testStrategy": "Validate schema correctness by running Convex codegen and checking for type errors. Confirm that the schema matches property management requirements."
+        },
+        {
+          "id": 2,
+          "title": "Implement Property Table in Convex Database",
+          "description": "Deploy the defined property table schema to the Convex database to enable storage and retrieval of property data.",
+          "dependencies": [
+            1
+          ],
+          "details": "Apply the schema to the Convex backend, ensuring the property table is created and accessible. Use the Convex dashboard or CLI to verify table creation.",
+          "status": "pending",
+          "testStrategy": "Check the Convex dashboard for the presence of the property table and its fields. Attempt to insert a sample property document to confirm functionality."
+        },
+        {
+          "id": 3,
+          "title": "Develop CRUD Functions for Properties",
+          "description": "Implement Convex functions for Create, Read, Update, and Delete operations on the property table, ensuring all interactions are type-safe.",
+          "dependencies": [
+            2
+          ],
+          "details": "Write serverless functions in the convex/ directory for each CRUD operation. Use TypeScript types generated from the schema for input validation and type safety.",
+          "status": "pending",
+          "testStrategy": "Write unit tests or use the Convex dashboard to execute each CRUD function, verifying correct behavior and type enforcement."
+        },
+        {
+          "id": 4,
+          "title": "Integrate CRUD Functions with Frontend",
+          "description": "Connect the frontend application to the Convex CRUD functions, enabling property data management through the user interface.",
+          "dependencies": [
+            3
+          ],
+          "details": "Use Convex client libraries to call CRUD functions from the frontend. Ensure TypeScript types are used for all data interactions.",
+          "status": "pending",
+          "testStrategy": "Perform end-to-end tests by creating, reading, updating, and deleting properties via the frontend, confirming data consistency in the Convex database."
+        },
+        {
+          "id": 5,
+          "title": "Validate and Document Property Management Workflow",
+          "description": "Test the complete property management workflow and document the schema, API, and usage instructions for future reference.",
+          "dependencies": [
+            4
+          ],
+          "details": "Conduct comprehensive testing of all CRUD operations and document the schema structure, API endpoints, and example usage in project documentation.",
+          "status": "pending",
+          "testStrategy": "Review documentation for completeness and accuracy. Have a peer follow the documentation to perform property management tasks successfully."
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Implement Properties Page with CRUD Operations",
+      "description": "Build a page to list, add, edit, and delete properties.",
+      "details": "Create a properties page with a list of all properties. Implement forms for adding and editing properties. Add delete functionality. Use shadcn/ui components for forms and tables. Fetch and update data using Convex.",
+      "testStrategy": "Test all CRUD operations. Verify UI updates reflect database changes. Check form validation.",
+      "priority": "medium",
+      "dependencies": [
+        1,
+        4
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Set Up Shadcn/UI and Convex Integration",
+          "description": "Initialize the project with Shadcn/UI components and configure Convex for data fetching and mutations.",
+          "dependencies": [],
+          "details": "Install and configure Shadcn/UI for forms and tables. Set up Convex client and ensure connectivity for CRUD operations.",
+          "status": "pending",
+          "testStrategy": "Verify that Shadcn/UI components render correctly and Convex client can fetch and mutate sample data."
+        },
+        {
+          "id": 2,
+          "title": "Implement Properties List Table",
+          "description": "Create a table to display all properties using Shadcn/UI components, fetching data from Convex.",
+          "dependencies": [
+            1
+          ],
+          "details": "Use Shadcn/UI Table component to render a paginated list of properties. Fetch property data from Convex and display relevant fields.",
+          "status": "pending",
+          "testStrategy": "Check that the table displays all properties from the database and updates when data changes."
+        },
+        {
+          "id": 3,
+          "title": "Build Add Property Form",
+          "description": "Develop a form for adding new properties using Shadcn/UI form components and submit data to Convex.",
+          "dependencies": [
+            1
+          ],
+          "details": "Design and implement a form with validation for property fields. On submit, send data to Convex and update the list.",
+          "status": "pending",
+          "testStrategy": "Test form validation, successful property creation, and automatic update of the properties list."
+        },
+        {
+          "id": 4,
+          "title": "Implement Edit Property Functionality",
+          "description": "Enable editing of existing properties with a pre-filled Shadcn/UI form and update data in Convex.",
+          "dependencies": [
+            2,
+            3
+          ],
+          "details": "Allow users to select a property to edit, display a form with current values, and submit updates to Convex.",
+          "status": "pending",
+          "testStrategy": "Verify that editing a property updates the correct record and changes are reflected in the list."
+        },
+        {
+          "id": 5,
+          "title": "Add Delete Property Feature",
+          "description": "Provide the ability to delete properties from the list and remove them from Convex.",
+          "dependencies": [
+            2
+          ],
+          "details": "Add delete buttons to each property row. Confirm deletion and update the UI and Convex data accordingly.",
+          "status": "pending",
+          "testStrategy": "Ensure that deleting a property removes it from both the UI and the database, and that the list updates in real time."
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Define Convex Database Schema for Utilities",
+      "description": "Design and implement the database schema for utility management.",
+      "details": "Define Convex tables for utilities (id, propertyId, provider, cost, status, etc.). Link utilities to properties via propertyId. Implement CRUD operations using Convex functions.",
+      "testStrategy": "Test CRUD operations for utilities. Verify data integrity and schema validation.",
+      "priority": "medium",
+      "dependencies": [
+        1,
+        4
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Define Utility Table Schema",
+          "description": "Create the schema definition for the utilities table with all required fields",
+          "dependencies": [],
+          "details": "Define a utilities table in schema.ts with fields including id (auto-generated), propertyId (as a reference to properties table), provider (string), cost (number), status (string), and any other relevant fields. Use Convex's v.id() for references and appropriate validators for each field type.",
+          "status": "pending",
+          "testStrategy": "Verify schema compilation and type safety by running the Convex dev server"
+        },
+        {
+          "id": 2,
+          "title": "Create Property-Utility Relationship Index",
+          "description": "Implement an index to efficiently query utilities by propertyId",
+          "dependencies": [
+            1
+          ],
+          "details": "Add an index to the utilities table using .index('by_property', ['propertyId']) to enable efficient querying of utilities associated with specific properties. This follows Convex best practices for relationship querying.",
+          "status": "pending",
+          "testStrategy": "Test index performance by querying utilities for a specific property and verifying query execution time"
+        },
+        {
+          "id": 3,
+          "title": "Implement Utility Query Functions",
+          "description": "Create Convex query functions to retrieve utility data",
+          "dependencies": [
+            1,
+            2
+          ],
+          "details": "Develop query functions in a utilities.ts file including getUtility(id), getUtilitiesByProperty(propertyId), and getAllUtilities(). Use proper filtering and pagination with .collect() for limited result sets following Convex best practices.",
+          "status": "pending",
+          "testStrategy": "Write test cases for each query function verifying correct data retrieval and filtering"
+        },
+        {
+          "id": 4,
+          "title": "Implement Utility Mutation Functions",
+          "description": "Create Convex mutation functions for CRUD operations on utilities",
+          "dependencies": [
+            1
+          ],
+          "details": "Develop mutation functions including createUtility(), updateUtility(), and deleteUtility() with proper validation. Implement ACID transactions for data integrity and handle potential errors appropriately.",
+          "status": "pending",
+          "testStrategy": "Test each mutation function with valid and invalid inputs to verify proper operation and error handling"
+        },
+        {
+          "id": 5,
+          "title": "Add Utility Status Validation",
+          "description": "Implement validation for utility status field using Convex validators",
+          "dependencies": [
+            1,
+            4
+          ],
+          "details": "Enhance the utilities schema to use v.union() for the status field to restrict values to predefined options (e.g., 'active', 'inactive', 'pending'). Update mutation functions to enforce these constraints and provide appropriate error messages.",
+          "status": "pending",
+          "testStrategy": "Test status validation by attempting to create and update utilities with valid and invalid status values"
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Implement Utilities Page with Property Association",
+      "description": "Build a page to manage utilities for each property.",
+      "details": "Create a utilities page with a dropdown to select a property. Display utilities for the selected property. Implement a modal for adding new utilities. Use shadcn/ui for UI components. Fetch and update data using Convex.",
+      "testStrategy": "Test utility management for each property. Verify dropdown and modal functionality. Check data consistency.",
+      "priority": "medium",
+      "dependencies": [
+        1,
+        6
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design Property Selection Dropdown",
+          "description": "Implement a dropdown menu to allow users to select a property using shadcn/ui components.",
+          "dependencies": [],
+          "details": "Use shadcn/ui's DropdownMenu or Select component to create a property selector. Ensure the dropdown is accessible and styled consistently with the rest of the UI.",
+          "status": "pending",
+          "testStrategy": "Verify that the dropdown lists all available properties and updates the selected property state when a new property is chosen."
+        },
+        {
+          "id": 2,
+          "title": "Fetch and Display Utilities for Selected Property",
+          "description": "Retrieve and display the list of utilities associated with the currently selected property.",
+          "dependencies": [
+            1
+          ],
+          "details": "Use Convex to fetch utilities data for the selected property. Display the utilities in a list or table format, updating the view when the property selection changes.",
+          "status": "pending",
+          "testStrategy": "Test that selecting different properties updates the displayed utilities accordingly and that the data matches the backend."
+        },
+        {
+          "id": 3,
+          "title": "Implement Add Utility Modal",
+          "description": "Create a modal dialog for adding new utilities to the selected property using shadcn/ui components.",
+          "dependencies": [
+            2
+          ],
+          "details": "Use shadcn/ui's modal components to build a form for entering utility details. Ensure the modal is accessible and supports form validation.",
+          "status": "pending",
+          "testStrategy": "Open the modal, fill out the form, and submit. Confirm that the modal closes and the new utility appears in the list."
+        },
+        {
+          "id": 4,
+          "title": "Integrate Utility Creation with Convex",
+          "description": "Connect the add utility modal form to Convex to persist new utilities for the selected property.",
+          "dependencies": [
+            3
+          ],
+          "details": "On form submission, send the new utility data to Convex and update the utilities list upon success. Handle loading and error states appropriately.",
+          "status": "pending",
+          "testStrategy": "Add a new utility and verify it is saved in the backend and immediately reflected in the UI."
+        },
+        {
+          "id": 5,
+          "title": "Implement Data Refresh and UI State Management",
+          "description": "Ensure the utilities list refreshes after adding or updating utilities and manage UI loading/error states.",
+          "dependencies": [
+            4
+          ],
+          "details": "Implement state management to handle loading, success, and error feedback for all data operations. Ensure the UI remains responsive and accurate after any changes.",
+          "status": "pending",
+          "testStrategy": "Perform add/update actions and confirm the UI updates in real time, with appropriate feedback for loading and errors."
+        }
+      ]
+    },
+    {
+      "id": 8,
+      "title": "Define Convex Database Schema for Leases",
+      "description": "Design and implement the database schema for lease management.",
+      "details": "Define Convex tables for leases (id, propertyId, startDate, endDate, tenant, etc.). Link leases to properties via propertyId. Implement CRUD operations using Convex functions.",
+      "testStrategy": "Test CRUD operations for leases. Verify data integrity and schema validation.",
+      "priority": "medium",
+      "dependencies": [
+        1,
+        4
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Identify Lease Management Data Requirements",
+          "description": "Gather and specify all necessary fields and relationships for the lease management schema, including required attributes for leases and their linkage to properties.",
+          "dependencies": [],
+          "details": "List all fields such as id, propertyId, startDate, endDate, tenant, and any additional metadata needed for lease records. Define how leases relate to properties and tenants.",
+          "status": "pending",
+          "testStrategy": "Review requirements with stakeholders and ensure all necessary data points are captured for lease management."
+        },
+        {
+          "id": 2,
+          "title": "Define Convex Database Schema for Leases and Properties",
+          "description": "Implement the Convex schema for leases and properties using defineTable and appropriate validators, ensuring correct field types and relationships.",
+          "dependencies": [
+            1
+          ],
+          "details": "Write the schema in schema.ts using Convex's defineSchema and defineTable functions. Include all identified fields and set up propertyId as a foreign key reference.",
+          "status": "pending",
+          "testStrategy": "Validate schema using Convex's type safety and schema validation tools; check for correct field types and relationships."
+        },
+        {
+          "id": 3,
+          "title": "Implement CRUD Operations for Leases",
+          "description": "Develop Convex functions to create, read, update, and delete lease records, ensuring proper linkage to properties via propertyId.",
+          "dependencies": [
+            2
+          ],
+          "details": "Write Convex mutation and query functions for all CRUD operations on the leases table, handling propertyId references and data validation.",
+          "status": "pending",
+          "testStrategy": "Unit test each CRUD function for correct behavior, including edge cases and error handling."
+        },
+        {
+          "id": 4,
+          "title": "Establish Indexes and Optimize Queries",
+          "description": "Create necessary indexes on lease and property tables to optimize query performance, especially for lookups by propertyId and tenant.",
+          "dependencies": [
+            2
+          ],
+          "details": "Define indexes in the schema for efficient querying, following Convex best practices to avoid redundant indexes and ensure scalability.",
+          "status": "pending",
+          "testStrategy": "Benchmark query performance before and after indexing; verify correct index usage in Convex Dashboard."
+        },
+        {
+          "id": 5,
+          "title": "Test and Validate End-to-End Lease Management Workflow",
+          "description": "Perform integration testing of the entire lease management system, from schema to CRUD operations, ensuring data integrity and correct property linkage.",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "Simulate real-world lease management scenarios, including lease creation, updates, deletions, and property associations. Check for data consistency and system robustness.",
+          "status": "pending",
+          "testStrategy": "Run integration tests covering all workflows; validate results in the Convex Dashboard and with automated test scripts."
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Implement Lease Management Page",
+      "description": "Build a page to manage leases for each property.",
+      "details": "Create a lease management page. Allow adding, editing, and removing leases for a property. Display current and past leases. Use shadcn/ui for UI components. Fetch and update data using Convex.",
+      "testStrategy": "Test lease management for each property. Verify CRUD operations and data consistency.",
+      "priority": "medium",
+      "dependencies": [
+        1,
+        8
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design Lease Management Page Layout",
+          "description": "Create the UI layout for the lease management page using shadcn/ui components, including sections for current and past leases, and controls for adding, editing, and removing leases.",
+          "dependencies": [],
+          "details": "Define the structure and visual hierarchy of the page, ensuring a user-friendly interface that clearly separates current and past leases and provides intuitive controls for lease operations.",
+          "status": "pending",
+          "testStrategy": "Review the UI for completeness and usability; verify that all required sections and controls are present and accessible."
+        },
+        {
+          "id": 2,
+          "title": "Implement Data Fetching for Leases",
+          "description": "Set up data fetching from Convex to retrieve current and past leases for a selected property.",
+          "dependencies": [
+            1
+          ],
+          "details": "Integrate Convex queries to load lease data and ensure the UI updates reactively when data changes.",
+          "status": "pending",
+          "testStrategy": "Test that the page displays accurate lease data and updates in real time when leases are added, edited, or removed."
+        },
+        {
+          "id": 3,
+          "title": "Develop Add Lease Functionality",
+          "description": "Enable users to add new leases for a property, including form validation and submission to Convex.",
+          "dependencies": [
+            2
+          ],
+          "details": "Create a form using shadcn/ui components, validate input, and submit new lease data to Convex. Ensure the UI reflects the new lease upon successful addition.",
+          "status": "pending",
+          "testStrategy": "Verify that new leases can be added, appear in the correct section, and persist after page reload."
+        },
+        {
+          "id": 4,
+          "title": "Implement Edit and Remove Lease Features",
+          "description": "Allow users to edit existing leases and remove leases from a property, updating data in Convex.",
+          "dependencies": [
+            3
+          ],
+          "details": "Provide edit and delete controls for each lease entry. Ensure changes are saved to Convex and the UI updates accordingly.",
+          "status": "pending",
+          "testStrategy": "Test editing and deleting leases for correct data updates and UI refresh, including error handling."
+        },
+        {
+          "id": 5,
+          "title": "Display and Distinguish Current vs Past Leases",
+          "description": "Ensure the page clearly displays and differentiates between current and past leases based on lease dates.",
+          "dependencies": [
+            4
+          ],
+          "details": "Implement logic to categorize leases as current or past and visually separate them in the UI for clarity.",
+          "status": "pending",
+          "testStrategy": "Check that leases are correctly categorized and displayed in their respective sections, with accurate status based on dates."
+        }
+      ]
+    },
+    {
+      "id": 10,
+      "title": "Implement Property Details Page",
+      "description": "Build a dedicated page to view detailed information for a single property.",
+      "details": "Create a property details page. Display all relevant property information, including linked utilities and leases. Use shadcn/ui for UI components. Fetch data from Convex.",
+      "testStrategy": "Test property details display. Verify linked utilities and leases are shown correctly.",
+      "priority": "medium",
+      "dependencies": [
+        1,
+        5,
+        7,
+        9
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Design Property Details Page Layout",
+          "description": "Create a wireframe and define the UI structure for the property details page using shadcn/ui components.",
+          "dependencies": [],
+          "details": "Identify all relevant property information to display, including linked utilities and leases. Select appropriate shadcn/ui components for each section.",
+          "status": "pending",
+          "testStrategy": "Review the wireframe with stakeholders and ensure all required data fields and UI elements are represented."
+        },
+        {
+          "id": 2,
+          "title": "Implement Data Fetching from Convex",
+          "description": "Develop query functions to fetch property details, utilities, and leases from Convex.",
+          "dependencies": [
+            1
+          ],
+          "details": "Use Convex's query functions and database methods (e.g., db.get, db.query) to retrieve all necessary data for a single property, ensuring correct use of document IDs and validation.",
+          "status": "pending",
+          "testStrategy": "Write unit tests for each query function to verify correct data retrieval and error handling."
+        },
+        {
+          "id": 3,
+          "title": "Integrate Data with UI Components",
+          "description": "Connect fetched data to the shadcn/ui components on the property details page.",
+          "dependencies": [
+            2
+          ],
+          "details": "Map the data fields from Convex to the corresponding UI components, ensuring all property, utility, and lease information is displayed accurately.",
+          "status": "pending",
+          "testStrategy": "Perform integration tests to confirm that all data appears correctly in the UI and updates as expected."
+        },
+        {
+          "id": 4,
+          "title": "Implement Loading, Error, and Empty States",
+          "description": "Add UI states for loading, error, and empty data scenarios on the property details page.",
+          "dependencies": [
+            3
+          ],
+          "details": "Use shadcn/ui components to provide user feedback during data fetching, handle errors gracefully, and display appropriate messages when data is missing.",
+          "status": "pending",
+          "testStrategy": "Simulate loading, error, and empty data conditions to verify the correct UI state is shown in each case."
+        },
+        {
+          "id": 5,
+          "title": "Conduct End-to-End Testing and Accessibility Review",
+          "description": "Test the complete property details page for functionality, usability, and accessibility compliance.",
+          "dependencies": [
+            4
+          ],
+          "details": "Perform end-to-end tests covering all user interactions and data scenarios. Review the page for accessibility using automated tools and manual checks.",
+          "status": "pending",
+          "testStrategy": "Use Cypress or similar tools for E2E tests and run accessibility audits to ensure WCAG compliance."
+        }
+      ]
+    },
+    {
+      "id": 11,
+      "title": "Implement Data Validation and Error Handling",
+      "description": "Add robust data validation and error handling throughout the application.",
+      "details": "Implement client-side and server-side validation for all forms. Add error boundaries and user feedback for failed operations. Use Zod for schema validation if needed. Handle Convex and Clerk errors gracefully.",
+      "testStrategy": "Test invalid data submission. Verify error messages and graceful failure handling.",
+      "priority": "medium",
+      "dependencies": [
+        1,
+        5,
+        7,
+        9
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement Client-Side Form Validation",
+          "description": "Add comprehensive client-side validation for all forms to ensure user input meets required formats and constraints before submission.",
+          "dependencies": [],
+          "details": "Use validation libraries such as Zod to define and enforce schema rules on the client. Provide immediate feedback to users for invalid inputs to reduce server load and improve user experience.",
+          "status": "pending",
+          "testStrategy": "Test all form fields with valid and invalid data to verify that errors are caught and appropriate messages are displayed before submission."
+        },
+        {
+          "id": 2,
+          "title": "Implement Server-Side Validation",
+          "description": "Add robust server-side validation for all incoming data to ensure security and data integrity.",
+          "dependencies": [
+            1
+          ],
+          "details": "Use Zod or similar schema validation libraries on the server to validate all incoming requests. Ensure that invalid data is rejected with clear, structured error messages specifying which fields failed validation.",
+          "status": "pending",
+          "testStrategy": "Send various valid and invalid payloads to the server endpoints and verify that only valid data is accepted and errors are returned for invalid data."
+        },
+        {
+          "id": 3,
+          "title": "Add Error Boundaries and User Feedback",
+          "description": "Implement error boundaries in the UI and provide user-friendly feedback for failed operations.",
+          "dependencies": [
+            1
+          ],
+          "details": "Wrap critical UI components with error boundaries to catch rendering errors. Display clear, actionable error messages or fallback UI to inform users of issues and guide recovery.",
+          "status": "pending",
+          "testStrategy": "Simulate component failures and verify that error boundaries catch errors and display appropriate feedback without crashing the application."
+        },
+        {
+          "id": 4,
+          "title": "Handle Convex and Clerk Errors Gracefully",
+          "description": "Integrate error handling for Convex and Clerk services to manage authentication and backend errors.",
+          "dependencies": [
+            2,
+            3
+          ],
+          "details": "Capture and interpret errors from Convex and Clerk APIs, mapping them to user-friendly messages and handling edge cases such as authentication failures or network issues.",
+          "status": "pending",
+          "testStrategy": "Trigger various Convex and Clerk errors (e.g., invalid credentials, network failures) and verify that the application responds with clear feedback and appropriate recovery options."
+        },
+        {
+          "id": 5,
+          "title": "Document Validation and Error Handling Strategies",
+          "description": "Create comprehensive documentation outlining the validation and error handling approaches used throughout the application.",
+          "dependencies": [
+            1,
+            2,
+            3,
+            4
+          ],
+          "details": "Document the validation schemas, error boundary usage, error message formats, and handling strategies for third-party services. Include examples and guidelines for future development.",
+          "status": "pending",
+          "testStrategy": "Review documentation for completeness and clarity. Ensure it covers all implemented strategies and provides actionable guidance for developers."
+        }
+      ]
+    },
+    {
+      "id": 12,
+      "title": "Implement Security and Performance Best Practices",
+      "description": "Apply security and performance best practices to the application.",
+      "details": "Secure API endpoints and database queries. Implement rate limiting and input sanitization. Optimize data fetching and rendering. Use Next.js ISR or SSG where appropriate. Monitor for common security vulnerabilities.",
+      "testStrategy": "Test for common security issues (XSS, CSRF, etc.). Verify performance metrics (load time, responsiveness).",
+      "priority": "medium",
+      "dependencies": [
+        1,
+        2,
+        11
+      ],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Implement API Authentication and Authorization",
+          "description": "Set up secure authentication and authorization mechanisms for all API endpoints using OAuth2 and OpenID Connect.",
+          "dependencies": [],
+          "details": "Implement TLS encryption for all API communications. Set up OAuth2 with OpenID Connect for single sign-on capabilities. Create an API key system for programmatic access. Follow the principle of least privilege for all authorization rules. Document the authentication flow for developers.",
+          "status": "pending",
+          "testStrategy": "Create automated tests to verify authentication flows. Test API endpoints with valid and invalid credentials. Verify token expiration and refresh mechanisms work correctly."
+        },
+        {
+          "id": 2,
+          "title": "Implement Input Validation and Sanitization",
+          "description": "Add comprehensive input validation and sanitization for all API endpoints and database queries to prevent injection attacks.",
+          "dependencies": [
+            1
+          ],
+          "details": "Use libraries like express-validator for input validation. Implement schema validation to verify data structure and size. Sanitize all user inputs before processing. Create parameterized queries for database operations. Validate both client-side and server-side inputs.",
+          "status": "pending",
+          "testStrategy": "Test endpoints with malformed inputs, SQL injection attempts, and cross-site scripting payloads. Verify sanitization works across all input fields."
+        },
+        {
+          "id": 3,
+          "title": "Implement Rate Limiting and DDoS Protection",
+          "description": "Set up rate limiting and throttling mechanisms to protect API endpoints from abuse and DDoS attacks.",
+          "dependencies": [
+            1
+          ],
+          "details": "Implement IP-based rate limiting to restrict requests within specific timeframes. Set up content delivery networks to distribute traffic load. Configure appropriate rate limits for different API endpoints based on their resource requirements. Implement exponential backoff for retry attempts.",
+          "status": "pending",
+          "testStrategy": "Test rate limiting by simulating high-frequency requests. Verify proper response codes (429) are returned when limits are exceeded. Test the system's behavior under simulated DDoS conditions."
+        },
+        {
+          "id": 4,
+          "title": "Optimize Data Fetching with Next.js ISR/SSG",
+          "description": "Implement Next.js Incremental Static Regeneration (ISR) and Static Site Generation (SSG) for appropriate pages to improve performance.",
+          "dependencies": [],
+          "details": "Identify pages suitable for static generation. Implement ISR with appropriate revalidation intervals for semi-dynamic content. Use getStaticProps and getStaticPaths for fully static pages. Implement proper caching strategies. Minimize client-side data fetching where possible.",
+          "status": "pending",
+          "testStrategy": "Measure and compare page load times before and after optimization. Test revalidation triggers for ISR pages. Verify static pages are properly cached and served."
+        },
+        {
+          "id": 5,
+          "title": "Set Up Security Monitoring and Vulnerability Scanning",
+          "description": "Implement continuous security monitoring and regular vulnerability scanning to identify and address security issues.",
+          "dependencies": [
+            1,
+            2,
+            3
+          ],
+          "details": "Set up an API gateway to centralize security controls and monitoring. Implement logging for all security-related events. Configure alerts for suspicious activities. Perform regular dependency vulnerability scans. Limit data exposure by returning only necessary information from API endpoints. Encrypt sensitive data both at rest and in transit.",
+          "status": "pending",
+          "testStrategy": "Conduct penetration testing against the application. Verify logging captures security events properly. Test the alert system with simulated security incidents."
+        }
+      ]
+    }
+  ]
+}

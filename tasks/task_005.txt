@@ -1,0 +1,43 @@
+# Task ID: 5
+# Title: Implement Properties Page with CRUD Operations
+# Status: pending
+# Dependencies: 1, 4
+# Priority: medium
+# Description: Build a page to list, add, edit, and delete properties.
+# Details:
+Create a properties page with a list of all properties. Implement forms for adding and editing properties. Add delete functionality. Use shadcn/ui components for forms and tables. Fetch and update data using Convex.
+
+# Test Strategy:
+Test all CRUD operations. Verify UI updates reflect database changes. Check form validation.
+
+# Subtasks:
+## 1. Set Up Shadcn/UI and Convex Integration [pending]
+### Dependencies: None
+### Description: Initialize the project with Shadcn/UI components and configure Convex for data fetching and mutations.
+### Details:
+Install and configure Shadcn/UI for forms and tables. Set up Convex client and ensure connectivity for CRUD operations.
+
+## 2. Implement Properties List Table [pending]
+### Dependencies: 5.1
+### Description: Create a table to display all properties using Shadcn/UI components, fetching data from Convex.
+### Details:
+Use Shadcn/UI Table component to render a paginated list of properties. Fetch property data from Convex and display relevant fields.
+
+## 3. Build Add Property Form [pending]
+### Dependencies: 5.1
+### Description: Develop a form for adding new properties using Shadcn/UI form components and submit data to Convex.
+### Details:
+Design and implement a form with validation for property fields. On submit, send data to Convex and update the list.
+
+## 4. Implement Edit Property Functionality [pending]
+### Dependencies: 5.2, 5.3
+### Description: Enable editing of existing properties with a pre-filled Shadcn/UI form and update data in Convex.
+### Details:
+Allow users to select a property to edit, display a form with current values, and submit updates to Convex.
+
+## 5. Add Delete Property Feature [pending]
+### Dependencies: 5.2
+### Description: Provide the ability to delete properties from the list and remove them from Convex.
+### Details:
+Add delete buttons to each property row. Confirm deletion and update the UI and Convex data accordingly.
+

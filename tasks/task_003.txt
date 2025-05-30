@@ -1,0 +1,43 @@
+# Task ID: 3
+# Title: Design and Implement Dashboard UI
+# Status: pending
+# Dependencies: 1, 2
+# Priority: medium
+# Description: Create a dashboard page with key metrics for property portfolio overview.
+# Details:
+Design dashboard UI using shadcn/ui and Tailwind CSS. Display total rent, number of properties, and occupancy rate. Fetch data from Convex using custom hooks. Ensure responsive layout and accessibility.
+
+# Test Strategy:
+Test UI renders correctly. Verify data is fetched and displayed accurately. Check responsiveness on different devices.
+
+# Subtasks:
+## 1. Define Dashboard Layout and Structure [pending]
+### Dependencies: None
+### Description: Plan the overall layout, including sidebar, navbar, and main content areas, ensuring responsiveness and accessibility.
+### Details:
+Reference Shadcn UI dashboard examples for best practices in layout and accessibility. Decide on placement of key metrics and navigation components.
+
+## 2. Set Up Shadcn/UI and Tailwind CSS [pending]
+### Dependencies: 3.1
+### Description: Integrate Shadcn/UI components and configure Tailwind CSS in the project environment.
+### Details:
+Install necessary dependencies and ensure Shadcn/UI and Tailwind CSS are properly configured for component styling and theming.
+
+## 3. Implement Data Fetching with Convex Custom Hooks [pending]
+### Dependencies: 3.2
+### Description: Create and integrate custom hooks to fetch total rent, number of properties, and occupancy rate from Convex backend.
+### Details:
+Develop hooks for each metric, handle loading and error states, and ensure data is available for UI components.
+
+## 4. Design and Build Metric Display Components [pending]
+### Dependencies: 3.3
+### Description: Create UI components to display total rent, number of properties, and occupancy rate using Shadcn/UI and Tailwind CSS.
+### Details:
+Use Shadcn/UI cards or stat blocks for each metric, ensuring clear visual hierarchy and accessibility.
+
+## 5. Ensure Responsive Design and Accessibility Compliance [pending]
+### Dependencies: 3.4
+### Description: Test and refine the dashboard to guarantee it is fully responsive and accessible across devices and assistive technologies.
+### Details:
+Use Tailwind's responsive utilities and Shadcn/UI accessibility features. Conduct manual and automated accessibility testing.
+

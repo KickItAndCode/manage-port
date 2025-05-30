@@ -1,0 +1,43 @@
+# Task ID: 7
+# Title: Implement Utilities Page with Property Association
+# Status: pending
+# Dependencies: 1, 6
+# Priority: medium
+# Description: Build a page to manage utilities for each property.
+# Details:
+Create a utilities page with a dropdown to select a property. Display utilities for the selected property. Implement a modal for adding new utilities. Use shadcn/ui for UI components. Fetch and update data using Convex.
+
+# Test Strategy:
+Test utility management for each property. Verify dropdown and modal functionality. Check data consistency.
+
+# Subtasks:
+## 1. Design Property Selection Dropdown [pending]
+### Dependencies: None
+### Description: Implement a dropdown menu to allow users to select a property using shadcn/ui components.
+### Details:
+Use shadcn/ui's DropdownMenu or Select component to create a property selector. Ensure the dropdown is accessible and styled consistently with the rest of the UI.
+
+## 2. Fetch and Display Utilities for Selected Property [pending]
+### Dependencies: 7.1
+### Description: Retrieve and display the list of utilities associated with the currently selected property.
+### Details:
+Use Convex to fetch utilities data for the selected property. Display the utilities in a list or table format, updating the view when the property selection changes.
+
+## 3. Implement Add Utility Modal [pending]
+### Dependencies: 7.2
+### Description: Create a modal dialog for adding new utilities to the selected property using shadcn/ui components.
+### Details:
+Use shadcn/ui's modal components to build a form for entering utility details. Ensure the modal is accessible and supports form validation.
+
+## 4. Integrate Utility Creation with Convex [pending]
+### Dependencies: 7.3
+### Description: Connect the add utility modal form to Convex to persist new utilities for the selected property.
+### Details:
+On form submission, send the new utility data to Convex and update the utilities list upon success. Handle loading and error states appropriately.
+
+## 5. Implement Data Refresh and UI State Management [pending]
+### Dependencies: 7.4
+### Description: Ensure the utilities list refreshes after adding or updating utilities and manage UI loading/error states.
+### Details:
+Implement state management to handle loading, success, and error feedback for all data operations. Ensure the UI remains responsive and accurate after any changes.
+

@@ -1,0 +1,43 @@
+# Task ID: 6
+# Title: Define Convex Database Schema for Utilities
+# Status: pending
+# Dependencies: 1, 4
+# Priority: medium
+# Description: Design and implement the database schema for utility management.
+# Details:
+Define Convex tables for utilities (id, propertyId, provider, cost, status, etc.). Link utilities to properties via propertyId. Implement CRUD operations using Convex functions.
+
+# Test Strategy:
+Test CRUD operations for utilities. Verify data integrity and schema validation.
+
+# Subtasks:
+## 1. Define Utility Table Schema [pending]
+### Dependencies: None
+### Description: Create the schema definition for the utilities table with all required fields
+### Details:
+Define a utilities table in schema.ts with fields including id (auto-generated), propertyId (as a reference to properties table), provider (string), cost (number), status (string), and any other relevant fields. Use Convex's v.id() for references and appropriate validators for each field type.
+
+## 2. Create Property-Utility Relationship Index [pending]
+### Dependencies: 6.1
+### Description: Implement an index to efficiently query utilities by propertyId
+### Details:
+Add an index to the utilities table using .index('by_property', ['propertyId']) to enable efficient querying of utilities associated with specific properties. This follows Convex best practices for relationship querying.
+
+## 3. Implement Utility Query Functions [pending]
+### Dependencies: 6.1, 6.2
+### Description: Create Convex query functions to retrieve utility data
+### Details:
+Develop query functions in a utilities.ts file including getUtility(id), getUtilitiesByProperty(propertyId), and getAllUtilities(). Use proper filtering and pagination with .collect() for limited result sets following Convex best practices.
+
+## 4. Implement Utility Mutation Functions [pending]
+### Dependencies: 6.1
+### Description: Create Convex mutation functions for CRUD operations on utilities
+### Details:
+Develop mutation functions including createUtility(), updateUtility(), and deleteUtility() with proper validation. Implement ACID transactions for data integrity and handle potential errors appropriately.
+
+## 5. Add Utility Status Validation [pending]
+### Dependencies: 6.1, 6.4
+### Description: Implement validation for utility status field using Convex validators
+### Details:
+Enhance the utilities schema to use v.union() for the status field to restrict values to predefined options (e.g., 'active', 'inactive', 'pending'). Update mutation functions to enforce these constraints and provide appropriate error messages.
+
