@@ -1,4 +1,7 @@
 "use client";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -32,29 +35,31 @@ export interface PropertyFormProps {
   loading?: boolean;
 }
 
-export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyFormProps) {
-  const [name, setName] = useState(initial?.name || "");
-  const [address, setAddress] = useState(initial?.address || "");
-  const [type, setType] = useState(initial?.type || "");
-  const [status, setStatus] = useState(initial?.status || "Vacant");
-  const [bedrooms, setBedrooms] = useState(initial?.bedrooms?.toString() || "");
-  const [bathrooms, setBathrooms] = useState(initial?.bathrooms?.toString() || "");
-  const [squareFeet, setSquareFeet] = useState(initial?.squareFeet?.toString() || "");
-  const [monthlyRent, setMonthlyRent] = useState(initial?.monthlyRent?.toString() || "");
-  const [purchaseDate, setPurchaseDate] = useState(initial?.purchaseDate || "");
-  const [imageUrl, setImageUrl] = useState(initial?.imageUrl || "");
+const propertySchema = z.object({
+  name: z.string().min(2, "Name is required"),
+  address: z.string().min(5, "Address is required"),
+  type: z.string().min(2, "Type is required"),
+  status: z.string().min(2, "Status is required"),
+  bedrooms: z.coerce.number().min(0, "Bedrooms required"),
+  bathrooms: z.coerce.number().min(0, "Bathrooms required"),
+  squareFeet: z.coerce.number().min(0, "Square feet required"),
+  monthlyRent: z.coerce.number().min(0, "Monthly rent required"),
+  purchaseDate: z.string().min(4, "Purchase date required"),
+  imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+});
+type PropertyFormType = z.infer<typeof propertySchema>;
 
-  // Property type options
-  const propertyTypes = [
-    "Apartment",
-    "Condo",
-    "Single Family",
-    "Townhouse",
-    "Multi-Family",
-    "Duplex",
-    "Other",
-  ];
-  const statusOptions = ["Vacant", "Occupied", "Under Maintenance", "Other"];
+export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyFormProps) {
+  const {
+    register,
+    handleSubmit,
+    setValue,
+    formState: { errors, isSubmitting },
+    reset,
+  } = useForm<PropertyFormType>({
+    resolver: zodResolver(propertySchema),
+    defaultValues: initial || {},
+  });
 
   // Dummy data generator with randomization
   function fillWithDummyData() {
@@ -84,36 +89,35 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
       const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
       return date.toISOString().split("T")[0];
     }
-    setName(names[randomInt(0, names.length - 1)]);
-    setAddress(addresses[randomInt(0, addresses.length - 1)]);
-    setType(types[randomInt(0, types.length - 1)]);
-    setStatus(statuses[randomInt(0, statuses.length - 1)]);
-    setBedrooms(randomInt(1, 6).toString());
-    setBathrooms(randomInt(1, 4).toString());
-    setSquareFeet(randomInt(600, 4000).toString());
-    setMonthlyRent((randomInt(900, 7500) * 10).toString());
-    setPurchaseDate(randomDate(new Date(2015, 0, 1), new Date()));
-    setImageUrl(images[randomInt(0, images.length - 1)]);
+    reset({
+      name: names[randomInt(0, names.length - 1)],
+      address: addresses[randomInt(0, addresses.length - 1)],
+      type: types[randomInt(0, types.length - 1)],
+      status: statuses[randomInt(0, statuses.length - 1)],
+      bedrooms: randomInt(1, 6),
+      bathrooms: randomInt(1, 4),
+      squareFeet: randomInt(600, 4000),
+      monthlyRent: randomInt(900, 7500) * 10,
+      purchaseDate: randomDate(new Date(2015, 0, 1), new Date()),
+      imageUrl: images[randomInt(0, images.length - 1)],
+    });
   }
+
+  const propertyTypes = [
+    "Apartment",
+    "Condo",
+    "Single Family",
+    "Townhouse",
+    "Multi-Family",
+    "Duplex",
+    "Other",
+  ];
+  const statusOptions = ["Vacant", "Occupied", "Under Maintenance", "Other"];
 
   return (
     <form
       className="space-y-4 bg-zinc-900 p-6 rounded-xl shadow-xl w-full max-w-xl"
-      onSubmit={e => {
-        e.preventDefault();
-        onSubmit({
-          name,
-          address,
-          type,
-          status,
-          bedrooms: Number(bedrooms),
-          bathrooms: Number(bathrooms),
-          squareFeet: Number(squareFeet),
-          monthlyRent: Number(monthlyRent),
-          purchaseDate,
-          imageUrl: imageUrl || undefined,
-        });
-      }}
+      onSubmit={handleSubmit(onSubmit)}
     >
       <Button
         type="button"
@@ -127,27 +131,26 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
         <label className="block text-zinc-200 mb-1">Property Name</label>
         <Input
           className="bg-zinc-800 text-zinc-100 border-zinc-700"
-          value={name}
-          onChange={e => setName(e.target.value)}
+          {...register("name")}
           required
         />
+        {errors.name && <span className="text-red-400 text-sm">{errors.name.message}</span>}
       </div>
       <div>
         <label className="block text-zinc-200 mb-1">Address</label>
         <Input
           className="bg-zinc-800 text-zinc-100 border-zinc-700"
-          value={address}
-          onChange={e => setAddress(e.target.value)}
+          {...register("address")}
           required
         />
+        {errors.address && <span className="text-red-400 text-sm">{errors.address.message}</span>}
       </div>
       <div className="flex gap-4">
         <div className="flex-1">
           <label className="block text-zinc-200 mb-1">Property Type</label>
           <select
             className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2"
-            value={type}
-            onChange={e => setType(e.target.value)}
+            {...register("type")}
             required
           >
             <option value="">Select property type</option>
@@ -155,19 +158,20 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
+          {errors.type && <span className="text-red-400 text-sm">{errors.type.message}</span>}
         </div>
         <div className="flex-1">
           <label className="block text-zinc-200 mb-1">Status</label>
           <select
             className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2"
-            value={status}
-            onChange={e => setStatus(e.target.value)}
+            {...register("status")}
             required
           >
             {statusOptions.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
+          {errors.status && <span className="text-red-400 text-sm">{errors.status.message}</span>}
         </div>
       </div>
       <div className="flex gap-4">
@@ -177,10 +181,10 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
             className="bg-zinc-800 text-zinc-100 border-zinc-700"
             type="number"
             min={0}
-            value={bedrooms}
-            onChange={e => setBedrooms(e.target.value)}
+            {...register("bedrooms", { valueAsNumber: true })}
             required
           />
+          {errors.bedrooms && <span className="text-red-400 text-sm">{errors.bedrooms.message}</span>}
         </div>
         <div className="flex-1">
           <label className="block text-zinc-200 mb-1">Bathrooms</label>
@@ -188,10 +192,10 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
             className="bg-zinc-800 text-zinc-100 border-zinc-700"
             type="number"
             min={0}
-            value={bathrooms}
-            onChange={e => setBathrooms(e.target.value)}
+            {...register("bathrooms", { valueAsNumber: true })}
             required
           />
+          {errors.bathrooms && <span className="text-red-400 text-sm">{errors.bathrooms.message}</span>}
         </div>
       </div>
       <div className="flex gap-4">
@@ -201,10 +205,10 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
             className="bg-zinc-800 text-zinc-100 border-zinc-700"
             type="number"
             min={0}
-            value={squareFeet}
-            onChange={e => setSquareFeet(e.target.value)}
+            {...register("squareFeet", { valueAsNumber: true })}
             required
           />
+          {errors.squareFeet && <span className="text-red-400 text-sm">{errors.squareFeet.message}</span>}
         </div>
         <div className="flex-1">
           <label className="block text-zinc-200 mb-1">Monthly Rent ($)</label>
@@ -212,10 +216,10 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
             className="bg-zinc-800 text-zinc-100 border-zinc-700"
             type="number"
             min={0}
-            value={monthlyRent}
-            onChange={e => setMonthlyRent(e.target.value)}
+            {...register("monthlyRent", { valueAsNumber: true })}
             required
           />
+          {errors.monthlyRent && <span className="text-red-400 text-sm">{errors.monthlyRent.message}</span>}
         </div>
       </div>
       <div>
@@ -223,29 +227,29 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
         <Input
           className="bg-zinc-800 text-zinc-100 border-zinc-700"
           type="date"
-          value={purchaseDate}
-          onChange={e => setPurchaseDate(e.target.value)}
+          {...register("purchaseDate")}
           required
         />
+        {errors.purchaseDate && <span className="text-red-400 text-sm">{errors.purchaseDate.message}</span>}
       </div>
       <div>
         <label className="block text-zinc-200 mb-1">Property Image URL</label>
         <Input
           className="bg-zinc-800 text-zinc-100 border-zinc-700"
           type="url"
-          value={imageUrl}
-          onChange={e => setImageUrl(e.target.value)}
+          {...register("imageUrl")}
           placeholder="https://..."
         />
+        {errors.imageUrl && <span className="text-red-400 text-sm">{errors.imageUrl.message}</span>}
       </div>
       <div className="flex gap-2 justify-end mt-4">
         {onCancel && (
-          <Button type="button" variant="ghost" onClick={onCancel} disabled={loading}>
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={loading || isSubmitting}>
             Cancel
           </Button>
         )}
-        <Button type="submit" disabled={loading}>
-          {loading ? "Saving..." : "Save"}
+        <Button type="submit" disabled={loading || isSubmitting}>
+          {loading || isSubmitting ? "Saving..." : "Save"}
         </Button>
       </div>
     </form>

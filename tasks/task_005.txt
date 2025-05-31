@@ -11,13 +11,13 @@ Create a properties page with a list of all properties. Implement forms for addi
 Test all CRUD operations. Verify UI updates reflect database changes. Check form validation.
 
 # Subtasks:
-## 1. Set Up Shadcn/UI and Convex Integration [pending]
+## 1. Set Up Shadcn/UI and Convex Integration [in-progress]
 ### Dependencies: None
 ### Description: Initialize the project with Shadcn/UI components and configure Convex for data fetching and mutations.
 ### Details:
 Install and configure Shadcn/UI for forms and tables. Set up Convex client and ensure connectivity for CRUD operations.
 
-## 2. Implement Properties List Table [pending]
+## 2. Implement Properties List Table [in-progress]
 ### Dependencies: 5.1
 ### Description: Create a table to display all properties using Shadcn/UI components, fetching data from Convex.
 ### Details:

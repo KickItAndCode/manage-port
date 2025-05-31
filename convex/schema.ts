@@ -16,4 +16,13 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     createdAt: v.string(),
   }),
+  utilities: defineTable({
+    userId: v.string(), // Clerk user ID
+    propertyId: v.id("properties"), // Link to property
+    name: v.string(), // Utility name (e.g., Electricity)
+    provider: v.string(), // Utility provider
+    cost: v.number(), // Monthly cost
+    status: v.string(), // e.g., Active, Inactive
+    createdAt: v.string(),
+  }),
 }); 
