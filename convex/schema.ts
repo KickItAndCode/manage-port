@@ -25,4 +25,17 @@ export default defineSchema({
     status: v.string(), // e.g., Active, Inactive
     createdAt: v.string(),
   }),
+  leases: defineTable({
+    userId: v.string(), // Clerk user ID
+    propertyId: v.id("properties"), // Link to property
+    tenantName: v.string(),
+    tenantEmail: v.optional(v.string()),
+    tenantPhone: v.optional(v.string()),
+    startDate: v.string(),
+    endDate: v.string(),
+    rent: v.number(),
+    status: v.string(), // active, expired
+    leaseDocumentUrl: v.optional(v.string()),
+    createdAt: v.string(),
+  }),
 }); 
