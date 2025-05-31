@@ -47,6 +47,9 @@ const leaseSchema = z.object({
 type LeaseFormType = z.infer<typeof leaseSchema>;
 
 export function LeaseForm({ properties, initial, onSubmit, onCancel, loading }: LeaseFormProps) {
+  if (!properties || properties.length === 0) {
+    return <div className="text-center text-muted-foreground">No properties available. Please add a property first.</div>;
+  }
   const {
     register,
     handleSubmit,

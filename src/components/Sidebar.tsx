@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Building, FileText, Settings, Flashlight, File, Layers } from "lucide-react";
+import { useEffect, useState } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
@@ -14,10 +15,13 @@ const navItems = [
 
 export function Sidebar() {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+  if (!mounted) return null;
   return (
-    <aside className="h-screen w-64 bg-zinc-950 border-r border-zinc-900 flex flex-col py-6 px-4">
+    <aside className="h-screen w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border flex flex-col py-6 px-4 rounded-r-2xl shadow-xl transition-colors duration-300">
       <div className="mb-8 flex items-center gap-2 px-2">
-        <span className="text-xl font-bold text-blue-400">{/* Logo/Icon */} <Building className="inline-block mr-2" size={24} />ManagePort</span>
+        <span className="text-xl font-bold text-primary flex items-center"><Building className="inline-block mr-2" size={24} />ManagePort</span>
       </div>
       <nav className="flex-1">
         <ul className="space-y-2">
@@ -25,9 +29,9 @@ export function Sidebar() {
             <li key={href}>
               <Link
                 href={href}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-zinc-300 hover:bg-zinc-900 hover:text-blue-400 ${
-                  pathname.startsWith(href) ? "bg-zinc-900 text-blue-400" : ""
-                }`}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sidebar-foreground 
+                  hover:bg-primary hover:text-primary-foreground hover:bg-primary/90
+                  ${pathname.startsWith(href) ? "bg-success text-success-foreground" : ""}`}
               >
                 <Icon size={18} />
                 <span className="font-medium">{label}</span>

@@ -82,24 +82,34 @@ export default function LeasesPage() {
     setModalOpen(false);
   }
 
-  if (!user) return <div className="text-center text-zinc-200">Sign in to manage leases.</div>;
-  if (!properties) return <div className="text-center text-zinc-200">Loading properties...</div>;
+  // Debug logging
+  if (typeof window !== "undefined") {
+    console.log("Current Clerk user.id:", user?.id);
+    if (properties) {
+      console.log("Loaded properties userIds:", properties.map((p: any) => p.userId));
+    } else {
+      console.log("Properties not loaded yet");
+    }
+  }
+
+  if (!user) return <div className="text-center text-muted-foreground">Sign in to manage leases.</div>;
+  if (!properties) return <div className="text-center text-muted-foreground">Loading properties...</div>;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-8">
+    <div className="min-h-screen bg-background text-foreground p-8 transition-colors duration-300">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Leases</h1>
-        <Button onClick={handleAdd} className="bg-blue-600 hover:bg-blue-700">Add Lease</Button>
+        <Button onClick={handleAdd} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-colors duration-200" disabled={!properties || properties.length === 0}>Add Lease</Button>
       </div>
       <div className="flex flex-wrap gap-4 mb-4 items-end">
         <Input
           placeholder="Search tenant name..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="max-w-xs"
+          className="max-w-xs bg-input text-foreground border border-border transition-colors duration-200"
         />
         <select
-          className="bg-zinc-900 text-zinc-100 px-4 py-2 rounded-lg border border-zinc-800"
+          className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
           value={filterProperty}
           onChange={e => setFilterProperty(e.target.value)}
         >
@@ -109,7 +119,7 @@ export default function LeasesPage() {
           ))}
         </select>
         <select
-          className="bg-zinc-900 text-zinc-100 px-4 py-2 rounded-lg border border-zinc-800"
+          className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
           value={filterStatus}
           onChange={e => setFilterStatus(e.target.value)}
         >
@@ -120,13 +130,13 @@ export default function LeasesPage() {
       </div>
       {selected.length > 0 && (
         <div className="mb-2 flex gap-2 items-center">
-          <span className="text-zinc-300">{selected.length} selected</span>
-          <Button variant="destructive" onClick={handleBulkDelete} disabled={loading}>
+          <span className="text-muted-foreground">{selected.length} selected</span>
+          <Button variant="destructive" onClick={handleBulkDelete} disabled={loading} className="transition-colors duration-200">
             Delete Selected
           </Button>
         </div>
       )}
-      <div className="overflow-x-auto rounded-xl shadow-lg bg-zinc-900">
+      <div className="overflow-x-auto rounded-2xl shadow-2xl bg-card border border-border transition-colors duration-300">
         <LoadingContent loading={!leases} error={error} skeletonRows={6} skeletonHeight={40}>
           <Table>
             <TableHeader>
@@ -151,7 +161,7 @@ export default function LeasesPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((lease) => (
-                <TableRow key={lease._id}>
+                <TableRow key={lease._id} className={selected.includes(String(lease._id)) ? "bg-accent/30" : "hover:bg-muted/50 transition-colors duration-200"}>
                   <TableCell className="w-8">
                     <input
                       type="checkbox"
@@ -164,22 +174,22 @@ export default function LeasesPage() {
                   <TableCell className="p-2">{properties?.find((p: any) => p._id === lease.propertyId)?.name || "-"}</TableCell>
                   <TableCell className="p-2">{lease.startDate} - {lease.endDate}</TableCell>
                   <TableCell className="p-2">${lease.rent}</TableCell>
-                  <TableCell className="p-2">{lease.status === "active" ? <span className="text-green-400">Active</span> : <span className="text-zinc-400">Expired</span>}</TableCell>
+                  <TableCell className="p-2">{lease.status === "active" ? <span className="text-green-400">Active</span> : <span className="text-muted-foreground">Expired</span>}</TableCell>
                   <TableCell className="p-2">
                     {lease.tenantEmail && <div className="truncate max-w-[120px]" title={lease.tenantEmail}>{lease.tenantEmail}</div>}
                     {lease.tenantPhone && <div className="truncate max-w-[120px]" title={lease.tenantPhone}>{lease.tenantPhone}</div>}
                   </TableCell>
                   <TableCell className="p-2">
                     {lease.leaseDocumentUrl ? (
-                      <a href={lease.leaseDocumentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">View</a>
+                      <a href={lease.leaseDocumentUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>
                     ) : (
-                      <span className="text-zinc-500">-</span>
+                      <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost" className="text-zinc-400 hover:text-blue-400">
+                        <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-primary">
                           <MoreHorizontal />
                         </Button>
                       </DropdownMenuTrigger>
@@ -206,7 +216,7 @@ export default function LeasesPage() {
               ))}
               {(!filtered || filtered.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center text-zinc-500">
+                  <TableCell colSpan={11} className="text-center text-muted-foreground">
                     No leases found.
                   </TableCell>
                 </TableRow>
@@ -215,21 +225,17 @@ export default function LeasesPage() {
           </Table>
         </LoadingContent>
       </div>
-      <Dialog open={!!editLease} onOpenChange={(v) => !v && setEditLease(null)}>
-        <DialogContent className="bg-zinc-900 border-zinc-800">
+      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
+        <DialogContent className="bg-card border border-border shadow-xl rounded-xl">
           <DialogHeader>
-            <DialogTitle>Edit Lease</DialogTitle>
+            <DialogTitle>{editLease ? "Edit Lease" : "Add Lease"}</DialogTitle>
           </DialogHeader>
           <LeaseForm
             initial={editLease}
-            onSubmit={async (data) => {
-              setLoading(true);
-              await updateLease({ ...data, id: editLease._id, userId: user.id });
-              setLoading(false);
-              setEditLease(null);
-            }}
-            onCancel={() => setEditLease(null)}
+            onSubmit={handleSubmit}
             loading={loading}
+            onCancel={() => setModalOpen(false)}
+            properties={properties || []}
           />
         </DialogContent>
       </Dialog>

@@ -57,24 +57,24 @@ export default function DocumentsPage() {
     setLoading(false);
   }
 
-  if (!user) return <div className="text-center text-zinc-200">Sign in to manage documents.</div>;
-  if (!properties || !leases) return <div className="text-center text-zinc-200">Loading...</div>;
+  if (!user) return <div className="text-center text-muted-foreground">Sign in to manage documents.</div>;
+  if (!properties || !leases) return <div className="text-center text-muted-foreground">Loading...</div>;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-8">
+    <div className="min-h-screen bg-background text-foreground p-8 transition-colors duration-300">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Documents</h1>
-        <Button onClick={() => setModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">Upload Document</Button>
+        <Button onClick={() => setModalOpen(true)} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-colors duration-200">Upload Document</Button>
       </div>
       <div className="flex flex-wrap gap-4 mb-4 items-end">
         <Input
           placeholder="Search by document name..."
           value={search}
           onChange={e => setSearch(e.target.value)}
-          className="max-w-xs"
+          className="max-w-xs bg-input text-foreground border border-border transition-colors duration-200"
         />
         <select
-          className="bg-zinc-900 text-zinc-100 px-4 py-2 rounded-lg border border-zinc-800"
+          className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value)}
         >
@@ -85,7 +85,7 @@ export default function DocumentsPage() {
           <option value="other">Other</option>
         </select>
         <select
-          className="bg-zinc-900 text-zinc-100 px-4 py-2 rounded-lg border border-zinc-800"
+          className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
           value={propertyFilter}
           onChange={e => setPropertyFilter(e.target.value)}
         >
@@ -97,13 +97,13 @@ export default function DocumentsPage() {
       </div>
       {selected.length > 0 && (
         <div className="mb-2 flex gap-2 items-center">
-          <span className="text-zinc-300">{selected.length} selected</span>
-          <Button variant="destructive" onClick={handleBulkDelete} disabled={loading}>
+          <span className="text-muted-foreground">{selected.length} selected</span>
+          <Button variant="destructive" onClick={handleBulkDelete} disabled={loading} className="transition-colors duration-200">
             Delete Selected
           </Button>
         </div>
       )}
-      <div className="overflow-x-auto rounded-xl shadow-lg bg-zinc-900">
+      <div className="overflow-x-auto rounded-2xl shadow-2xl bg-card border border-border transition-colors duration-300">
         <LoadingContent loading={!documents} skeletonRows={6} skeletonHeight={40}>
           <Table>
             <TableHeader>
@@ -126,7 +126,7 @@ export default function DocumentsPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((doc) => (
-                <TableRow key={doc._id}>
+                <TableRow key={doc._id} className={selected.includes(String(doc._id)) ? "bg-accent/30" : "hover:bg-muted/50 transition-colors duration-200"}>
                   <TableCell className="w-8">
                     <input
                       type="checkbox"
@@ -136,7 +136,7 @@ export default function DocumentsPage() {
                     />
                   </TableCell>
                   <TableCell className="p-2 font-medium">
-                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
+                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-primary underline">
                       {doc.name}
                     </a>
                   </TableCell>
@@ -151,7 +151,7 @@ export default function DocumentsPage() {
                   <TableCell className="p-2">
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost" className="text-zinc-400 hover:text-blue-400">
+                        <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-primary">
                           <MoreHorizontal />
                         </Button>
                       </DropdownMenuTrigger>
@@ -175,7 +175,7 @@ export default function DocumentsPage() {
               ))}
               {(!filtered || filtered.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center text-zinc-500">
+                  <TableCell colSpan={11} className="text-center text-muted-foreground">
                     No documents found.
                   </TableCell>
                 </TableRow>
@@ -185,10 +185,12 @@ export default function DocumentsPage() {
         </LoadingContent>
       </div>
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
-          <DialogTitle>Upload Document</DialogTitle>
+        <DialogContent className="bg-card border border-border shadow-xl rounded-xl">
+          <DialogHeader>
+            <DialogTitle>Upload Document</DialogTitle>
+          </DialogHeader>
           {/* TODO: Implement document upload form */}
-          <div className="text-zinc-400">Document upload coming soon.</div>
+          <div className="text-muted-foreground">Document upload coming soon.</div>
         </DialogContent>
       </Dialog>
     </div>

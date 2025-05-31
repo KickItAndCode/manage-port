@@ -26,14 +26,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-zinc-950`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground transition-colors duration-300`}
       >
         <AppProviders>
           <div className="flex min-h-screen">
             <Sidebar />
-            <div className="flex-1 flex flex-col min-h-screen bg-zinc-950">
+            <div className="flex-1 flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300">
               <Topbar />
               <main className="flex-1">{children}</main>
             </div>

@@ -77,4 +77,14 @@ export const deleteProperty = mutation({
     if (!property || property.userId !== args.userId) throw new Error("Unauthorized");
     await ctx.db.delete(args.id);
   },
+});
+
+// Get a single property by ID for the signed-in user
+export const getProperty = query({
+  args: { id: v.id("properties"), userId: v.string() },
+  handler: async (ctx, args) => {
+    const property = await ctx.db.get(args.id);
+    if (!property || property.userId !== args.userId) return null;
+    return property;
+  },
 }); 

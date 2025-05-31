@@ -11,6 +11,7 @@ import { ChevronUp, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
+import Link from "next/link";
 
 type PropertySortKey = 'name' | 'type' | 'status' | 'address' | 'bedrooms' | 'bathrooms' | 'squareFeet' | 'monthlyRent' | 'purchaseDate';
 
@@ -97,17 +98,17 @@ export default function PropertiesPage() {
     }
   }
 
-  if (!user) return <div className="text-center text-zinc-200">Sign in to manage properties.</div>;
+  if (!user) return <div className="text-center text-muted-foreground">Sign in to manage properties.</div>;
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-8">
+    <div className="min-h-screen bg-background text-foreground p-8 transition-colors duration-300">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Properties</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">Add Property</Button>
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-colors duration-200">Add Property</Button>
           </DialogTrigger>
-          <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogContent className="bg-card border border-border shadow-xl rounded-xl">
             <DialogHeader>
               <DialogTitle>Add Property</DialogTitle>
             </DialogHeader>
@@ -127,12 +128,12 @@ export default function PropertiesPage() {
         <input
           type="text"
           placeholder="Search by name, address, or type..."
-          className="bg-zinc-900 text-zinc-100 px-4 py-2 rounded-lg border border-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+          className="bg-input text-foreground px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary w-64 transition-colors duration-200"
           value={search}
           onChange={e => setSearch(e.target.value)}
         />
         <select
-          className="bg-zinc-900 text-zinc-100 px-4 py-2 rounded-lg border border-zinc-800"
+          className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
           value={typeFilter}
           onChange={e => setTypeFilter(e.target.value)}
         >
@@ -142,7 +143,7 @@ export default function PropertiesPage() {
           ))}
         </select>
         <select
-          className="bg-zinc-900 text-zinc-100 px-4 py-2 rounded-lg border border-zinc-800"
+          className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value)}
         >
@@ -152,7 +153,7 @@ export default function PropertiesPage() {
           ))}
         </select>
       </div>
-      <div className="overflow-x-auto rounded-xl shadow-lg bg-zinc-900">
+      <div className="overflow-x-auto rounded-2xl shadow-2xl bg-card border border-border transition-colors duration-300">
         <Table>
           <TableHeader>
             <TableRow>
@@ -164,26 +165,25 @@ export default function PropertiesPage() {
                   aria-label="Select all"
                 />
               </TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("name")}>Name {sortKey==="name" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("type")}>Type {sortKey==="type" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("status")}>Status {sortKey==="status" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("address")}>Address {sortKey==="address" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("bedrooms")}>Bedrooms {sortKey==="bedrooms" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("bathrooms")}>Bathrooms {sortKey==="bathrooms" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("squareFeet")}>Sq Ft {sortKey==="squareFeet" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("monthlyRent")}>Rent {sortKey==="monthlyRent" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("purchaseDate")}>Purchase Date {sortKey==="purchaseDate" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300">Image</TableHead>
-              <TableHead className="text-zinc-300">Actions</TableHead>
+              <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("name")}>Name {sortKey==="name" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("type")}>Type {sortKey==="type" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("status")}>Status {sortKey==="status" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("address")}>Address {sortKey==="address" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("bedrooms")}>Bedrooms {sortKey==="bedrooms" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("bathrooms")}>Bathrooms {sortKey==="bathrooms" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("squareFeet")}>Sq Ft {sortKey==="squareFeet" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("monthlyRent")}>Rent {sortKey==="monthlyRent" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("purchaseDate")}>Purchase Date {sortKey==="purchaseDate" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-muted-foreground">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {selected.length > 0 && (
               <TableRow>
-                <TableCell colSpan={12} className="bg-zinc-800">
+                <TableCell colSpan={12} className="bg-accent/30">
                   <div className="mb-2 flex gap-2 items-center">
-                    <span className="text-zinc-300">{selected.length} selected</span>
-                    <Button variant="destructive" onClick={handleBulkDelete} disabled={loading}>
+                    <span className="text-muted-foreground">{selected.length} selected</span>
+                    <Button variant="destructive" onClick={handleBulkDelete} disabled={loading} className="transition-colors duration-200">
                       Delete Selected
                     </Button>
                   </div>
@@ -191,7 +191,7 @@ export default function PropertiesPage() {
               </TableRow>
             )}
             {filtered.map((property) => (
-              <TableRow key={property._id} className={selected.includes(String(property._id)) ? "bg-zinc-800" : ""}>
+              <TableRow key={property._id} className={selected.includes(String(property._id)) ? "bg-accent/30" : "hover:bg-muted/50 transition-colors duration-200"}>
                 <TableCell className="w-8">
                   <input
                     type="checkbox"
@@ -200,11 +200,13 @@ export default function PropertiesPage() {
                     aria-label="Select property"
                   />
                 </TableCell>
-                <TableCell>{property.name}</TableCell>
-                <TableCell>{property.type}</TableCell>
-                <TableCell>
-                  <Badge className={statusColor(property.status)}>{property.status}</Badge>
+                <TableCell className="font-medium">
+                  <Link href={`/properties/${property._id}`} className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors duration-200">
+                    {property.name}
+                  </Link>
                 </TableCell>
+                <TableCell>{property.type}</TableCell>
+                <TableCell><span className={statusColor(property.status)}>{property.status}</span></TableCell>
                 <TableCell>{property.address}</TableCell>
                 <TableCell>{property.bedrooms}</TableCell>
                 <TableCell>{property.bathrooms}</TableCell>
@@ -212,16 +214,9 @@ export default function PropertiesPage() {
                 <TableCell>${property.monthlyRent}</TableCell>
                 <TableCell>{property.purchaseDate}</TableCell>
                 <TableCell>
-                  {property.imageUrl ? (
-                    <img src={property.imageUrl} alt="Property" className="w-12 h-12 object-cover rounded" />
-                  ) : (
-                    <span className="text-zinc-500">—</span>
-                  )}
-                </TableCell>
-                <TableCell>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button size="icon" variant="ghost" className="text-zinc-400 hover:text-blue-400">
+                      <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-primary">
                         <MoreHorizontal />
                       </Button>
                     </DropdownMenuTrigger>
@@ -248,7 +243,7 @@ export default function PropertiesPage() {
             ))}
             {(!filtered || filtered.length === 0) && (
               <TableRow>
-                <TableCell colSpan={11} className="text-center text-zinc-500">
+                <TableCell colSpan={13} className="text-center text-muted-foreground">
                   No properties found.
                 </TableCell>
               </TableRow>
@@ -257,7 +252,7 @@ export default function PropertiesPage() {
         </Table>
       </div>
       <Dialog open={!!edit} onOpenChange={(v) => !v && setEdit(null)}>
-        <DialogContent className="bg-zinc-900 border-zinc-800">
+        <DialogContent className="bg-card border border-border shadow-xl rounded-xl">
           <DialogHeader>
             <DialogTitle>Edit Property</DialogTitle>
           </DialogHeader>
