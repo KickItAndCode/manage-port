@@ -25,10 +25,22 @@ export const addLease = mutation({
         .collect();
       if (active.length > 0) throw new Error("There is already an active lease for this property.");
     }
-    return await ctx.db.insert("leases", {
+    const lease = await ctx.db.insert("leases", {
       ...args,
       createdAt: new Date().toISOString(),
     });
+    if (args.leaseDocumentUrl) {
+      await ctx.db.insert("documents", {
+        userId: args.userId,
+        url: args.leaseDocumentUrl,
+        name: "Lease Document",
+        type: "lease",
+        propertyId: args.propertyId,
+        leaseId: lease,
+        uploadedAt: new Date().toISOString(),
+      });
+    }
+    return lease;
   },
 });
 
@@ -83,6 +95,30 @@ export const updateLease = mutation({
       status: args.status,
       leaseDocumentUrl: args.leaseDocumentUrl,
     });
+    if (args.leaseDocumentUrl) {
+      // Upsert document for this lease
+      const docs = await ctx.db
+        .query("documents")
+        .filter(q => q.eq(q.field("leaseId"), args.id))
+        .collect();
+      if (docs.length > 0) {
+        await ctx.db.patch(docs[0]._id, {
+          url: args.leaseDocumentUrl,
+          propertyId: args.propertyId,
+          uploadedAt: new Date().toISOString(),
+        });
+      } else {
+        await ctx.db.insert("documents", {
+          userId: args.userId,
+          url: args.leaseDocumentUrl,
+          name: "Lease Document",
+          type: "lease",
+          propertyId: args.propertyId,
+          leaseId: args.id,
+          uploadedAt: new Date().toISOString(),
+        });
+      }
+    }
   },
 });
 

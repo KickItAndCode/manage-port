@@ -38,4 +38,14 @@ export default defineSchema({
     leaseDocumentUrl: v.optional(v.string()),
     createdAt: v.string(),
   }),
+  documents: defineTable({
+    userId: v.string(),
+    url: v.string(),
+    name: v.string(),
+    type: v.string(), // lease, utility, property, other
+    propertyId: v.optional(v.id("properties")),
+    leaseId: v.optional(v.id("leases")),
+    uploadedAt: v.string(),
+    notes: v.optional(v.string()),
+  }),
 }); 
