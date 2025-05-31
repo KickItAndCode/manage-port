@@ -5,10 +5,10 @@
 # Priority: medium
 # Description: Create a dashboard page with key metrics for property portfolio overview.
 # Details:
-Design dashboard UI using shadcn/ui and Tailwind CSS. Display total rent, number of properties, and occupancy rate. Fetch data from Convex using custom hooks. Ensure responsive layout and accessibility.
+Design dashboard UI using shadcn/ui and Tailwind CSS. Display total rent, number of properties, and occupancy rate. Fetch data from Convex using custom hooks. Ensure responsive layout and accessibility. Integrate with updated Convex schema to support all property fields.
 
 # Test Strategy:
-Test UI renders correctly. Verify data is fetched and displayed accurately. Check responsiveness on different devices.
+Test UI renders correctly. Verify data is fetched and displayed accurately. Check responsiveness on different devices. Validate that dashboard correctly reflects all property fields from the updated schema.
 
 # Subtasks:
 ## 1. Define Dashboard Layout and Structure [pending]
@@ -27,17 +27,29 @@ Install necessary dependencies and ensure Shadcn/UI and Tailwind CSS are properl
 ### Dependencies: 3.2
 ### Description: Create and integrate custom hooks to fetch total rent, number of properties, and occupancy rate from Convex backend.
 ### Details:
-Develop hooks for each metric, handle loading and error states, and ensure data is available for UI components.
+Develop hooks for each metric, handle loading and error states, and ensure data is available for UI components. Ensure hooks are compatible with the updated Convex schema that supports all property fields.
 
 ## 4. Design and Build Metric Display Components [pending]
 ### Dependencies: 3.3
 ### Description: Create UI components to display total rent, number of properties, and occupancy rate using Shadcn/UI and Tailwind CSS.
 ### Details:
-Use Shadcn/UI cards or stat blocks for each metric, ensuring clear visual hierarchy and accessibility.
+Use Shadcn/UI cards or stat blocks for each metric, ensuring clear visual hierarchy and accessibility. Consider how to display or summarize additional property fields from the updated schema.
 
 ## 5. Ensure Responsive Design and Accessibility Compliance [pending]
 ### Dependencies: 3.4
 ### Description: Test and refine the dashboard to guarantee it is fully responsive and accessible across devices and assistive technologies.
 ### Details:
 Use Tailwind's responsive utilities and Shadcn/UI accessibility features. Conduct manual and automated accessibility testing.
+
+## 6. Update Dashboard to Reflect All Property Fields [pending]
+### Dependencies: 3.3, 3.4
+### Description: Enhance the dashboard to display and utilize all fields from the updated property schema.
+### Details:
+Review the updated Convex schema and ensure the dashboard properly reflects all property fields. Consider adding additional metrics or visualizations that leverage the new property data.
+
+## 7. Integrate with Add Property Form [pending]
+### Dependencies: 3.6
+### Description: Ensure the dashboard updates correctly when new properties are added through the updated Add Property form.
+### Details:
+Test the integration between the Add Property form and the dashboard to confirm that newly added properties with all fields are correctly reflected in dashboard metrics and visualizations.
 

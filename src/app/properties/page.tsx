@@ -50,8 +50,15 @@ export default function PropertiesPage() {
           <TableHeader>
             <TableRow>
               <TableHead className="text-zinc-300">Name</TableHead>
+              <TableHead className="text-zinc-300">Type</TableHead>
+              <TableHead className="text-zinc-300">Status</TableHead>
               <TableHead className="text-zinc-300">Address</TableHead>
+              <TableHead className="text-zinc-300">Bedrooms</TableHead>
+              <TableHead className="text-zinc-300">Bathrooms</TableHead>
+              <TableHead className="text-zinc-300">Sq Ft</TableHead>
               <TableHead className="text-zinc-300">Rent</TableHead>
+              <TableHead className="text-zinc-300">Purchase Date</TableHead>
+              <TableHead className="text-zinc-300">Image</TableHead>
               <TableHead className="text-zinc-300">Actions</TableHead>
             </TableRow>
           </TableHeader>
@@ -59,8 +66,21 @@ export default function PropertiesPage() {
             {properties?.map((property) => (
               <TableRow key={property._id}>
                 <TableCell>{property.name}</TableCell>
+                <TableCell>{property.type}</TableCell>
+                <TableCell>{property.status}</TableCell>
                 <TableCell>{property.address}</TableCell>
-                <TableCell>${property.rent}</TableCell>
+                <TableCell>{property.bedrooms}</TableCell>
+                <TableCell>{property.bathrooms}</TableCell>
+                <TableCell>{property.squareFeet}</TableCell>
+                <TableCell>${property.monthlyRent}</TableCell>
+                <TableCell>{property.purchaseDate}</TableCell>
+                <TableCell>
+                  {property.imageUrl ? (
+                    <img src={property.imageUrl} alt="Property" className="w-12 h-12 object-cover rounded" />
+                  ) : (
+                    <span className="text-zinc-500">—</span>
+                  )}
+                </TableCell>
                 <TableCell>
                   <Dialog open={edit?._id === property._id} onOpenChange={(v) => !v && setEdit(null)}>
                     <DialogTrigger asChild>
@@ -107,7 +127,7 @@ export default function PropertiesPage() {
             ))}
             {(!properties || properties.length === 0) && (
               <TableRow>
-                <TableCell colSpan={4} className="text-center text-zinc-500">
+                <TableCell colSpan={11} className="text-center text-zinc-500">
                   No properties found.
                 </TableCell>
               </TableRow>

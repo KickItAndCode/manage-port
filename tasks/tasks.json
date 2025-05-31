@@ -84,14 +84,14 @@
       "id": 3,
       "title": "Design and Implement Dashboard UI",
       "description": "Create a dashboard page with key metrics for property portfolio overview.",
-      "details": "Design dashboard UI using shadcn/ui and Tailwind CSS. Display total rent, number of properties, and occupancy rate. Fetch data from Convex using custom hooks. Ensure responsive layout and accessibility.",
-      "testStrategy": "Test UI renders correctly. Verify data is fetched and displayed accurately. Check responsiveness on different devices.",
-      "priority": "medium",
+      "status": "pending",
       "dependencies": [
         1,
         2
       ],
-      "status": "pending",
+      "priority": "medium",
+      "details": "Design dashboard UI using shadcn/ui and Tailwind CSS. Display total rent, number of properties, and occupancy rate. Fetch data from Convex using custom hooks. Ensure responsive layout and accessibility. Integrate with updated Convex schema to support all property fields.",
+      "testStrategy": "Test UI renders correctly. Verify data is fetched and displayed accurately. Check responsiveness on different devices. Validate that dashboard correctly reflects all property fields from the updated schema.",
       "subtasks": [
         {
           "id": 1,
@@ -120,9 +120,9 @@
           "dependencies": [
             2
           ],
-          "details": "Develop hooks for each metric, handle loading and error states, and ensure data is available for UI components.",
+          "details": "Develop hooks for each metric, handle loading and error states, and ensure data is available for UI components. Ensure hooks are compatible with the updated Convex schema that supports all property fields.",
           "status": "pending",
-          "testStrategy": "Mock Convex API responses and verify hooks return correct data and handle edge cases."
+          "testStrategy": "Mock Convex API responses and verify hooks return correct data and handle edge cases. Test with the full range of property fields from the updated schema."
         },
         {
           "id": 4,
@@ -131,7 +131,7 @@
           "dependencies": [
             3
           ],
-          "details": "Use Shadcn/UI cards or stat blocks for each metric, ensuring clear visual hierarchy and accessibility.",
+          "details": "Use Shadcn/UI cards or stat blocks for each metric, ensuring clear visual hierarchy and accessibility. Consider how to display or summarize additional property fields from the updated schema.",
           "status": "pending",
           "testStrategy": "Test components with sample data, check for correct rendering, and validate accessibility with screen readers."
         },
@@ -145,6 +145,29 @@
           "details": "Use Tailwind's responsive utilities and Shadcn/UI accessibility features. Conduct manual and automated accessibility testing.",
           "status": "pending",
           "testStrategy": "Perform cross-device testing, use accessibility tools (e.g., axe, Lighthouse), and gather feedback from users with assistive needs."
+        },
+        {
+          "id": 6,
+          "title": "Update Dashboard to Reflect All Property Fields",
+          "description": "Enhance the dashboard to display and utilize all fields from the updated property schema.",
+          "dependencies": [
+            3,
+            4
+          ],
+          "details": "Review the updated Convex schema and ensure the dashboard properly reflects all property fields. Consider adding additional metrics or visualizations that leverage the new property data.",
+          "status": "pending",
+          "testStrategy": "Verify that all property fields are correctly represented in the dashboard. Test with a variety of property data to ensure accurate display."
+        },
+        {
+          "id": 7,
+          "title": "Integrate with Add Property Form",
+          "description": "Ensure the dashboard updates correctly when new properties are added through the updated Add Property form.",
+          "dependencies": [
+            6
+          ],
+          "details": "Test the integration between the Add Property form and the dashboard to confirm that newly added properties with all fields are correctly reflected in dashboard metrics and visualizations.",
+          "status": "pending",
+          "testStrategy": "Create test properties with the full range of fields and verify they appear correctly in the dashboard. Test edge cases such as properties with missing optional fields."
         }
       ]
     },

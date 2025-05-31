@@ -6,6 +6,14 @@ export default defineSchema({
     userId: v.string(), // Clerk user ID
     name: v.string(),
     address: v.string(),
-    rent: v.number(),
+    type: v.string(),
+    status: v.string(),
+    bedrooms: v.number(),
+    bathrooms: v.number(),
+    squareFeet: v.number(),
+    monthlyRent: v.number(),
+    purchaseDate: v.string(),
+    imageUrl: v.optional(v.string()),
+    createdAt: v.string(),
   }),
 }); 

@@ -6,11 +6,21 @@ export const addProperty = mutation({
   args: {
     name: v.string(),
     address: v.string(),
-    rent: v.number(),
+    type: v.string(),
+    status: v.string(),
+    bedrooms: v.number(),
+    bathrooms: v.number(),
+    squareFeet: v.number(),
+    monthlyRent: v.number(),
+    purchaseDate: v.string(),
+    imageUrl: v.optional(v.string()),
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("properties", args);
+    return await ctx.db.insert("properties", {
+      ...args,
+      createdAt: new Date().toISOString(),
+    });
   },
 });
 
@@ -31,7 +41,14 @@ export const updateProperty = mutation({
     id: v.id("properties"),
     name: v.string(),
     address: v.string(),
-    rent: v.number(),
+    type: v.string(),
+    status: v.string(),
+    bedrooms: v.number(),
+    bathrooms: v.number(),
+    squareFeet: v.number(),
+    monthlyRent: v.number(),
+    purchaseDate: v.string(),
+    imageUrl: v.optional(v.string()),
     userId: v.string(),
   },
   handler: async (ctx, args) => {
@@ -40,7 +57,14 @@ export const updateProperty = mutation({
     await ctx.db.patch(args.id, {
       name: args.name,
       address: args.address,
-      rent: args.rent,
+      type: args.type,
+      status: args.status,
+      bedrooms: args.bedrooms,
+      bathrooms: args.bathrooms,
+      squareFeet: args.squareFeet,
+      monthlyRent: args.monthlyRent,
+      purchaseDate: args.purchaseDate,
+      imageUrl: args.imageUrl,
     });
   },
 });
