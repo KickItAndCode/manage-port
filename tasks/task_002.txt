@@ -1,6 +1,6 @@
 # Task ID: 2
 # Title: Implement Clerk Authentication Integration
-# Status: in-progress
+# Status: done
 # Dependencies: 1
 # Priority: high
 # Description: Integrate Clerk authentication to secure the application and manage user sessions.
