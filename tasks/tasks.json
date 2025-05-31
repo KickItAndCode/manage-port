@@ -8,7 +8,7 @@
       "testStrategy": "Verify project builds and runs without errors. Confirm Clerk and Convex are initialized and accessible.",
       "priority": "high",
       "dependencies": [],
-      "status": "pending",
+      "status": "done",
       "subtasks": [
         {
           "id": 1,
@@ -16,7 +16,7 @@
           "description": "Create a new Next.js project using create-next-app with the required version and options.",
           "dependencies": [],
           "details": "Run 'npx create-next-app@latest' and select Next.js v14.2.0+, enabling TypeScript, ESLint, Tailwind CSS, src directory, and App Router as prompted.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Verify that the project folder is created with the correct Next.js version and selected options by checking package.json and the initial folder structure."
         },
         {
@@ -27,7 +27,7 @@
             1
           ],
           "details": "Install shadcn/ui and Tailwind CSS using npm or yarn. Configure Tailwind by editing tailwind.config.js and ensuring shadcn/ui components are available.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Check that Tailwind CSS classes apply correctly and shadcn/ui components render without errors."
         },
         {
@@ -38,7 +38,7 @@
             1
           ],
           "details": "Install Convex using npm or yarn. Initialize Convex in the project and set up the connection to the Convex backend.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Verify Convex is connected by running a test query or mutation and confirming successful communication with the backend."
         },
         {
@@ -49,7 +49,7 @@
             1
           ],
           "details": "Install Clerk using npm or yarn. Configure Clerk in the project, set up environment variables, and add authentication components to the app.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Test user sign-up, sign-in, and authentication flows to ensure Clerk is working as expected."
         },
         {
@@ -62,7 +62,7 @@
             4
           ],
           "details": "Organize the src directory into pages, components, and utilities. Ensure all installed dependencies are properly configured and imported where needed.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Confirm that the project builds and runs, and that all dependencies (Tailwind, shadcn/ui, Convex, Clerk) are functional in the initial structure."
         }
       ]
@@ -77,7 +77,7 @@
       "dependencies": [
         1
       ],
-      "status": "pending",
+      "status": "in-progress",
       "subtasks": []
     },
     {
