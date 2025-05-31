@@ -6,9 +6,12 @@ import { Input } from "@/components/ui/input";
 import { LeaseForm } from "@/components/LeaseForm";
 import { Card } from "@/components/ui/card";
 import { LoadingContent } from "@/components/LoadingContent";
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 
 export default function LeasesPage() {
   const { user } = useUser();
@@ -25,6 +28,7 @@ export default function LeasesPage() {
   const [filterProperty, setFilterProperty] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Filtering
   const filtered = (leases || []).filter((l: any) => {
@@ -123,76 +127,108 @@ export default function LeasesPage() {
         </div>
       )}
       <div className="overflow-x-auto rounded-xl shadow-lg bg-zinc-900">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-zinc-800 text-zinc-200">
-              <th className="w-8">
-                <input
-                  type="checkbox"
-                  checked={selected.length === filtered.length && filtered.length > 0}
-                  onChange={selectAll}
-                  aria-label="Select all"
-                />
-              </th>
-              <th className="p-2 text-left">Tenant</th>
-              <th className="p-2 text-left">Property</th>
-              <th className="p-2 text-left">Dates</th>
-              <th className="p-2 text-left">Rent</th>
-              <th className="p-2 text-left">Status</th>
-              <th className="p-2 text-left">Contact</th>
-              <th className="p-2 text-left">Document</th>
-              <th className="p-2 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((lease: any) => (
-              <tr key={lease._id} className={selected.includes(String(lease._id)) ? "bg-zinc-800" : "border-b border-zinc-800 hover:bg-zinc-900"}>
-                <td className="w-8">
+        <LoadingContent loading={!leases} error={error} skeletonRows={6} skeletonHeight={40}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-8">
                   <input
                     type="checkbox"
-                    checked={selected.includes(String(lease._id))}
-                    onChange={() => toggleSelect(String(lease._id))}
-                    aria-label="Select lease"
+                    checked={selected.length === filtered.length && filtered.length > 0}
+                    onChange={selectAll}
+                    aria-label="Select all"
                   />
-                </td>
-                <td className="p-2 font-medium">{lease.tenantName}</td>
-                <td className="p-2">{properties?.find((p: any) => p._id === lease.propertyId)?.name || "-"}</td>
-                <td className="p-2">{lease.startDate} - {lease.endDate}</td>
-                <td className="p-2">${lease.rent}</td>
-                <td className="p-2">{lease.status === "active" ? <span className="text-green-400">Active</span> : <span className="text-zinc-400">Expired</span>}</td>
-                <td className="p-2">
-                  {lease.tenantEmail && <div className="truncate max-w-[120px]" title={lease.tenantEmail}>{lease.tenantEmail}</div>}
-                  {lease.tenantPhone && <div className="truncate max-w-[120px]" title={lease.tenantPhone}>{lease.tenantPhone}</div>}
-                </td>
-                <td className="p-2">
-                  {lease.leaseDocumentUrl ? (
-                    <a href={lease.leaseDocumentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">View</a>
-                  ) : (
-                    <span className="text-zinc-500">-</span>
-                  )}
-                </td>
-                <td className="p-2 flex gap-2">
-                  <Button size="sm" variant="outline" onClick={() => handleEdit(lease)}>Edit</Button>
-                  <Button size="sm" variant="destructive" onClick={() => handleDelete(lease._id)}>Delete</Button>
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={9} className="p-4 text-center text-zinc-500">No leases found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                </TableHead>
+                <TableHead className="p-2 text-left">Tenant</TableHead>
+                <TableHead className="p-2 text-left">Property</TableHead>
+                <TableHead className="p-2 text-left">Dates</TableHead>
+                <TableHead className="p-2 text-left">Rent</TableHead>
+                <TableHead className="p-2 text-left">Status</TableHead>
+                <TableHead className="p-2 text-left">Contact</TableHead>
+                <TableHead className="p-2 text-left">Document</TableHead>
+                <TableHead className="p-2 text-left">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((lease) => (
+                <TableRow key={lease._id}>
+                  <TableCell className="w-8">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(String(lease._id))}
+                      onChange={() => toggleSelect(String(lease._id))}
+                      aria-label="Select lease"
+                    />
+                  </TableCell>
+                  <TableCell className="p-2 font-medium">{lease.tenantName}</TableCell>
+                  <TableCell className="p-2">{properties?.find((p: any) => p._id === lease.propertyId)?.name || "-"}</TableCell>
+                  <TableCell className="p-2">{lease.startDate} - {lease.endDate}</TableCell>
+                  <TableCell className="p-2">${lease.rent}</TableCell>
+                  <TableCell className="p-2">{lease.status === "active" ? <span className="text-green-400">Active</span> : <span className="text-zinc-400">Expired</span>}</TableCell>
+                  <TableCell className="p-2">
+                    {lease.tenantEmail && <div className="truncate max-w-[120px]" title={lease.tenantEmail}>{lease.tenantEmail}</div>}
+                    {lease.tenantPhone && <div className="truncate max-w-[120px]" title={lease.tenantPhone}>{lease.tenantPhone}</div>}
+                  </TableCell>
+                  <TableCell className="p-2">
+                    {lease.leaseDocumentUrl ? (
+                      <a href={lease.leaseDocumentUrl} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">View</a>
+                    ) : (
+                      <span className="text-zinc-500">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" className="text-zinc-400 hover:text-blue-400">
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => setEditLease(lease)}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            if (confirm("Delete this lease?")) {
+                              setLoading(true);
+                              await deleteLease({ id: lease._id as any, userId: user.id });
+                              setLoading(false);
+                            }
+                          }}
+                          variant="destructive"
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {(!filtered || filtered.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center text-zinc-500">
+                    No leases found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </LoadingContent>
       </div>
-      <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent>
-          <DialogTitle>{editLease ? "Edit Lease" : "Add Lease"}</DialogTitle>
+      <Dialog open={!!editLease} onOpenChange={(v) => !v && setEditLease(null)}>
+        <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogHeader>
+            <DialogTitle>Edit Lease</DialogTitle>
+          </DialogHeader>
           <LeaseForm
-            properties={properties || []}
             initial={editLease}
-            onSubmit={handleSubmit}
-            onCancel={() => setModalOpen(false)}
+            onSubmit={async (data) => {
+              setLoading(true);
+              await updateLease({ ...data, id: editLease._id, userId: user.id });
+              setLoading(false);
+              setEditLease(null);
+            }}
+            onCancel={() => setEditLease(null)}
             loading={loading}
           />
         </DialogContent>

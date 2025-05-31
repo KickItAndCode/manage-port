@@ -6,8 +6,11 @@ import { api } from "@/../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { LoadingContent } from "@/components/LoadingContent";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+import { Table, TableHeader, TableBody, TableCell, TableRow } from "@/components/ui/table";
 
 export default function DocumentsPage() {
   const { user } = useUser();
@@ -101,61 +104,85 @@ export default function DocumentsPage() {
         </div>
       )}
       <div className="overflow-x-auto rounded-xl shadow-lg bg-zinc-900">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="bg-zinc-800 text-zinc-200">
-              <th className="w-8">
-                <input
-                  type="checkbox"
-                  checked={selected.length === filtered.length && filtered.length > 0}
-                  onChange={selectAll}
-                  aria-label="Select all"
-                />
-              </th>
-              <th className="p-2 text-left">Name</th>
-              <th className="p-2 text-left">Type</th>
-              <th className="p-2 text-left">Property</th>
-              <th className="p-2 text-left">Lease</th>
-              <th className="p-2 text-left">Uploaded</th>
-              <th className="p-2 text-left">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((doc: any) => (
-              <tr key={doc._id} className={selected.includes(String(doc._id)) ? "bg-zinc-800" : "border-b border-zinc-800 hover:bg-zinc-900"}>
-                <td className="w-8">
+        <LoadingContent loading={!documents} skeletonRows={6} skeletonHeight={40}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableCell className="w-8">
                   <input
                     type="checkbox"
-                    checked={selected.includes(String(doc._id))}
-                    onChange={() => toggleSelect(String(doc._id))}
-                    aria-label="Select document"
+                    checked={selected.length === filtered.length && filtered.length > 0}
+                    onChange={selectAll}
+                    aria-label="Select all"
                   />
-                </td>
-                <td className="p-2 font-medium">
-                  <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
-                    {doc.name}
-                  </a>
-                </td>
-                <td className="p-2 capitalize">{doc.type}</td>
-                <td className="p-2">{doc.propertyId ? (properties?.find((p: any) => p._id === doc.propertyId)?.name || "-") : "-"}</td>
-                <td className="p-2">
-                  {doc.leaseId ? (
-                    leases?.find((l: any) => l._id === doc.leaseId)?.tenantName || "-"
-                  ) : "-"}
-                </td>
-                <td className="p-2">{doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : "-"}</td>
-                <td className="p-2 flex gap-2">
-                  <Button size="sm" variant="destructive" onClick={() => handleDelete(doc._id)}>Delete</Button>
-                </td>
-              </tr>
-            ))}
-            {filtered.length === 0 && (
-              <tr>
-                <td colSpan={7} className="p-4 text-center text-zinc-500">No documents found.</td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+                </TableCell>
+                <TableCell className="p-2 text-left">Name</TableCell>
+                <TableCell className="p-2 text-left">Type</TableCell>
+                <TableCell className="p-2 text-left">Property</TableCell>
+                <TableCell className="p-2 text-left">Lease</TableCell>
+                <TableCell className="p-2 text-left">Uploaded</TableCell>
+                <TableCell className="p-2 text-left">Actions</TableCell>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((doc) => (
+                <TableRow key={doc._id}>
+                  <TableCell className="w-8">
+                    <input
+                      type="checkbox"
+                      checked={selected.includes(String(doc._id))}
+                      onChange={() => toggleSelect(String(doc._id))}
+                      aria-label="Select document"
+                    />
+                  </TableCell>
+                  <TableCell className="p-2 font-medium">
+                    <a href={doc.url} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline">
+                      {doc.name}
+                    </a>
+                  </TableCell>
+                  <TableCell className="p-2 capitalize">{doc.type}</TableCell>
+                  <TableCell className="p-2">{doc.propertyId ? (properties?.find((p: any) => p._id === doc.propertyId)?.name || "-") : "-"}</TableCell>
+                  <TableCell className="p-2">
+                    {doc.leaseId ? (
+                      leases?.find((l: any) => l._id === doc.leaseId)?.tenantName || "-"
+                    ) : "-"}
+                  </TableCell>
+                  <TableCell className="p-2">{doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : "-"}</TableCell>
+                  <TableCell className="p-2">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" className="text-zinc-400 hover:text-blue-400">
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            if (confirm("Delete this document?")) {
+                              setLoading(true);
+                              await deleteDocument({ id: doc._id as any, userId: user.id });
+                              setLoading(false);
+                            }
+                          }}
+                          variant="destructive"
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {(!filtered || filtered.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center text-zinc-500">
+                    No documents found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </LoadingContent>
       </div>
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent>

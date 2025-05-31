@@ -9,6 +9,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
 
 type PropertySortKey = 'name' | 'type' | 'status' | 'address' | 'bedrooms' | 'bathrooms' | 'squareFeet' | 'monthlyRent' | 'purchaseDate';
 
@@ -217,46 +219,30 @@ export default function PropertiesPage() {
                   )}
                 </TableCell>
                 <TableCell>
-                  <Dialog open={edit?._id === property._id} onOpenChange={(v) => !v && setEdit(null)}>
-                    <DialogTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="text-blue-400 hover:text-blue-200"
-                        onClick={() => setEdit(property)}
-                      >
-                        Edit
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button size="icon" variant="ghost" className="text-zinc-400 hover:text-blue-400">
+                        <MoreHorizontal />
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent className="bg-zinc-900 border-zinc-800">
-                      <DialogHeader>
-                        <DialogTitle>Edit Property</DialogTitle>
-                      </DialogHeader>
-                      <PropertyForm
-                        initial={property}
-                        onSubmit={async (data) => {
-                          setLoading(true);
-                          await updateProperty({ ...data, id: property._id, userId: user.id });
-                          setLoading(false);
-                          setEdit(null);
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end">
+                      <DropdownMenuItem onClick={() => setEdit(property)}>
+                        Edit
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        onClick={async () => {
+                          if (confirm("Delete this property?")) {
+                            setLoading(true);
+                            await deleteProperty({ id: property._id as any, userId: user.id });
+                            setLoading(false);
+                          }
                         }}
-                        onCancel={() => setEdit(null)}
-                        loading={loading}
-                      />
-                    </DialogContent>
-                  </Dialog>
-                  <Button
-                    variant="ghost"
-                    className="text-red-400 hover:text-red-200 ml-2"
-                    onClick={async () => {
-                      if (confirm("Delete this property?")) {
-                        setLoading(true);
-                        await deleteProperty({ id: property._id as any, userId: user.id });
-                        setLoading(false);
-                      }
-                    }}
-                  >
-                    Delete
-                  </Button>
+                        variant="destructive"
+                      >
+                        Delete
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </TableCell>
               </TableRow>
             ))}
@@ -270,6 +256,24 @@ export default function PropertiesPage() {
           </TableBody>
         </Table>
       </div>
+      <Dialog open={!!edit} onOpenChange={(v) => !v && setEdit(null)}>
+        <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogHeader>
+            <DialogTitle>Edit Property</DialogTitle>
+          </DialogHeader>
+          <PropertyForm
+            initial={edit}
+            onSubmit={async (data) => {
+              setLoading(true);
+              await updateProperty({ ...data, id: edit._id, userId: user.id });
+              setLoading(false);
+              setEdit(null);
+            }}
+            onCancel={() => setEdit(null)}
+            loading={loading}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

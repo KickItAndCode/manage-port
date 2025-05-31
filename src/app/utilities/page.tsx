@@ -9,6 +9,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { MoreHorizontal } from "lucide-react";
+import { LoadingContent } from "@/components/LoadingContent";
 
 export default function UtilitiesPage() {
   const { user } = useUser();
@@ -149,113 +152,117 @@ export default function UtilitiesPage() {
         </div>
       )}
       <div className="overflow-x-auto rounded-xl shadow-lg bg-zinc-900">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead className="w-8">
-                <input
-                  type="checkbox"
-                  checked={selected.length === filtered.length && filtered.length > 0}
-                  onChange={selectAll}
-                  aria-label="Select all"
-                />
-              </TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("propertyId")}>Property {sortKey==="propertyId" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("name")}>Name {sortKey==="name" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("provider")}>Provider {sortKey==="provider" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("cost")}>Cost {sortKey==="cost" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("status")}>Status {sortKey==="status" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-              <TableHead className="text-zinc-300">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filtered.map((utility) => {
-              const property = properties?.find((p) => p._id === utility.propertyId);
-              return (
-                <TableRow key={utility._id} className={selected.includes(String(utility._id)) ? "bg-zinc-800" : ""}>
-                  <TableCell className="w-8">
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(String(utility._id))}
-                      onChange={() => toggleSelect(String(utility._id))}
-                      aria-label="Select utility"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="truncate max-w-[120px] inline-block align-middle cursor-pointer">{property?.name || "Unknown"}</span>
-                      </TooltipTrigger>
-                      <TooltipContent>{property?.name || "Unknown"}</TooltipContent>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell>{utility.name}</TableCell>
-                  <TableCell>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="truncate max-w-[120px] inline-block align-middle cursor-pointer">{utility.provider}</span>
-                      </TooltipTrigger>
-                      <TooltipContent>{utility.provider}</TooltipContent>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell>${utility.cost}</TableCell>
-                  <TableCell>{utility.status}</TableCell>
-                  <TableCell>
-                    <Dialog open={edit?._id === utility._id} onOpenChange={(v) => !v && setEdit(null)}>
-                      <DialogTrigger asChild>
-                        <Button
-                          variant="ghost"
-                          className="text-blue-400 hover:text-blue-200"
-                          onClick={() => setEdit(utility)}
-                        >
-                          Edit
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="bg-zinc-900 border-zinc-800">
-                        <DialogHeader>
-                          <DialogTitle>Edit Utility</DialogTitle>
-                        </DialogHeader>
-                        <UtilityForm
-                          properties={properties || []}
-                          initial={utility}
-                          onSubmit={async (data) => {
-                            setLoading(true);
-                            await updateUtility({ ...data, id: utility._id as any, userId: user.id, propertyId: data.propertyId as any });
-                            setLoading(false);
-                            setEdit(null);
-                          }}
-                          onCancel={() => setEdit(null)}
-                          loading={loading}
-                        />
-                      </DialogContent>
-                    </Dialog>
-                    <Button
-                      variant="ghost"
-                      className="text-red-400 hover:text-red-200 ml-2"
-                      onClick={async () => {
-                        if (confirm("Delete this utility?")) {
-                          setLoading(true);
-                          await deleteUtility({ id: utility._id as any, userId: user.id });
-                          setLoading(false);
-                        }
-                      }}
-                    >
-                      Delete
-                    </Button>
+        <LoadingContent loading={!utilities} skeletonRows={6} skeletonHeight={40}>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-8">
+                  <input
+                    type="checkbox"
+                    checked={selected.length === filtered.length && filtered.length > 0}
+                    onChange={selectAll}
+                    aria-label="Select all"
+                  />
+                </TableHead>
+                <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("propertyId")}>Property {sortKey==="propertyId" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+                <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("name")}>Name {sortKey==="name" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+                <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("provider")}>Provider {sortKey==="provider" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+                <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("cost")}>Cost {sortKey==="cost" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+                <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("status")}>Status {sortKey==="status" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filtered.map((utility) => {
+                const property = properties?.find((p) => p._id === utility.propertyId);
+                return (
+                  <TableRow key={utility._id} className={selected.includes(String(utility._id)) ? "bg-zinc-800" : ""}>
+                    <TableCell className="w-8">
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(String(utility._id))}
+                        onChange={() => toggleSelect(String(utility._id))}
+                        aria-label="Select utility"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="truncate max-w-[120px] inline-block align-middle cursor-pointer">{property?.name || "Unknown"}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>{property?.name || "Unknown"}</TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell>{utility.name}</TableCell>
+                    <TableCell>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="truncate max-w-[120px] inline-block align-middle cursor-pointer">{utility.provider}</span>
+                        </TooltipTrigger>
+                        <TooltipContent>{utility.provider}</TooltipContent>
+                      </Tooltip>
+                    </TableCell>
+                    <TableCell>${utility.cost}</TableCell>
+                    <TableCell>{utility.status}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button size="icon" variant="ghost" className="text-zinc-400 hover:text-blue-400">
+                            <MoreHorizontal />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => setEdit(utility)}>
+                            Edit
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={async () => {
+                              if (confirm("Delete this utility?")) {
+                                setLoading(true);
+                                await deleteUtility({ id: utility._id as any, userId: user.id });
+                                setLoading(false);
+                              }
+                            }}
+                            variant="destructive"
+                          >
+                            Delete
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {(!filtered || filtered.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={11} className="text-center text-zinc-500">
+                    No utilities found.
                   </TableCell>
                 </TableRow>
-              );
-            })}
-            {(!filtered || filtered.length === 0) && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-zinc-500">
-                  No utilities found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+        </LoadingContent>
       </div>
+      <Dialog open={!!edit} onOpenChange={(v) => !v && setEdit(null)}>
+        <DialogContent className="bg-zinc-900 border-zinc-800">
+          <DialogHeader>
+            <DialogTitle>Edit Utility</DialogTitle>
+          </DialogHeader>
+          <UtilityForm
+            properties={properties || []}
+            initial={edit}
+            onSubmit={async (data) => {
+              setLoading(true);
+              await updateUtility({ ...data, id: edit._id, userId: user.id, propertyId: data.propertyId as any });
+              setLoading(false);
+              setEdit(null);
+            }}
+            onCancel={() => setEdit(null)}
+            loading={loading}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
