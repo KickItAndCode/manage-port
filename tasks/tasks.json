@@ -158,7 +158,7 @@
       "dependencies": [
         1
       ],
-      "status": "pending",
+      "status": "done",
       "subtasks": [
         {
           "id": 1,
@@ -166,7 +166,7 @@
           "description": "Define the Convex table schema for properties, specifying fields such as id, name, address, rent, and other relevant attributes using TypeScript for type safety.",
           "dependencies": [],
           "details": "Create or update the schema.ts file in the convex/ directory. Use defineTable and appropriate validators to specify property fields. Ensure TypeScript types are enforced for all fields.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Validate schema correctness by running Convex codegen and checking for type errors. Confirm that the schema matches property management requirements."
         },
         {
@@ -177,7 +177,7 @@
             1
           ],
           "details": "Apply the schema to the Convex backend, ensuring the property table is created and accessible. Use the Convex dashboard or CLI to verify table creation.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Check the Convex dashboard for the presence of the property table and its fields. Attempt to insert a sample property document to confirm functionality."
         },
         {
@@ -188,7 +188,7 @@
             2
           ],
           "details": "Write serverless functions in the convex/ directory for each CRUD operation. Use TypeScript types generated from the schema for input validation and type safety.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Write unit tests or use the Convex dashboard to execute each CRUD function, verifying correct behavior and type enforcement."
         },
         {
@@ -199,7 +199,7 @@
             3
           ],
           "details": "Use Convex client libraries to call CRUD functions from the frontend. Ensure TypeScript types are used for all data interactions.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Perform end-to-end tests by creating, reading, updating, and deleting properties via the frontend, confirming data consistency in the Convex database."
         },
         {
@@ -210,7 +210,7 @@
             4
           ],
           "details": "Conduct comprehensive testing of all CRUD operations and document the schema structure, API endpoints, and example usage in project documentation.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Review documentation for completeness and accuracy. Have a peer follow the documentation to perform property management tasks successfully."
         }
       ]
@@ -226,7 +226,7 @@
         1,
         4
       ],
-      "status": "pending",
+      "status": "in-progress",
       "subtasks": [
         {
           "id": 1,

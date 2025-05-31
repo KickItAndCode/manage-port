@@ -23,4 +23,34 @@ export const getProperties = query({
       .filter((q) => q.eq(q.field("userId"), args.userId))
       .collect();
   },
+});
+
+// Update a property
+export const updateProperty = mutation({
+  args: {
+    id: v.id("properties"),
+    name: v.string(),
+    address: v.string(),
+    rent: v.number(),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const property = await ctx.db.get(args.id);
+    if (!property || property.userId !== args.userId) throw new Error("Unauthorized");
+    await ctx.db.patch(args.id, {
+      name: args.name,
+      address: args.address,
+      rent: args.rent,
+    });
+  },
+});
+
+// Delete a property
+export const deleteProperty = mutation({
+  args: { id: v.id("properties"), userId: v.string() },
+  handler: async (ctx, args) => {
+    const property = await ctx.db.get(args.id);
+    if (!property || property.userId !== args.userId) throw new Error("Unauthorized");
+    await ctx.db.delete(args.id);
+  },
 }); 

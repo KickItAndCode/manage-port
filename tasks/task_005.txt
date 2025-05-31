@@ -1,6 +1,6 @@
 # Task ID: 5
 # Title: Implement Properties Page with CRUD Operations
-# Status: pending
+# Status: in-progress
 # Dependencies: 1, 4
 # Priority: medium
 # Description: Build a page to list, add, edit, and delete properties.
