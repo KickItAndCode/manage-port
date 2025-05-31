@@ -7,6 +7,10 @@ import { PropertyForm } from "@/components/PropertyForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ChevronUp, ChevronDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+
+type PropertySortKey = 'name' | 'type' | 'status' | 'address' | 'bedrooms' | 'bathrooms' | 'squareFeet' | 'monthlyRent' | 'purchaseDate';
 
 export default function PropertiesPage() {
   const { user } = useUser();
@@ -18,6 +22,78 @@ export default function PropertiesPage() {
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [sortKey, setSortKey] = useState<PropertySortKey>("name");
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
+  const [selected, setSelected] = useState<string[]>([]);
+
+  const propertyTypes = [
+    "Apartment",
+    "Condo",
+    "Single Family",
+    "Townhouse",
+    "Multi-Family",
+    "Duplex",
+    "Other",
+  ];
+  const statusOptions = ["Vacant", "Occupied", "Under Maintenance", "Other"];
+
+  function handleSort(key: PropertySortKey) {
+    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
+    else {
+      setSortKey(key);
+      setSortDir("asc");
+    }
+  }
+
+  const filtered = (properties || [])
+    .filter((p) =>
+      (!search ||
+        p.name.toLowerCase().includes(search.toLowerCase()) ||
+        p.address.toLowerCase().includes(search.toLowerCase()) ||
+        p.type.toLowerCase().includes(search.toLowerCase())) &&
+      (!typeFilter || p.type === typeFilter) &&
+      (!statusFilter || p.status === statusFilter)
+    )
+    .sort((a, b) => {
+      let v1 = a[sortKey];
+      let v2 = b[sortKey];
+      if (typeof v1 === "string" && typeof v2 === "string") {
+        return sortDir === "asc"
+          ? v1.localeCompare(v2)
+          : v2.localeCompare(v1);
+      }
+      if (typeof v1 === "number" && typeof v2 === "number") {
+        return sortDir === "asc" ? v1 - v2 : v2 - v1;
+      }
+      return 0;
+    });
+
+  function toggleSelect(id: string) {
+    setSelected((prev) => prev.includes(String(id)) ? prev.filter(x => x !== String(id)) : [...prev, String(id)]);
+  }
+  function selectAll() {
+    if (selected.length === filtered.length) setSelected([]);
+    else setSelected(filtered.map(p => String(p._id)));
+  }
+  async function handleBulkDelete() {
+    if (selected.length === 0 || !user) return;
+    if (!confirm(`Delete ${selected.length} selected properties?`)) return;
+    setLoading(true);
+    await Promise.all(selected.map(id => deleteProperty({ id: id as any, userId: user.id })));
+    setLoading(false);
+    setSelected([]);
+  }
+  function statusColor(status: string) {
+    switch (status) {
+      case "Vacant": return "bg-yellow-600 text-yellow-100";
+      case "Occupied": return "bg-green-700 text-green-100";
+      case "Under Maintenance": return "bg-blue-700 text-blue-100";
+      default: return "bg-zinc-700 text-zinc-100";
+    }
+  }
 
   if (!user) return <div className="text-center text-zinc-200">Sign in to manage properties.</div>;
 
@@ -45,29 +121,88 @@ export default function PropertiesPage() {
           </DialogContent>
         </Dialog>
       </div>
+      <div className="flex flex-wrap gap-4 mb-4 items-end">
+        <input
+          type="text"
+          placeholder="Search by name, address, or type..."
+          className="bg-zinc-900 text-zinc-100 px-4 py-2 rounded-lg border border-zinc-800 focus:outline-none focus:ring-2 focus:ring-blue-500 w-64"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+        <select
+          className="bg-zinc-900 text-zinc-100 px-4 py-2 rounded-lg border border-zinc-800"
+          value={typeFilter}
+          onChange={e => setTypeFilter(e.target.value)}
+        >
+          <option value="">All Types</option>
+          {propertyTypes.map((t) => (
+            <option key={t} value={t}>{t}</option>
+          ))}
+        </select>
+        <select
+          className="bg-zinc-900 text-zinc-100 px-4 py-2 rounded-lg border border-zinc-800"
+          value={statusFilter}
+          onChange={e => setStatusFilter(e.target.value)}
+        >
+          <option value="">All Statuses</option>
+          {statusOptions.map((s) => (
+            <option key={s} value={s}>{s}</option>
+          ))}
+        </select>
+      </div>
       <div className="overflow-x-auto rounded-xl shadow-lg bg-zinc-900">
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead className="text-zinc-300">Name</TableHead>
-              <TableHead className="text-zinc-300">Type</TableHead>
-              <TableHead className="text-zinc-300">Status</TableHead>
-              <TableHead className="text-zinc-300">Address</TableHead>
-              <TableHead className="text-zinc-300">Bedrooms</TableHead>
-              <TableHead className="text-zinc-300">Bathrooms</TableHead>
-              <TableHead className="text-zinc-300">Sq Ft</TableHead>
-              <TableHead className="text-zinc-300">Rent</TableHead>
-              <TableHead className="text-zinc-300">Purchase Date</TableHead>
+              <TableHead className="w-8">
+                <input
+                  type="checkbox"
+                  checked={selected.length === filtered.length && filtered.length > 0}
+                  onChange={selectAll}
+                  aria-label="Select all"
+                />
+              </TableHead>
+              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("name")}>Name {sortKey==="name" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("type")}>Type {sortKey==="type" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("status")}>Status {sortKey==="status" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("address")}>Address {sortKey==="address" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("bedrooms")}>Bedrooms {sortKey==="bedrooms" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("bathrooms")}>Bathrooms {sortKey==="bathrooms" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("squareFeet")}>Sq Ft {sortKey==="squareFeet" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("monthlyRent")}>Rent {sortKey==="monthlyRent" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+              <TableHead className="text-zinc-300 cursor-pointer" onClick={() => handleSort("purchaseDate")}>Purchase Date {sortKey==="purchaseDate" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
               <TableHead className="text-zinc-300">Image</TableHead>
               <TableHead className="text-zinc-300">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {properties?.map((property) => (
-              <TableRow key={property._id}>
+            {selected.length > 0 && (
+              <TableRow>
+                <TableCell colSpan={12} className="bg-zinc-800">
+                  <div className="mb-2 flex gap-2 items-center">
+                    <span className="text-zinc-300">{selected.length} selected</span>
+                    <Button variant="destructive" onClick={handleBulkDelete} disabled={loading}>
+                      Delete Selected
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            )}
+            {filtered.map((property) => (
+              <TableRow key={property._id} className={selected.includes(String(property._id)) ? "bg-zinc-800" : ""}>
+                <TableCell className="w-8">
+                  <input
+                    type="checkbox"
+                    checked={selected.includes(String(property._id))}
+                    onChange={() => toggleSelect(String(property._id))}
+                    aria-label="Select property"
+                  />
+                </TableCell>
                 <TableCell>{property.name}</TableCell>
                 <TableCell>{property.type}</TableCell>
-                <TableCell>{property.status}</TableCell>
+                <TableCell>
+                  <Badge className={statusColor(property.status)}>{property.status}</Badge>
+                </TableCell>
                 <TableCell>{property.address}</TableCell>
                 <TableCell>{property.bedrooms}</TableCell>
                 <TableCell>{property.bathrooms}</TableCell>
@@ -115,7 +250,7 @@ export default function PropertiesPage() {
                     onClick={async () => {
                       if (confirm("Delete this property?")) {
                         setLoading(true);
-                        await deleteProperty({ id: property._id, userId: user.id });
+                        await deleteProperty({ id: property._id as any, userId: user.id });
                         setLoading(false);
                       }
                     }}
@@ -125,7 +260,7 @@ export default function PropertiesPage() {
                 </TableCell>
               </TableRow>
             ))}
-            {(!properties || properties.length === 0) && (
+            {(!filtered || filtered.length === 0) && (
               <TableRow>
                 <TableCell colSpan={11} className="text-center text-zinc-500">
                   No properties found.
