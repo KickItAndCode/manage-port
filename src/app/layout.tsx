@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppProviders } from "./providers";
 import { Sidebar } from "@/components/Sidebar";
 import { Topbar } from "@/components/Topbar";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -31,13 +32,17 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased bg-background text-foreground transition-colors duration-300`}
       >
         <AppProviders>
-          <div className="flex min-h-screen">
-            <Sidebar />
-            <div className="flex-1 flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300">
-              <Topbar />
-              <main className="flex-1">{children}</main>
+          <ErrorBoundary>
+            <div className="flex min-h-screen">
+              <Sidebar />
+              <div className="flex-1 flex flex-col min-h-screen bg-background text-foreground transition-colors duration-300">
+                <Topbar />
+                <ErrorBoundary>
+                  <main className="flex-1">{children}</main>
+                </ErrorBoundary>
+              </div>
             </div>
-          </div>
+          </ErrorBoundary>
         </AppProviders>
       </body>
     </html>

@@ -25,6 +25,7 @@ export default function PropertiesPage() {
   const [open, setOpen] = useState(false);
   const [edit, setEdit] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -104,7 +105,10 @@ export default function PropertiesPage() {
     <div className="min-h-screen bg-background text-foreground p-8 transition-colors duration-300">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Properties</h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={open} onOpenChange={(isOpen) => {
+          setOpen(isOpen);
+          if (isOpen) setError(null);
+        }}>
           <DialogTrigger asChild>
             <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-colors duration-200">Add Property</Button>
           </DialogTrigger>
@@ -114,13 +118,24 @@ export default function PropertiesPage() {
             </DialogHeader>
             <PropertyForm
               onSubmit={async (data) => {
-                setLoading(true);
-                await addProperty({ ...data, userId: user.id });
-                setLoading(false);
-                setOpen(false);
+                try {
+                  setLoading(true);
+                  setError(null);
+                  await addProperty({ ...data, userId: user.id });
+                  setOpen(false);
+                } catch (err: any) {
+                  setError(err.data?.message || err.message || "An error occurred");
+                } finally {
+                  setLoading(false);
+                }
               }}
               loading={loading}
             />
+            {error && (
+              <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-lg">
+                {error}
+              </div>
+            )}
           </DialogContent>
         </Dialog>
       </div>
@@ -251,7 +266,12 @@ export default function PropertiesPage() {
           </TableBody>
         </Table>
       </div>
-      <Dialog open={!!edit} onOpenChange={(v) => !v && setEdit(null)}>
+      <Dialog open={!!edit} onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          setEdit(null);
+          setError(null);
+        }
+      }}>
         <DialogContent className="bg-card border border-border shadow-xl rounded-xl">
           <DialogHeader>
             <DialogTitle>Edit Property</DialogTitle>
@@ -259,14 +279,25 @@ export default function PropertiesPage() {
           <PropertyForm
             initial={edit}
             onSubmit={async (data) => {
-              setLoading(true);
-              await updateProperty({ ...data, id: edit._id, userId: user.id });
-              setLoading(false);
-              setEdit(null);
+              try {
+                setLoading(true);
+                setError(null);
+                await updateProperty({ ...data, id: edit._id, userId: user.id });
+                setEdit(null);
+              } catch (err: any) {
+                setError(err.data?.message || err.message || "An error occurred");
+              } finally {
+                setLoading(false);
+              }
             }}
             onCancel={() => setEdit(null)}
             loading={loading}
           />
+          {error && (
+            <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-lg">
+              {error}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
     </div>

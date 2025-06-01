@@ -112,7 +112,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
     "Duplex",
     "Other",
   ];
-  const statusOptions = ["Vacant", "Occupied", "Under Maintenance", "Other"];
+  const statusOptions = ["Available", "Occupied", "Maintenance", "Under Contract"];
 
   return (
     <form

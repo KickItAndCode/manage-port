@@ -1,10 +1,14 @@
 "use client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
+import { leaseSchema, type LeaseFormData, sanitizeInput } from "@/lib/validation";
+import { handleError, type AppError } from "@/lib/error-handling";
 
 export interface LeaseFormProps {
   properties: { _id: string; name: string; address?: string }[];
@@ -40,28 +44,7 @@ export interface LeaseFormProps {
   loading?: boolean;
 }
 
-const leaseSchema = z.object({
-  propertyId: z.string().min(1, "Property is required"),
-  tenantName: z.string().min(2, "Tenant name is required"),
-  tenantEmail: z.string().email("Invalid email").optional().or(z.literal("")),
-  tenantPhone: z.string().regex(/^\+?[0-9\-() ]*$/, "Invalid phone").optional().or(z.literal("")),
-  startDate: z.string().min(4, "Start date is required"),
-  endDate: z.string().min(4, "End date is required"),
-  rent: z.coerce.number().min(0, "Rent must be positive"),
-  securityDeposit: z.coerce.number().min(0).optional(),
-  status: z.enum(["active", "expired", "pending"]),
-  paymentDay: z.coerce.number().min(1).max(31).optional(),
-  notes: z.string().optional(),
-  leaseDocumentUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
-}).refine((data) => {
-  const start = new Date(data.startDate);
-  const end = new Date(data.endDate);
-  return end > start;
-}, {
-  message: "End date must be after start date",
-  path: ["endDate"],
-});
-type LeaseFormType = z.infer<typeof leaseSchema>;
+type LeaseFormType = LeaseFormData;
 
 export function LeaseForm({ properties, initial, onSubmit, onCancel, loading }: LeaseFormProps) {
   if (!properties || properties.length === 0) {
