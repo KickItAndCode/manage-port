@@ -58,10 +58,21 @@ export default defineSchema({
     userId: v.string(),
     url: v.string(),
     name: v.string(),
-    type: v.string(), // lease, utility, property, other
+    type: v.string(), // lease, utility, property, insurance, tax, maintenance, other
+    category: v.optional(v.string()), // financial, legal, maintenance, insurance, tax, other
     propertyId: v.optional(v.id("properties")),
     leaseId: v.optional(v.id("leases")),
+    utilityId: v.optional(v.id("utilities")),
+    fileSize: v.optional(v.number()), // in bytes
+    mimeType: v.optional(v.string()), // application/pdf, image/jpeg, etc.
     uploadedAt: v.string(),
+    updatedAt: v.optional(v.string()),
+    expiryDate: v.optional(v.string()), // for documents that expire (insurance, licenses)
+    tags: v.optional(v.array(v.string())), // searchable tags
     notes: v.optional(v.string()),
-  }),
+  })
+    .index("by_user", ["userId"])
+    .index("by_property", ["propertyId"])
+    .index("by_type", ["type"])
+    .index("by_category", ["category"]),
 }); 

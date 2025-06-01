@@ -88,11 +88,16 @@ export default function PropertiesPage() {
   }
   async function handleBulkDelete() {
     if (selected.length === 0 || !user) return;
-    if (!confirm(`Delete ${selected.length} selected properties?`)) return;
+    if (!confirm(`Delete ${selected.length} selected properties? This will also delete associated leases, utilities, and documents.`)) return;
     setLoading(true);
-    await Promise.all(selected.map(id => deleteProperty({ id: id as any, userId: user.id })));
+    try {
+      await Promise.all(selected.map(id => deleteProperty({ id: id as any, userId: user.id })));
+      setSelected([]);
+    } catch (err: any) {
+      console.error("Bulk delete error:", err);
+      alert("Some properties could not be deleted: " + (err.message || "Unknown error"));
+    }
     setLoading(false);
-    setSelected([]);
   }
 
   if (!user) return <div className="text-center text-muted-foreground">Sign in to manage properties.</div>;
@@ -275,9 +280,14 @@ export default function PropertiesPage() {
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={async () => {
-                          if (confirm("Delete this property?")) {
+                          if (confirm("Delete this property? This will also delete associated leases, utilities, and documents.")) {
                             setLoading(true);
-                            await deleteProperty({ id: property._id as any, userId: user.id });
+                            try {
+                              await deleteProperty({ id: property._id as any, userId: user.id });
+                            } catch (err: any) {
+                              console.error("Delete property error:", err);
+                              alert("Failed to delete property: " + (err.message || "Unknown error"));
+                            }
                             setLoading(false);
                           }
                         }}

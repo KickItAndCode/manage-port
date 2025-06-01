@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
@@ -38,9 +38,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/PropertyForm";
 import { useMutation } from "convex/react";
+import { DocumentViewer } from "@/components/DocumentViewer";
 
 export default function PropertyDetailsPage() {
   const params = useParams();
+  const router = useRouter();
   const { user } = useUser();
   const propertyId = params?.id as string;
   const [showCapEx, setShowCapEx] = useState(true);
@@ -50,21 +52,28 @@ export default function PropertyDetailsPage() {
   
   const updateProperty = useMutation(api.properties.updateProperty);
 
+  // Validate propertyId - it should not be a storage ID (starts with kg, jt, etc.) or URL
+  const isValidPropertyId = propertyId && 
+    !propertyId.startsWith('http') && 
+    !propertyId.startsWith('kg') && 
+    !propertyId.startsWith('jt') && 
+    propertyId.length > 10;
+
   const property = useQuery(
     api.properties.getProperty,
-    user && propertyId ? { id: propertyId as any, userId: user.id } : "skip"
+    user && isValidPropertyId ? { id: propertyId as any, userId: user.id } : "skip"
   );
   const utilities = useQuery(
     api.utilities.getUtilities,
-    user && propertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
+    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
   );
   const leases = useQuery(
     api.leases.getLeases,
-    user && propertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
+    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
   );
   const documents = useQuery(
     api.documents.getDocuments,
-    user && propertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
+    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
   );
 
   // Helper functions
@@ -109,6 +118,29 @@ export default function PropertyDetailsPage() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center text-muted-foreground">Sign in to view property details.</div>
+      </div>
+    );
+  }
+
+  if (!isValidPropertyId) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md">
+          <CardContent className="pt-6">
+            <div className="text-center">
+              <h3 className="text-lg font-medium mb-2">Invalid Property ID</h3>
+              <p className="text-muted-foreground mb-4">
+                The property ID in the URL is not valid.
+              </p>
+              <Link href="/properties">
+                <Button>
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Properties
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -193,7 +225,12 @@ export default function PropertyDetailsPage() {
                 <Edit className="h-4 w-4" />
                 Edit Property
               </Button>
-              <Button size="sm" variant="outline" className="gap-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="gap-2"
+                onClick={() => router.push(`/leases?propertyId=${propertyId}`)}
+              >
                 <UserPlus className="h-4 w-4" />
                 Add Lease
               </Button>
@@ -281,15 +318,9 @@ export default function PropertyDetailsPage() {
             {/* Property Details */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                  <span className="flex items-center">
-                    <Home className="w-5 h-5 mr-2" />
-                    Property Details
-                  </span>
-                  <Button size="sm" variant="ghost" className="gap-2">
-                    <Edit className="h-4 w-4" />
-                    Edit
-                  </Button>
+                <CardTitle className="flex items-center">
+                  <Home className="w-5 h-5 mr-2" />
+                  Property Details
                 </CardTitle>
               </CardHeader>
               <CardContent>
@@ -418,7 +449,10 @@ export default function PropertyDetailsPage() {
                   <div className="text-center py-8">
                     <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
                     <p className="text-muted-foreground mb-4">This property is currently vacant</p>
-                    <Button className="gap-2">
+                    <Button 
+                      className="gap-2"
+                      onClick={() => router.push(`/leases?propertyId=${propertyId}`)}
+                    >
                       <UserPlus className="h-4 w-4" />
                       Add New Lease
                     </Button>
@@ -668,19 +702,18 @@ export default function PropertyDetailsPage() {
                 ) : (
                   <div className="space-y-2">
                     {documents.map((doc: any) => (
-                      <a
+                      <DocumentViewer
                         key={doc._id}
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center justify-between p-2 rounded-md hover:bg-muted transition-colors"
+                        storageId={doc.url}
+                        fileName={doc.name}
+                        className="flex items-center justify-between p-2 rounded-md hover:bg-muted transition-colors cursor-pointer"
                       >
                         <div className="flex items-center">
                           <FileText className="w-4 h-4 mr-2 text-muted-foreground" />
                           <span className="text-sm">{doc.name}</span>
                         </div>
                         <ExternalLink className="w-3 h-3 text-muted-foreground" />
-                      </a>
+                      </DocumentViewer>
                     ))}
                   </div>
                 )}

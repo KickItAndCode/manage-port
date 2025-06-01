@@ -52,9 +52,14 @@ export default function UtilitiesPage() {
     if (selected.length === 0 || !user) return;
     if (!confirm(`Delete ${selected.length} selected utilities?`)) return;
     setLoading(true);
-    await Promise.all(selected.map(id => deleteUtility({ id: id as any, userId: user.id })));
+    try {
+      await Promise.all(selected.map(id => deleteUtility({ id: id as any, userId: user.id })));
+      setSelected([]);
+    } catch (err: any) {
+      console.error("Bulk delete utilities error:", err);
+      alert("Some utilities could not be deleted: " + (err.message || "Unknown error"));
+    }
     setLoading(false);
-    setSelected([]);
   }
 
   const filtered = (utilities || [])
@@ -241,7 +246,12 @@ export default function UtilitiesPage() {
                             onClick={async () => {
                               if (confirm("Delete this utility?")) {
                                 setLoading(true);
-                                await deleteUtility({ id: utility._id as any, userId: user.id });
+                                try {
+                                  await deleteUtility({ id: utility._id as any, userId: user.id });
+                                } catch (err: any) {
+                                  console.error("Delete utility error:", err);
+                                  alert("Failed to delete utility: " + (err.message || "Unknown error"));
+                                }
                                 setLoading(false);
                               }
                             }}

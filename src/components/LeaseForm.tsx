@@ -5,10 +5,8 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
-import { leaseSchema, type LeaseFormData, sanitizeInput } from "@/lib/validation";
-import { handleError, type AppError } from "@/lib/error-handling";
+import { leaseSchema, type LeaseFormData } from "@/lib/validation";
+import { LeaseDocumentUpload } from "@/components/LeaseDocumentUpload";
 
 export interface LeaseFormProps {
   properties: { _id: string; name: string; address?: string }[];
@@ -47,13 +45,11 @@ export interface LeaseFormProps {
 type LeaseFormType = LeaseFormData;
 
 export function LeaseForm({ properties, initial, onSubmit, onCancel, loading }: LeaseFormProps) {
-  if (!properties || properties.length === 0) {
-    return <div className="text-center text-muted-foreground">No properties available. Please add a property first.</div>;
-  }
+  const [leaseDocumentStorageId, setLeaseDocumentStorageId] = useState<string>("");
+  
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
     reset,
     watch,
@@ -64,6 +60,10 @@ export function LeaseForm({ properties, initial, onSubmit, onCancel, loading }: 
       paymentDay: 1,
     },
   });
+  
+  if (!properties || properties.length === 0) {
+    return <div className="text-center text-muted-foreground">No properties available. Please add a property first.</div>;
+  }
 
   const status = watch("status");
 
@@ -101,12 +101,21 @@ export function LeaseForm({ properties, initial, onSubmit, onCancel, loading }: 
       notes: `Standard ${randomInt(6, 12)}-month lease agreement`,
       leaseDocumentUrl: `https://example.com/lease-${Date.now()}.pdf`,
     });
+    
+    // Reset document upload state
+    setLeaseDocumentStorageId("");
   }
 
   return (
     <form
       className="space-y-4 bg-zinc-900 p-6 rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto"
-      onSubmit={handleSubmit(onSubmit as any)}
+      onSubmit={handleSubmit((data) => {
+        // Include the document storage ID in the submission
+        onSubmit({
+          ...data,
+          leaseDocumentUrl: leaseDocumentStorageId || data.leaseDocumentUrl,
+        });
+      })}
     >
       <div className="flex justify-between items-center mb-4">
         <h3 className="text-lg font-semibold">Lease Information</h3>
@@ -256,21 +265,15 @@ export function LeaseForm({ properties, initial, onSubmit, onCancel, loading }: 
         </div>
       </div>
 
-      <div>
-        <label className="block text-zinc-200 mb-1">Lease Document URL (optional)</label>
-        <Input
-          className="bg-zinc-800 text-zinc-100 border-zinc-700"
-          type="url"
-          placeholder="https://example.com/lease.pdf"
-          {...register("leaseDocumentUrl")}
-        />
-        {errors.leaseDocumentUrl && <span className="text-red-400 text-sm">{errors.leaseDocumentUrl.message}</span>}
-        {watch("leaseDocumentUrl") && (
-          <a href={watch("leaseDocumentUrl") as string} target="_blank" rel="noopener noreferrer" className="text-blue-400 underline mt-1 block">
-            View Document
-          </a>
-        )}
-      </div>
+      <LeaseDocumentUpload
+        propertyId={watch("propertyId")}
+        onUploadComplete={(storageId) => {
+          setLeaseDocumentStorageId(storageId);
+        }}
+        onUploadError={(error) => {
+          console.error("Document upload error:", error);
+        }}
+      />
 
       <div>
         <label className="block text-zinc-200 mb-1">Notes (optional)</label>

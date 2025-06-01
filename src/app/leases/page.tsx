@@ -1,6 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
+import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LeaseForm } from "@/components/LeaseForm";
@@ -11,6 +12,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal, Calendar, FileText, AlertCircle, DollarSign } from "lucide-react";
+import { DocumentViewer } from "@/components/DocumentViewer";
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -18,11 +20,15 @@ import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip
 
 export default function LeasesPage() {
   const { user } = useUser();
+  const searchParams = useSearchParams();
+  const preSelectedPropertyId = searchParams.get('propertyId');
+  
   const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
   const leases = useQuery(api.leases.getLeases, user ? { userId: user.id } : "skip");
   const addLease = useMutation(api.leases.addLease);
   const updateLease = useMutation(api.leases.updateLease);
   const deleteLease = useMutation(api.leases.deleteLease);
+  const linkDocumentToLease = useMutation(api.documents.linkDocumentToLease);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editLease, setEditLease] = useState<any>(null);
@@ -31,6 +37,18 @@ export default function LeasesPage() {
   const [filterProperty, setFilterProperty] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Auto-open modal if coming from property page
+  useEffect(() => {
+    if (preSelectedPropertyId && properties) {
+      // Check if the property exists and belongs to the user
+      const property = properties.find(p => p._id === preSelectedPropertyId);
+      if (property) {
+        setEditLease(null);
+        setModalOpen(true);
+      }
+    }
+  }, [preSelectedPropertyId, properties]);
 
   // Calculate days until expiry for active leases
   const calculateDaysUntilExpiry = (endDate: string) => {
@@ -82,11 +100,28 @@ export default function LeasesPage() {
     setLoading(true);
     setError(null);
     try {
+      let leaseId;
       if (editLease) {
         await updateLease({ ...form, id: editLease._id, userId: user.id, propertyId: form.propertyId as any });
+        leaseId = editLease._id;
       } else {
-        await addLease({ ...form, userId: user.id, propertyId: form.propertyId as any });
+        leaseId = await addLease({ ...form, userId: user.id, propertyId: form.propertyId as any });
       }
+      
+      // If a document was uploaded (leaseDocumentUrl contains a storage ID), link it to the lease
+      if (form.leaseDocumentUrl && !form.leaseDocumentUrl.startsWith('http')) {
+        try {
+          await linkDocumentToLease({
+            storageId: form.leaseDocumentUrl,
+            leaseId: leaseId,
+            userId: user.id,
+          });
+        } catch (linkError) {
+          console.error("Failed to link document to lease:", linkError);
+          // Don't fail the lease creation if document linking fails
+        }
+      }
+      
       setModalOpen(false);
       setEditLease(null);
     } catch (err: any) {
@@ -188,9 +223,12 @@ export default function LeasesPage() {
                       {lease.leaseDocumentUrl && (
                         <Tooltip>
                           <TooltipTrigger>
-                            <a href={lease.leaseDocumentUrl} target="_blank" rel="noopener noreferrer">
-                              <FileText className="w-4 h-4 text-muted-foreground hover:text-primary" />
-                            </a>
+                            <DocumentViewer
+                              storageId={lease.leaseDocumentUrl}
+                              fileName={`${lease.tenantName} - Lease Document`}
+                            >
+                              <FileText className="w-4 h-4 text-muted-foreground hover:text-primary cursor-pointer" />
+                            </DocumentViewer>
                           </TooltipTrigger>
                           <TooltipContent>View Lease Document</TooltipContent>
                         </Tooltip>
@@ -221,9 +259,15 @@ export default function LeasesPage() {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={async () => {
-                            if (confirm("Delete this lease?")) {
+                            if (confirm("Delete this lease? This will also delete any associated documents.")) {
                               setLoading(true);
-                              await deleteLease({ id: lease._id as any, userId: user.id });
+                              setError(null);
+                              try {
+                                await deleteLease({ id: lease._id as any, userId: user.id });
+                              } catch (err: any) {
+                                setError(err.message || "Failed to delete lease");
+                                console.error("Delete lease error:", err);
+                              }
                               setLoading(false);
                             }
                           }}
@@ -316,7 +360,7 @@ export default function LeasesPage() {
             </div>
           )}
           <LeaseForm
-            initial={editLease}
+            initial={editLease || (preSelectedPropertyId ? { propertyId: preSelectedPropertyId } : undefined)}
             onSubmit={handleSubmit}
             loading={loading}
             onCancel={() => {

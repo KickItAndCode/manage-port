@@ -17,6 +17,7 @@ import type * as dashboard from "../dashboard.js";
 import type * as documents from "../documents.js";
 import type * as leases from "../leases.js";
 import type * as properties from "../properties.js";
+import type * as storage from "../storage.js";
 import type * as utilities from "../utilities.js";
 
 /**
@@ -32,6 +33,7 @@ declare const fullApi: ApiFromModules<{
   documents: typeof documents;
   leases: typeof leases;
   properties: typeof properties;
+  storage: typeof storage;
   utilities: typeof utilities;
 }>;
 export declare const api: FilterApi<
