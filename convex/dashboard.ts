@@ -25,12 +25,17 @@ export const getDashboardMetrics = query({
 
     // Calculate metrics
     const totalProperties = properties.length;
-    const totalMonthlyRent = properties.reduce((sum, p) => sum + p.monthlyRent, 0);
     const totalSquareFeet = properties.reduce((sum, p) => sum + p.squareFeet, 0);
     
-    // Calculate occupancy
+    // Calculate occupancy and rent from active leases
     const activeLeases = leases.filter(l => l.status === "active");
     const occupancyRate = totalProperties > 0 ? (activeLeases.length / totalProperties) * 100 : 0;
+    
+    // Use actual lease rent instead of property rent for more accurate income
+    const totalMonthlyRent = activeLeases.reduce((sum, l) => sum + l.rent, 0);
+    
+    // Calculate security deposits held
+    const totalSecurityDeposits = activeLeases.reduce((sum, l) => sum + (l.securityDeposit || 0), 0);
     
     // Calculate total utility costs
     const totalUtilityCost = utilities.reduce((sum, u) => sum + u.cost, 0);
@@ -82,6 +87,7 @@ export const getDashboardMetrics = query({
       totalSquareFeet,
       occupancyRate,
       totalUtilityCost,
+      totalSecurityDeposits,
       propertiesByType,
       propertiesByStatus,
       monthlyIncome,

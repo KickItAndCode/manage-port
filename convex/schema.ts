@@ -37,13 +37,21 @@ export default defineSchema({
     tenantName: v.string(),
     tenantEmail: v.optional(v.string()),
     tenantPhone: v.optional(v.string()),
-    startDate: v.string(),
-    endDate: v.string(),
-    rent: v.number(),
-    status: v.string(), // active, expired
+    startDate: v.string(), // ISO date string
+    endDate: v.string(), // ISO date string
+    rent: v.number(), // Monthly rent amount
+    securityDeposit: v.optional(v.number()), // Security deposit amount
+    status: v.union(v.literal("active"), v.literal("expired"), v.literal("pending")), // Lease status
+    paymentDay: v.optional(v.number()), // Day of month rent is due (1-31)
+    notes: v.optional(v.string()), // Additional lease notes
     leaseDocumentUrl: v.optional(v.string()),
     createdAt: v.string(),
-  }),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_property", ["propertyId"])
+    .index("by_user", ["userId"])
+    .index("by_status", ["status"])
+    .index("by_tenant", ["tenantName"]),
   documents: defineTable({
     userId: v.string(),
     url: v.string(),

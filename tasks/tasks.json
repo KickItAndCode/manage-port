@@ -456,7 +456,7 @@
         1,
         4
       ],
-      "status": "pending",
+      "status": "done",
       "subtasks": [
         {
           "id": 1,
@@ -464,7 +464,7 @@
           "description": "Gather and specify all necessary fields and relationships for the lease management schema, including required attributes for leases and their linkage to properties.",
           "dependencies": [],
           "details": "List all fields such as id, propertyId, startDate, endDate, tenant, and any additional metadata needed for lease records. Define how leases relate to properties and tenants.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Review requirements with stakeholders and ensure all necessary data points are captured for lease management."
         },
         {
@@ -475,7 +475,7 @@
             1
           ],
           "details": "Write the schema in schema.ts using Convex's defineSchema and defineTable functions. Include all identified fields and set up propertyId as a foreign key reference.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Validate schema using Convex's type safety and schema validation tools; check for correct field types and relationships."
         },
         {
@@ -486,7 +486,7 @@
             2
           ],
           "details": "Write Convex mutation and query functions for all CRUD operations on the leases table, handling propertyId references and data validation.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Unit test each CRUD function for correct behavior, including edge cases and error handling."
         },
         {
@@ -497,7 +497,7 @@
             2
           ],
           "details": "Define indexes in the schema for efficient querying, following Convex best practices to avoid redundant indexes and ensure scalability.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Benchmark query performance before and after indexing; verify correct index usage in Convex Dashboard."
         },
         {
@@ -509,7 +509,7 @@
             4
           ],
           "details": "Simulate real-world lease management scenarios, including lease creation, updates, deletions, and property associations. Check for data consistency and system robustness.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Run integration tests covering all workflows; validate results in the Convex Dashboard and with automated test scripts."
         }
       ]
@@ -525,7 +525,7 @@
         1,
         8
       ],
-      "status": "pending",
+      "status": "done",
       "subtasks": [
         {
           "id": 1,
@@ -533,7 +533,7 @@
           "description": "Create the UI layout for the lease management page using shadcn/ui components, including sections for current and past leases, and controls for adding, editing, and removing leases.",
           "dependencies": [],
           "details": "Define the structure and visual hierarchy of the page, ensuring a user-friendly interface that clearly separates current and past leases and provides intuitive controls for lease operations.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Review the UI for completeness and usability; verify that all required sections and controls are present and accessible."
         },
         {
@@ -544,7 +544,7 @@
             1
           ],
           "details": "Integrate Convex queries to load lease data and ensure the UI updates reactively when data changes.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Test that the page displays accurate lease data and updates in real time when leases are added, edited, or removed."
         },
         {
@@ -555,7 +555,7 @@
             2
           ],
           "details": "Create a form using shadcn/ui components, validate input, and submit new lease data to Convex. Ensure the UI reflects the new lease upon successful addition.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Verify that new leases can be added, appear in the correct section, and persist after page reload."
         },
         {
@@ -566,7 +566,7 @@
             3
           ],
           "details": "Provide edit and delete controls for each lease entry. Ensure changes are saved to Convex and the UI updates accordingly.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Test editing and deleting leases for correct data updates and UI refresh, including error handling."
         },
         {
@@ -577,7 +577,7 @@
             4
           ],
           "details": "Implement logic to categorize leases as current or past and visually separate them in the UI for clarity.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Check that leases are correctly categorized and displayed in their respective sections, with accurate status based on dates."
         }
       ]

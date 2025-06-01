@@ -1,0 +1,106 @@
+Task 8: Define Convex Database Schema for Leases
+Status: COMPLETED
+Date Completed: December 2024
+
+## Summary
+Successfully enhanced the existing lease management database schema with improved data structure, validation, and comprehensive CRUD operations. The lease system now supports advanced features like security deposits, payment schedules, and automatic status management.
+
+## Completed Features
+
+### 1. Enhanced Lease Table Schema
+Updated the leases table in `convex/schema.ts` with the following improvements:
+- **Core Fields**: tenantName, tenantEmail, tenantPhone, startDate, endDate, rent
+- **New Fields Added**:
+  - securityDeposit (optional number) - Track security deposits
+  - paymentDay (optional number 1-31) - Day of month rent is due
+  - notes (optional string) - Additional lease information
+  - updatedAt (optional string) - Track last modification
+- **Improved Status Field**: Changed from string to union type with strict values: "active", "expired", "pending"
+- **Maintained**: leaseDocumentUrl for document storage
+
+### 2. Database Indexes
+Implemented comprehensive indexes for optimized querying:
+- `by_property` - Fast lookups by propertyId
+- `by_user` - User-specific queries
+- `by_status` - Status-based filtering (active/expired/pending)
+- `by_tenant` - Search by tenant name
+
+### 3. Query Functions Implemented
+Created comprehensive query functions in `convex/leases.ts`:
+- `getLease` - Retrieve a single lease by ID
+- `getLeases` - Get all leases for a user (with optional property filter)
+- `getLeasesByProperty` - Get leases for a specific property
+- `getActiveLeases` - Get all active leases
+- `getLeaseStats` - Comprehensive statistics including:
+  - Total leases by status
+  - Monthly income from active leases
+  - Total security deposits held
+  - Leases expiring within 60 days
+
+### 4. Mutation Functions Implemented
+Developed complete CRUD operations with business logic:
+- `addLease` - Create new lease with:
+  - Property ownership verification
+  - One active lease per property enforcement
+  - Date validation (end > start)
+  - Payment day validation (1-31)
+  - Automatic document record creation
+- `updateLease` - Update existing lease with all validations
+- `deleteLease` - Remove lease and associated documents
+- `updateLeaseStatuses` - Automatically update lease statuses based on dates:
+  - Pending → Active when start date passes
+  - Active → Expired when end date passes
+
+### 5. Security Features
+- User authorization checks on all operations
+- Property ownership verification
+- Secure filtering by userId
+- Associated document management
+
+### 6. Data Integrity Features
+- Only one active lease per property
+- Date validation (end date must be after start date)
+- Payment day validation (1-31)
+- Automatic status transitions based on dates
+- Cascading delete for associated documents
+
+### 7. Dashboard Integration
+Updated `convex/dashboard.ts` to:
+- Calculate monthly rent from active leases (not property rent)
+- Track total security deposits held
+- Provide more accurate income calculations
+
+## Technical Implementation
+
+### Files Modified:
+1. `/convex/schema.ts` - Enhanced lease table definition with new fields and indexes
+2. `/convex/leases.ts` - Complete rewrite with all CRUD operations and business logic
+3. `/convex/dashboard.ts` - Updated to use lease data for accurate metrics
+
+### Key Design Decisions:
+- Used union type for status field to ensure data consistency
+- Added security deposit tracking for financial management
+- Implemented payment day for rent collection scheduling
+- Added automatic status updates to reduce manual maintenance
+- Enforced one active lease per property for data integrity
+- Integrated with documents table for lease document management
+
+## Testing Performed
+- Schema validation with new field types
+- CRUD operations with authorization checks
+- Business logic validation (one active lease per property)
+- Date validation and status transitions
+- Dashboard metrics using lease data
+
+## Integration Points
+- Ready for Lease Management Page (Task 9)
+- Integrated with Dashboard for accurate metrics
+- Document management system integration
+- Property association for property-specific views
+
+## Notes
+- The lease system enforces business rules automatically
+- Status transitions happen via the updateLeaseStatuses mutation
+- Security deposits are tracked separately from rent
+- All dates use ISO string format for consistency
+- The system maintains referential integrity with properties

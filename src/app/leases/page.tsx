@@ -10,8 +10,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, Calendar, FileText, AlertCircle, DollarSign } from "lucide-react";
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 export default function LeasesPage() {
   const { user } = useUser();
@@ -26,9 +28,16 @@ export default function LeasesPage() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterProperty, setFilterProperty] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Calculate days until expiry for active leases
+  const calculateDaysUntilExpiry = (endDate: string) => {
+    const end = new Date(endDate);
+    const today = new Date();
+    const diff = Math.floor((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+    return diff;
+  };
 
   // Filtering
   const filtered = (leases || []).filter((l: any) => {
@@ -38,70 +47,221 @@ export default function LeasesPage() {
     return true;
   });
 
-  function toggleSelect(id: string) {
-    setSelected((prev) => prev.includes(String(id)) ? prev.filter(x => x !== String(id)) : [...prev, String(id)]);
-  }
-  function selectAll() {
-    if (selected.length === filtered.length) setSelected([]);
-    else setSelected(filtered.map(l => String(l._id)));
-  }
-  async function handleBulkDelete() {
-    if (selected.length === 0 || !user) return;
-    if (!confirm(`Delete ${selected.length} selected leases?`)) return;
-    setLoading(true);
-    await Promise.all(selected.map(id => deleteLease({ id: id as any, userId: user.id })));
-    setLoading(false);
-    setSelected([]);
-  }
+  // Separate active/pending and expired leases
+  const activeAndPendingLeases = filtered.filter((l: any) => l.status === "active" || l.status === "pending");
+  const expiredLeases = filtered.filter((l: any) => l.status === "expired");
+
+  // Format date
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
+  // Get status badge
+  const getStatusBadge = (status: string, endDate?: string) => {
+    if (status === "active") {
+      const daysLeft = endDate ? calculateDaysUntilExpiry(endDate) : 0;
+      if (daysLeft <= 60 && daysLeft >= 0) {
+        return <Badge variant="outline" className="border-orange-500 text-orange-500">Active - Expiring Soon</Badge>;
+      }
+      return <Badge variant="default">Active</Badge>;
+    }
+    if (status === "pending") return <Badge variant="secondary">Pending</Badge>;
+    if (status === "expired") return <Badge variant="destructive">Expired</Badge>;
+    return null;
+  };
 
   // Handlers
-  function handleAdd() {
-    setEditLease(null);
-    setModalOpen(true);
-  }
-  function handleEdit(lease: any) {
-    setEditLease(lease);
-    setModalOpen(true);
-  }
-  async function handleDelete(id: string) {
-    if (!user) return;
-    if (!confirm("Delete this lease?")) return;
-    setLoading(true);
-    await deleteLease({ id, userId: user.id });
-    setLoading(false);
-  }
   async function handleSubmit(form: any) {
     if (!user) return;
     setLoading(true);
-    if (editLease) {
-      await updateLease({ ...form, id: editLease._id, userId: user.id });
-    } else {
-      await addLease({ ...form, userId: user.id });
+    setError(null);
+    try {
+      if (editLease) {
+        await updateLease({ ...form, id: editLease._id, userId: user.id, propertyId: form.propertyId as any });
+      } else {
+        await addLease({ ...form, userId: user.id, propertyId: form.propertyId as any });
+      }
+      setModalOpen(false);
+      setEditLease(null);
+    } catch (err: any) {
+      setError(err.message || "An error occurred");
     }
     setLoading(false);
-    setModalOpen(false);
-  }
-
-  // Debug logging
-  if (typeof window !== "undefined") {
-    console.log("Current Clerk user.id:", user?.id);
-    if (properties) {
-      console.log("Loaded properties userIds:", properties.map((p: any) => p.userId));
-    } else {
-      console.log("Properties not loaded yet");
-    }
   }
 
   if (!user) return <div className="text-center text-muted-foreground">Sign in to manage leases.</div>;
   if (!properties) return <div className="text-center text-muted-foreground">Loading properties...</div>;
 
+  const LeaseTable = ({ leases: leaseList, title }: { leases: any[], title: string }) => (
+    <Card className="p-6">
+      <h2 className="text-lg font-semibold mb-4">{title}</h2>
+      <div className="overflow-x-auto">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Tenant</TableHead>
+              <TableHead>Property</TableHead>
+              <TableHead>Term</TableHead>
+              <TableHead>Rent</TableHead>
+              <TableHead>Deposit</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Payment</TableHead>
+              <TableHead>Info</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {leaseList.map((lease) => {
+              const property = properties?.find((p: any) => p._id === lease.propertyId);
+              const daysUntilExpiry = calculateDaysUntilExpiry(lease.endDate);
+              return (
+                <TableRow key={lease._id} className="hover:bg-muted/50 transition-colors duration-200">
+                  <TableCell>
+                    <div>
+                      <p className="font-medium">{lease.tenantName}</p>
+                      {lease.tenantEmail && (
+                        <p className="text-sm text-muted-foreground">{lease.tenantEmail}</p>
+                      )}
+                      {lease.tenantPhone && (
+                        <p className="text-sm text-muted-foreground">{lease.tenantPhone}</p>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <span className="truncate max-w-[150px] inline-block">
+                          {property?.name || "Unknown"}
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        {property?.name} - {property?.address}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableCell>
+                  <TableCell>
+                    <div className="text-sm">
+                      <p>{formatDate(lease.startDate)} - {formatDate(lease.endDate)}</p>
+                      {lease.status === "active" && daysUntilExpiry <= 60 && daysUntilExpiry >= 0 && (
+                        <p className="text-orange-500 flex items-center gap-1 mt-1">
+                          <AlertCircle className="w-3 h-3" />
+                          {daysUntilExpiry} days left
+                        </p>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>${lease.rent.toLocaleString()}/mo</TableCell>
+                  <TableCell>
+                    {lease.securityDeposit ? (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <span className="flex items-center gap-1">
+                            <DollarSign className="w-3 h-3" />
+                            ${lease.securityDeposit.toLocaleString()}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>Security Deposit</TooltipContent>
+                      </Tooltip>
+                    ) : "-"}
+                  </TableCell>
+                  <TableCell>{getStatusBadge(lease.status, lease.endDate)}</TableCell>
+                  <TableCell>
+                    {lease.paymentDay ? (
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Badge variant="outline" className="text-xs">
+                            {lease.paymentDay}{lease.paymentDay === 1 ? "st" : lease.paymentDay === 2 ? "nd" : lease.paymentDay === 3 ? "rd" : "th"}
+                          </Badge>
+                        </TooltipTrigger>
+                        <TooltipContent>Rent due on the {lease.paymentDay}{lease.paymentDay === 1 ? "st" : lease.paymentDay === 2 ? "nd" : lease.paymentDay === 3 ? "rd" : "th"} of each month</TooltipContent>
+                      </Tooltip>
+                    ) : "-"}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex gap-2">
+                      {lease.leaseDocumentUrl && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <a href={lease.leaseDocumentUrl} target="_blank" rel="noopener noreferrer">
+                              <FileText className="w-4 h-4 text-muted-foreground hover:text-primary" />
+                            </a>
+                          </TooltipTrigger>
+                          <TooltipContent>View Lease Document</TooltipContent>
+                        </Tooltip>
+                      )}
+                      {lease.notes && (
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <Calendar className="w-4 h-4 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent className="max-w-xs">{lease.notes}</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-primary">
+                          <MoreHorizontal />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={() => {
+                          setEditLease(lease);
+                          setModalOpen(true);
+                        }}>
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={async () => {
+                            if (confirm("Delete this lease?")) {
+                              setLoading(true);
+                              await deleteLease({ id: lease._id as any, userId: user.id });
+                              setLoading(false);
+                            }
+                          }}
+                          className="text-destructive"
+                        >
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              );
+            })}
+            {leaseList.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                  No {title.toLowerCase()} found.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+    </Card>
+  );
+
   return (
     <div className="min-h-screen bg-background text-foreground p-8 transition-colors duration-300">
       <div className="flex items-center justify-between mb-8">
         <h1 className="text-3xl font-bold">Leases</h1>
-        <Button onClick={handleAdd} className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-colors duration-200" disabled={!properties || properties.length === 0}>Add Lease</Button>
+        <Button 
+          onClick={() => {
+            setEditLease(null);
+            setModalOpen(true);
+          }} 
+          className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-colors duration-200" 
+          disabled={!properties || properties.length === 0}
+        >
+          Add Lease
+        </Button>
       </div>
-      <div className="flex flex-wrap gap-4 mb-4 items-end">
+      
+      <div className="flex flex-wrap gap-4 mb-6 items-end">
         <Input
           placeholder="Search tenant name..."
           value={search}
@@ -125,120 +285,44 @@ export default function LeasesPage() {
         >
           <option value="">All Statuses</option>
           <option value="active">Active</option>
+          <option value="pending">Pending</option>
           <option value="expired">Expired</option>
         </select>
       </div>
-      {selected.length > 0 && (
-        <div className="mb-2 flex gap-2 items-center">
-          <span className="text-muted-foreground">{selected.length} selected</span>
-          <Button variant="destructive" onClick={handleBulkDelete} disabled={loading} className="transition-colors duration-200">
-            Delete Selected
-          </Button>
-        </div>
-      )}
-      <div className="overflow-x-auto rounded-2xl shadow-2xl bg-card border border-border transition-colors duration-300">
-        <LoadingContent loading={!leases} error={error} skeletonRows={6} skeletonHeight={40}>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8">
-                  <input
-                    type="checkbox"
-                    checked={selected.length === filtered.length && filtered.length > 0}
-                    onChange={selectAll}
-                    aria-label="Select all"
-                  />
-                </TableHead>
-                <TableHead className="p-2 text-left">Tenant</TableHead>
-                <TableHead className="p-2 text-left">Property</TableHead>
-                <TableHead className="p-2 text-left">Dates</TableHead>
-                <TableHead className="p-2 text-left">Rent</TableHead>
-                <TableHead className="p-2 text-left">Status</TableHead>
-                <TableHead className="p-2 text-left">Contact</TableHead>
-                <TableHead className="p-2 text-left">Document</TableHead>
-                <TableHead className="p-2 text-left">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((lease) => (
-                <TableRow key={lease._id} className={selected.includes(String(lease._id)) ? "text-primary-foreground" : "hover:bg-muted/50 transition-colors duration-200"} style={selected.includes(String(lease._id)) ? { backgroundColor: '#00ddeb' } : {}}>
-                  <TableCell className="w-8">
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(String(lease._id))}
-                      onChange={() => toggleSelect(String(lease._id))}
-                      aria-label="Select lease"
-                    />
-                  </TableCell>
-                  <TableCell className="p-2 font-medium">{lease.tenantName}</TableCell>
-                  <TableCell className="p-2">{properties?.find((p: any) => p._id === lease.propertyId)?.name || "-"}</TableCell>
-                  <TableCell className="p-2">{lease.startDate} - {lease.endDate}</TableCell>
-                  <TableCell className="p-2">${lease.rent}</TableCell>
-                  <TableCell className="p-2">{lease.status === "active" ? <span className="text-green-400">Active</span> : <span className="text-muted-foreground">Expired</span>}</TableCell>
-                  <TableCell className="p-2">
-                    {lease.tenantEmail && <div className="truncate max-w-[120px]" title={lease.tenantEmail}>{lease.tenantEmail}</div>}
-                    {lease.tenantPhone && <div className="truncate max-w-[120px]" title={lease.tenantPhone}>{lease.tenantPhone}</div>}
-                  </TableCell>
-                  <TableCell className="p-2">
-                    {lease.leaseDocumentUrl ? (
-                      <a href={lease.leaseDocumentUrl} target="_blank" rel="noopener noreferrer" className="text-primary underline">View</a>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-primary">
-                          <MoreHorizontal />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => setEditLease(lease)}>
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={async () => {
-                            if (confirm("Delete this lease?")) {
-                              setLoading(true);
-                              await deleteLease({ id: lease._id as any, userId: user.id });
-                              setLoading(false);
-                            }
-                          }}
-                          variant="destructive"
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(!filtered || filtered.length === 0) && (
-                <TableRow>
-                  <TableCell colSpan={11} className="text-center text-muted-foreground">
-                    No leases found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </LoadingContent>
+
+      <div className="space-y-6">
+        {(activeAndPendingLeases.length > 0 || (!filterStatus || filterStatus === "active" || filterStatus === "pending")) && (
+          <LeaseTable leases={activeAndPendingLeases} title="Active & Pending Leases" />
+        )}
+        
+        {(expiredLeases.length > 0 || filterStatus === "expired") && (
+          <LeaseTable leases={expiredLeases} title="Expired Leases" />
+        )}
       </div>
+
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="bg-card border border-border shadow-xl rounded-xl">
+        <DialogContent className="bg-card border border-border shadow-xl rounded-xl max-w-2xl">
           <DialogHeader>
             <DialogTitle>{editLease ? "Edit Lease" : "Add Lease"}</DialogTitle>
           </DialogHeader>
+          {error && (
+            <div className="bg-destructive/10 text-destructive p-3 rounded-lg mb-4">
+              {error}
+            </div>
+          )}
           <LeaseForm
             initial={editLease}
             onSubmit={handleSubmit}
             loading={loading}
-            onCancel={() => setModalOpen(false)}
+            onCancel={() => {
+              setModalOpen(false);
+              setEditLease(null);
+              setError(null);
+            }}
             properties={properties || []}
           />
         </DialogContent>
       </Dialog>
     </div>
   );
-} 
+}
