@@ -809,6 +809,171 @@
       ],
       "priority": "medium",
       "subtasks": []
+    },
+    {
+      "id": 14,
+      "title": "Fix Navigation and Dashboard Access",
+      "description": "Improve navigation flow and ensure users can easily access the dashboard from the landing page.",
+      "details": "Add clear 'Go to Dashboard' button on landing page, improve authentication flow, and fix navigation consistency across the application.",
+      "testStrategy": "Verify users can navigate from landing page to dashboard seamlessly. Test authentication flow and navigation consistency.",
+      "priority": "high",
+      "dependencies": [],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 15,
+      "title": "Implement Responsive Collapsible Sidebar",
+      "description": "Create a responsive sidebar that collapses on mobile with hamburger menu navigation.",
+      "details": "Replace fixed-width sidebar with collapsible design. Add hamburger menu for mobile. Implement proper state management for sidebar collapse/expand.",
+      "testStrategy": "Test sidebar behavior across different screen sizes. Verify mobile hamburger menu functionality and accessibility.",
+      "priority": "high",
+      "dependencies": [],
+      "status": "done",
+      "subtasks": []
+    },
+    {
+      "id": 16,
+      "title": "Implement Document Management System",
+      "description": "Build complete document upload and management functionality to replace 'coming soon' placeholder.",
+      "details": "Implement drag-and-drop document upload, file categorization, document preview, search functionality, and integration with properties/leases.",
+      "testStrategy": "Test file upload, categorization, search, and integration with property records. Verify file size limits and security.",
+      "priority": "high",
+      "dependencies": [],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 17,
+      "title": "Standardize Form Design System",
+      "description": "Create consistent form styling across all components using design system tokens.",
+      "details": "Replace hardcoded colors in forms with design system tokens. Standardize form layouts, spacing, validation styling, and interaction states.",
+      "testStrategy": "Verify all forms use consistent styling, support both light and dark themes, and maintain accessibility standards.",
+      "priority": "high",
+      "dependencies": [],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 18,
+      "title": "Create Mobile-Responsive Table System",
+      "description": "Implement responsive tables with card view for mobile devices.",
+      "details": "Create responsive table component that switches to card layout on mobile. Ensure touch targets are appropriate size and content remains readable.",
+      "testStrategy": "Test table responsiveness across device sizes. Verify card view functionality and touch interaction quality on mobile.",
+      "priority": "high",
+      "dependencies": [],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 19,
+      "title": "Add Quick Actions Dashboard",
+      "description": "Implement quick action cards on dashboard for common tasks.",
+      "details": "Add action cards to dashboard for Add Property, New Lease, View Reports, etc. Include shortcuts to frequently used functionality.",
+      "testStrategy": "Verify quick actions work correctly and provide efficient access to common workflows.",
+      "priority": "high",
+      "dependencies": [14],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 20,
+      "title": "Implement Real-time Notification System",
+      "description": "Build notification system for lease expirations, overdue items, and important alerts.",
+      "details": "Create notification infrastructure, implement lease expiration alerts, overdue rent notifications, and maintenance reminders. Add notification preferences.",
+      "testStrategy": "Test notification triggers, delivery methods, and user preference settings. Verify notifications are timely and accurate.",
+      "priority": "high",
+      "dependencies": [],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 21,
+      "title": "Enhanced Search and Filtering System",
+      "description": "Implement advanced search with filters, tags, date ranges, and saved searches.",
+      "details": "Build comprehensive search system with multiple filter types, saved filter sets, advanced property search, and cross-entity search capabilities.",
+      "testStrategy": "Test search performance, filter combinations, saved search functionality, and search result accuracy.",
+      "priority": "high",
+      "dependencies": [],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 22,
+      "title": "Create Property Creation Wizard",
+      "description": "Replace single form with multi-step property creation wizard.",
+      "details": "Design and implement multi-step wizard with property templates, image upload, validation steps, and progress indication.",
+      "testStrategy": "Test wizard flow, validation at each step, template functionality, and data integrity throughout the process.",
+      "priority": "high",
+      "dependencies": [17],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 23,
+      "title": "Financial Analytics Enhancement",
+      "description": "Add advanced financial analytics including ROI calculations and profit/loss tracking.",
+      "details": "Implement ROI calculations, profit/loss tracking, cash flow projections, and property performance comparisons.",
+      "testStrategy": "Verify financial calculations accuracy, test various scenarios, and validate reporting functionality.",
+      "priority": "high",
+      "dependencies": [],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 24,
+      "title": "Standardize Loading States",
+      "description": "Implement consistent skeleton loaders across all data-loading components.",
+      "details": "Create reusable skeleton loader components and apply them consistently across all pages that load data from Convex.",
+      "testStrategy": "Test loading states across all pages and verify consistent user experience during data fetching.",
+      "priority": "medium",
+      "dependencies": [],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 25,
+      "title": "Improve Error Handling and User Feedback",
+      "description": "Implement contextual error messages and success feedback throughout the application.",
+      "details": "Create toast notification system, improve error message clarity, add success confirmations, and implement contextual help.",
+      "testStrategy": "Test error scenarios, verify helpful error messages, and confirm success feedback provides clear confirmation.",
+      "priority": "medium",
+      "dependencies": [],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 26,
+      "title": "Add Property Activity Timeline",
+      "description": "Implement activity timeline showing history of changes for each property.",
+      "details": "Create audit trail system that tracks all property changes, lease updates, and maintenance activities with timeline visualization.",
+      "testStrategy": "Verify activity tracking accuracy, timeline display, and historical data integrity.",
+      "priority": "medium",
+      "dependencies": [16],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 27,
+      "title": "Implement Bulk Operations UI",
+      "description": "Expand bulk operations beyond delete to include bulk edit and status changes.",
+      "details": "Add bulk edit functionality, bulk status changes, bulk document assignment, and bulk property updates with progress tracking.",
+      "testStrategy": "Test bulk operations with various selections, verify data integrity, and confirm progress feedback.",
+      "priority": "medium",
+      "dependencies": [18],
+      "status": "pending",
+      "subtasks": []
+    },
+    {
+      "id": 28,
+      "title": "Create Unified Status Badge System",
+      "description": "Implement consistent status badges with semantic colors across all entities.",
+      "details": "Design unified status badge system with consistent colors, meanings, and usage across properties, leases, utilities, and documents.",
+      "testStrategy": "Verify status badge consistency, color accessibility, and semantic meaning across all entity types.",
+      "priority": "medium",
+      "dependencies": [17],
+      "status": "pending",
+      "subtasks": []
     }
   ]
 }

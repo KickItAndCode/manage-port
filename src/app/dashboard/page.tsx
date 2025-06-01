@@ -11,13 +11,17 @@ import {
 } from "recharts";
 import { 
   Home, DollarSign, Percent, TrendingUp, 
-  Building2, Receipt, Calendar, Users 
+  Building2, Receipt, Calendar, Users, ArrowRight 
 } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { cn } from "@/lib/utils";
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export default function DashboardPage() {
   const { user } = useUser();
+  const router = useRouter();
   const metrics = useQuery(api.dashboard.getDashboardMetrics, { 
     userId: user?.id ?? "" 
   });
@@ -253,10 +257,19 @@ export default function DashboardPage() {
       {/* Recent Properties */}
       <section aria-labelledby="recent-properties-heading">
         <Card className="p-4 sm:p-6">
-          <h3 id="recent-properties-heading" className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
-            <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" aria-hidden="true" />
-            Recent Properties
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 id="recent-properties-heading" className="text-base sm:text-lg font-semibold flex items-center gap-2">
+              <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" aria-hidden="true" />
+              Recent Properties
+            </h3>
+            <button 
+              onClick={() => router.push('/properties')}
+              className="text-sm text-primary hover:underline flex items-center gap-1"
+            >
+              View all
+              <ArrowRight className="h-3 w-3" />
+            </button>
+          </div>
           <div className="overflow-x-auto -mx-2 sm:mx-0">
             <table className="w-full min-w-[600px] sm:min-w-0" role="table" aria-label="Recent properties overview">
               <thead>
@@ -269,13 +282,25 @@ export default function DashboardPage() {
               </thead>
               <tbody>
                 {metrics.recentProperties.map((property, index) => (
-                  <tr key={property.id} className="border-t" role="row">
+                  <tr 
+                    key={property.id} 
+                    className={cn(
+                      "border-t group cursor-pointer hover:bg-muted/50 transition-colors"
+                    )}
+                    role="row"
+                    onClick={() => router.push(`/properties/${property.id}`)}
+                  >
                     <td className="py-3 px-2 sm:px-0" role="cell">
-                      <div>
-                        <p className="font-medium text-sm sm:text-base">{property.name}</p>
-                        <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-none">
-                          {property.address}
-                        </p>
+                      <div className="flex items-center justify-between">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-sm sm:text-base group-hover:text-primary transition-colors">
+                            {property.name}
+                          </p>
+                          <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-none">
+                            {property.address}
+                          </p>
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0" />
                       </div>
                     </td>
                     <td className="py-3 px-2 sm:px-0" role="cell">
@@ -284,13 +309,7 @@ export default function DashboardPage() {
                       </span>
                     </td>
                     <td className="py-3 px-2 sm:px-0" role="cell">
-                      <span className={`px-2 py-1 rounded-full text-xs whitespace-nowrap ${
-                        property.status === 'Available' 
-                          ? 'bg-green-100 dark:bg-green-950/30 text-green-700 dark:text-green-400' 
-                          : 'bg-yellow-100 dark:bg-yellow-950/30 text-yellow-700 dark:text-yellow-400'
-                      }`}>
-                        {property.status}
-                      </span>
+                      <StatusBadge status={property.status} variant="compact" />
                     </td>
                     <td className="py-3 text-right font-medium px-2 sm:px-0 text-sm sm:text-base" role="cell">
                       ${property.monthlyRent.toLocaleString()}

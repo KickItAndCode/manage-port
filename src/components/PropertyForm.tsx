@@ -73,7 +73,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
       "456 Garden Ln, Portland, OR 97209"
     ];
     const types = ["Single Family", "Apartment", "Condo", "Townhouse", "Multi-Family", "Duplex", "Other"];
-    const statuses = ["Vacant", "Occupied", "Under Maintenance", "Other"];
+    const statuses = ["Available", "Occupied", "Maintenance", "Under Contract"];
     const images = [
       "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80",
       "https://images.unsplash.com/photo-1460518451285-97b6aa326961?auto=format&fit=crop&w=400&q=80",

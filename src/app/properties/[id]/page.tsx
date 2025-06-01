@@ -6,6 +6,7 @@ import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,27 +56,22 @@ export default function PropertyDetailsPage() {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const getStatusBadge = (status: string) => {
-    const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      "Available": "default",
-      "Occupied": "secondary", 
-      "Maintenance": "destructive",
-      "Under Contract": "outline"
-    };
-    return <Badge variant={variants[status] || "outline"}>{status}</Badge>;
-  };
 
   const getLeaseStatusBadge = (status: string, endDate?: string) => {
-    if (status === "active") {
-      const daysLeft = endDate ? Math.floor((new Date(endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)) : 0;
+    if (status === "active" && endDate) {
+      const daysLeft = Math.floor((new Date(endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
       if (daysLeft <= 60 && daysLeft >= 0) {
-        return <Badge variant="outline" className="border-orange-500 text-orange-500">Active - Expiring Soon</Badge>;
+        return (
+          <div className="flex items-center gap-2">
+            <StatusBadge status={status} variant="compact" />
+            <Badge variant="outline" className="border-orange-500 text-orange-500 text-xs">
+              Expires in {daysLeft} days
+            </Badge>
+          </div>
+        );
       }
-      return <Badge variant="default">Active</Badge>;
     }
-    if (status === "pending") return <Badge variant="secondary">Pending</Badge>;
-    if (status === "expired") return <Badge variant="destructive">Expired</Badge>;
-    return <Badge variant="outline">{status}</Badge>;
+    return <StatusBadge status={status} variant="compact" />;
   };
 
   const calculateTotalUtilityCost = () => {
@@ -162,7 +158,7 @@ export default function PropertyDetailsPage() {
                   <MapPin className="w-4 h-4 mr-1" />
                   {property.address}
                 </div>
-                {getStatusBadge(property.status)}
+                <StatusBadge status={property.status} />
               </div>
             </div>
           </div>

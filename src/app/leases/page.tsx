@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { MoreHorizontal, Calendar, FileText, AlertCircle, DollarSign } from "lucide-react";
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 export default function LeasesPage() {
@@ -59,16 +60,20 @@ export default function LeasesPage() {
 
   // Get status badge
   const getStatusBadge = (status: string, endDate?: string) => {
-    if (status === "active") {
-      const daysLeft = endDate ? calculateDaysUntilExpiry(endDate) : 0;
+    if (status === "active" && endDate) {
+      const daysLeft = calculateDaysUntilExpiry(endDate);
       if (daysLeft <= 60 && daysLeft >= 0) {
-        return <Badge variant="outline" className="border-orange-500 text-orange-500">Active - Expiring Soon</Badge>;
+        return (
+          <div className="flex items-center gap-2">
+            <StatusBadge status={status} variant="compact" />
+            <Badge variant="outline" className="border-orange-500 text-orange-500 text-xs">
+              {daysLeft}d left
+            </Badge>
+          </div>
+        );
       }
-      return <Badge variant="default">Active</Badge>;
     }
-    if (status === "pending") return <Badge variant="secondary">Pending</Badge>;
-    if (status === "expired") return <Badge variant="destructive">Expired</Badge>;
-    return null;
+    return <StatusBadge status={status} variant="compact" />;
   };
 
   // Handlers

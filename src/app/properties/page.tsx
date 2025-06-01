@@ -8,15 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronUp, ChevronDown } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { cn } from "@/lib/utils";
 
 type PropertySortKey = 'name' | 'type' | 'status' | 'address' | 'bedrooms' | 'bathrooms' | 'squareFeet' | 'monthlyRent' | 'purchaseDate';
 
 export default function PropertiesPage() {
   const { user } = useUser();
+  const router = useRouter();
   const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
   const addProperty = useMutation(api.properties.addProperty);
   const updateProperty = useMutation(api.properties.updateProperty);
@@ -89,14 +93,6 @@ export default function PropertiesPage() {
     await Promise.all(selected.map(id => deleteProperty({ id: id as any, userId: user.id })));
     setLoading(false);
     setSelected([]);
-  }
-  function statusColor(status: string) {
-    switch (status) {
-      case "Vacant": return "bg-yellow-600 text-yellow-100";
-      case "Occupied": return "bg-green-700 text-green-100";
-      case "Under Maintenance": return "bg-blue-700 text-blue-100";
-      default: return "bg-zinc-700 text-zinc-100";
-    }
   }
 
   if (!user) return <div className="text-center text-muted-foreground">Sign in to manage properties.</div>;
@@ -206,29 +202,67 @@ export default function PropertiesPage() {
               </TableRow>
             )}
             {filtered.map((property) => (
-              <TableRow key={property._id} className={selected.includes(String(property._id)) ? "text-primary-foreground" : "hover:bg-muted/50 transition-colors duration-200"} style={selected.includes(String(property._id)) ? { backgroundColor: '#00ddeb' } : {}}>
-                <TableCell className="w-8">
+              <TableRow 
+                key={property._id} 
+                className={cn(
+                  "group cursor-pointer",
+                  selected.includes(String(property._id)) ? "text-primary-foreground" : "hover:bg-muted/50 transition-colors duration-200"
+                )} 
+                style={selected.includes(String(property._id)) ? { backgroundColor: '#00ddeb' } : {}}
+              >
+                <TableCell 
+                  className="w-8"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <input
                     type="checkbox"
                     checked={selected.includes(String(property._id))}
                     onChange={() => toggleSelect(String(property._id))}
                     aria-label="Select property"
+                    className="cursor-pointer"
                   />
                 </TableCell>
-                <TableCell className="font-medium">
-                  <Link href={`/properties/${property._id}`} className="text-primary underline underline-offset-2 hover:text-primary/80 transition-colors duration-200">
+                <TableCell 
+                  className="font-medium cursor-pointer"
+                  onClick={() => router.push(`/properties/${property._id}`)}
+                >
+                  <span className="group-hover:text-primary transition-colors">
                     {property.name}
-                  </Link>
+                  </span>
                 </TableCell>
-                <TableCell>{property.type}</TableCell>
-                <TableCell><span className={statusColor(property.status)}>{property.status}</span></TableCell>
-                <TableCell>{property.address}</TableCell>
-                <TableCell>{property.bedrooms}</TableCell>
-                <TableCell>{property.bathrooms}</TableCell>
-                <TableCell>{property.squareFeet}</TableCell>
-                <TableCell>${property.monthlyRent}</TableCell>
-                <TableCell>{property.purchaseDate}</TableCell>
-                <TableCell>
+                <TableCell 
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/properties/${property._id}`)}
+                >{property.type}</TableCell>
+                <TableCell 
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/properties/${property._id}`)}
+                ><StatusBadge status={property.status} /></TableCell>
+                <TableCell 
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/properties/${property._id}`)}
+                >{property.address}</TableCell>
+                <TableCell 
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/properties/${property._id}`)}
+                >{property.bedrooms}</TableCell>
+                <TableCell 
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/properties/${property._id}`)}
+                >{property.bathrooms}</TableCell>
+                <TableCell 
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/properties/${property._id}`)}
+                >{property.squareFeet}</TableCell>
+                <TableCell 
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/properties/${property._id}`)}
+                >${property.monthlyRent}</TableCell>
+                <TableCell 
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/properties/${property._id}`)}
+                >{property.purchaseDate}</TableCell>
+                <TableCell onClick={(e) => e.stopPropagation()}>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-primary">
