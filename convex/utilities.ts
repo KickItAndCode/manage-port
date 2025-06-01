@@ -9,7 +9,6 @@ export const addUtility = mutation({
     name: v.string(),
     provider: v.string(),
     cost: v.number(),
-    status: v.string(),
   },
   handler: async (ctx, args) => {
     return await ctx.db.insert("utilities", {
@@ -40,7 +39,6 @@ export const updateUtility = mutation({
     name: v.string(),
     provider: v.string(),
     cost: v.number(),
-    status: v.string(),
   },
   handler: async (ctx, args) => {
     const utility = await ctx.db.get(args.id);
@@ -50,7 +48,6 @@ export const updateUtility = mutation({
       name: args.name,
       provider: args.provider,
       cost: args.cost,
-      status: args.status,
     });
   },
 });

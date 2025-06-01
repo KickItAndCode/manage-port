@@ -161,7 +161,7 @@ export default function LeasesPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((lease) => (
-                <TableRow key={lease._id} className={selected.includes(String(lease._id)) ? "bg-accent/30" : "hover:bg-muted/50 transition-colors duration-200"}>
+                <TableRow key={lease._id} className={selected.includes(String(lease._id)) ? "text-primary-foreground" : "hover:bg-muted/50 transition-colors duration-200"} style={selected.includes(String(lease._id)) ? { backgroundColor: '#00ddeb' } : {}}>
                   <TableCell className="w-8">
                     <input
                       type="checkbox"

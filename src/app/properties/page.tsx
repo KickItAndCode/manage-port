@@ -180,7 +180,7 @@ export default function PropertiesPage() {
           <TableBody>
             {selected.length > 0 && (
               <TableRow>
-                <TableCell colSpan={12} className="bg-accent/30">
+                <TableCell colSpan={12} className="text-primary-foreground" style={{ backgroundColor: '#00ddeb' }}>
                   <div className="mb-2 flex gap-2 items-center">
                     <span className="text-muted-foreground">{selected.length} selected</span>
                     <Button variant="destructive" onClick={handleBulkDelete} disabled={loading} className="transition-colors duration-200">
@@ -191,7 +191,7 @@ export default function PropertiesPage() {
               </TableRow>
             )}
             {filtered.map((property) => (
-              <TableRow key={property._id} className={selected.includes(String(property._id)) ? "bg-accent/30" : "hover:bg-muted/50 transition-colors duration-200"}>
+              <TableRow key={property._id} className={selected.includes(String(property._id)) ? "text-primary-foreground" : "hover:bg-muted/50 transition-colors duration-200"} style={selected.includes(String(property._id)) ? { backgroundColor: '#00ddeb' } : {}}>
                 <TableCell className="w-8">
                   <input
                     type="checkbox"

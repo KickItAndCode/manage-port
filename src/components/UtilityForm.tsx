@@ -12,14 +12,12 @@ export interface UtilityFormProps {
     name: string;
     provider: string;
     cost: number;
-    status: string;
   };
   onSubmit: (data: {
     propertyId: string;
     name: string;
     provider: string;
     cost: number;
-    status: string;
   }) => void;
   onCancel?: () => void;
   loading?: boolean;
@@ -30,7 +28,6 @@ const utilitySchema = z.object({
   name: z.string().min(2, "Utility name is required"),
   provider: z.string().min(2, "Provider is required"),
   cost: z.coerce.number().min(0, "Cost is required"),
-  status: z.string().min(2, "Status is required"),
 });
 type UtilityFormType = z.infer<typeof utilitySchema>;
 
@@ -50,7 +47,6 @@ export function UtilityForm({ properties, initial, onSubmit, onCancel, loading }
   function fillWithDummyData() {
     const names = ["Electricity", "Water", "Gas", "Internet", "Trash", "Sewer"];
     const providers = ["UtilityCo", "AquaPure", "GasWorks", "FiberNet", "WasteAway", "CleanFlow"];
-    const statuses = ["Active", "Inactive", "Pending", "Disconnected"];
     function randomInt(min: number, max: number) {
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
@@ -59,7 +55,6 @@ export function UtilityForm({ properties, initial, onSubmit, onCancel, loading }
       name: names[randomInt(0, names.length - 1)],
       provider: providers[randomInt(0, providers.length - 1)],
       cost: randomInt(20, 300),
-      status: statuses[randomInt(0, statuses.length - 1)],
     });
   }
 
@@ -118,21 +113,6 @@ export function UtilityForm({ properties, initial, onSubmit, onCancel, loading }
           required
         />
         {errors.cost && <span className="text-red-400 text-sm">{errors.cost.message}</span>}
-      </div>
-      <div>
-        <label className="block text-zinc-200 mb-1">Status</label>
-        <select
-          className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2"
-          {...register("status")}
-          required
-        >
-          <option value="">Select status</option>
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
-          <option value="Pending">Pending</option>
-          <option value="Disconnected">Disconnected</option>
-        </select>
-        {errors.status && <span className="text-red-400 text-sm">{errors.status.message}</span>}
       </div>
       <div className="flex gap-2 justify-end mt-4">
         {onCancel && (

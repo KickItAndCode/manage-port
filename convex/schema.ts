@@ -22,7 +22,6 @@ export default defineSchema({
     name: v.string(), // Utility name (e.g., Electricity)
     provider: v.string(), // Utility provider
     cost: v.number(), // Monthly cost
-    status: v.string(), // e.g., Active, Inactive
     createdAt: v.string(),
   }),
   leases: defineTable({

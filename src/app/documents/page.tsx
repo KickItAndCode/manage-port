@@ -126,7 +126,7 @@ export default function DocumentsPage() {
             </TableHeader>
             <TableBody>
               {filtered.map((doc) => (
-                <TableRow key={doc._id} className={selected.includes(String(doc._id)) ? "bg-accent/30" : "hover:bg-muted/50 transition-colors duration-200"}>
+                <TableRow key={doc._id} className={selected.includes(String(doc._id)) ? "text-primary-foreground" : "hover:bg-muted/50 transition-colors duration-200"} style={selected.includes(String(doc._id)) ? { backgroundColor: '#00ddeb' } : {}}>
                   <TableCell className="w-8">
                     <input
                       type="checkbox"

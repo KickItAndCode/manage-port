@@ -31,7 +31,7 @@ export default function UtilitiesPage() {
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selected, setSelected] = useState<string[]>([]);
 
-  type UtilitySortKey = "name" | "provider" | "cost" | "status" | "propertyId";
+  type UtilitySortKey = "name" | "provider" | "cost" | "propertyId";
 
   function handleSort(key: UtilitySortKey) {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -66,8 +66,7 @@ export default function UtilitiesPage() {
         u.provider.toLowerCase().includes(search.toLowerCase()) ||
         (properties?.find((p) => p._id === u.propertyId)?.name.toLowerCase().includes(search.toLowerCase()) ?? false)
       ) &&
-      (!propertyFilter || u.propertyId === propertyFilter) &&
-      (!statusFilter || u.status === statusFilter)
+      (!propertyFilter || u.propertyId === propertyFilter)
     )
     .sort((a, b) => {
       let v1 = a[sortKey];
@@ -132,16 +131,6 @@ export default function UtilitiesPage() {
             <option key={p._id} value={p._id}>{p.name}</option>
           ))}
         </select>
-        <select
-          className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-        >
-          <option value="">All Statuses</option>
-          {statusOptions.map((s) => (
-            <option key={s} value={s}>{s}</option>
-          ))}
-        </select>
       </div>
       {selected.length > 0 && (
         <div className="mb-2 flex gap-2 items-center">
@@ -168,7 +157,6 @@ export default function UtilitiesPage() {
                 <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("name")}>Name {sortKey==="name" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
                 <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("provider")}>Provider {sortKey==="provider" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
                 <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("cost")}>Cost {sortKey==="cost" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
-                <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("status")}>Status {sortKey==="status" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -176,7 +164,7 @@ export default function UtilitiesPage() {
               {filtered.map((utility) => {
                 const property = properties?.find((p) => p._id === utility.propertyId);
                 return (
-                  <TableRow key={utility._id} className={selected.includes(String(utility._id)) ? "bg-accent/30" : "hover:bg-muted/50 transition-colors duration-200"}>
+                  <TableRow key={utility._id} className={selected.includes(String(utility._id)) ? "text-primary-foreground" : "hover:bg-muted/50 transition-colors duration-200"} style={selected.includes(String(utility._id)) ? { backgroundColor: '#00ddeb' } : {}}>
                     <TableCell className="w-8">
                       <input
                         type="checkbox"
@@ -203,7 +191,6 @@ export default function UtilitiesPage() {
                       </Tooltip>
                     </TableCell>
                     <TableCell>${utility.cost}</TableCell>
-                    <TableCell>{utility.status}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
