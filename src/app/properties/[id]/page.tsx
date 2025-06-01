@@ -39,6 +39,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { PropertyForm } from "@/components/PropertyForm";
 import { useMutation } from "convex/react";
 import { DocumentViewer } from "@/components/DocumentViewer";
+import { PropertyImageGallery } from "@/components/PropertyImageGallery";
+import { PropertyImageUpload } from "@/components/PropertyImageUpload";
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -47,6 +49,7 @@ export default function PropertyDetailsPage() {
   const propertyId = params?.id as string;
   const [showCapEx, setShowCapEx] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [imageUploadOpen, setImageUploadOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
@@ -73,6 +76,10 @@ export default function PropertyDetailsPage() {
   );
   const documents = useQuery(
     api.documents.getDocuments,
+    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
+  );
+  const propertyImages = useQuery(
+    api.propertyImages.getPropertyImages,
     user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
   );
 
@@ -234,9 +241,14 @@ export default function PropertyDetailsPage() {
                 <UserPlus className="h-4 w-4" />
                 Add Lease
               </Button>
-              <Button size="sm" variant="outline" className="gap-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="gap-2"
+                onClick={() => setImageUploadOpen(true)}
+              >
                 <FileUp className="h-4 w-4" />
-                Upload Document
+                Upload Images
               </Button>
             </div>
           </div>
@@ -293,27 +305,37 @@ export default function PropertyDetailsPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Property Image */}
-            {property.imageUrl && (
-              <Card className="overflow-hidden">
-                <div className="relative group">
-                  <img 
-                    src={property.imageUrl} 
-                    alt={property.name} 
-                    className="w-full h-64 sm:h-80 lg:h-96 object-cover transition-transform duration-300 group-hover:scale-105" 
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            {/* Property Images Gallery */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <FileUp className="w-5 h-5 mr-2" />
+                      Property Images
+                    </CardTitle>
+                    <CardDescription>
+                      {propertyImages === undefined 
+                        ? "Loading images..." 
+                        : `${propertyImages.length} image${propertyImages.length !== 1 ? 's' : ''} uploaded`
+                      }
+                    </CardDescription>
+                  </div>
                   <Button 
                     size="sm" 
-                    variant="secondary" 
-                    className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 gap-2"
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => setImageUploadOpen(true)}
                   >
-                    <Edit className="h-4 w-4" />
-                    Change Image
+                    <Plus className="h-4 w-4" />
+                    Add Images
                   </Button>
                 </div>
-              </Card>
-            )}
+              </CardHeader>
+              <CardContent>
+                <PropertyImageGallery propertyId={propertyId} />
+              </CardContent>
+            </Card>
 
             {/* Property Details */}
             <Card>
@@ -778,6 +800,16 @@ export default function PropertyDetailsPage() {
           )}
         </DialogContent>
       </Dialog>
+      
+      {/* Image Upload Dialog */}
+      <PropertyImageUpload
+        propertyId={propertyId}
+        open={imageUploadOpen}
+        onOpenChange={setImageUploadOpen}
+        onUploadComplete={() => {
+          // Images will be automatically refreshed via Convex reactivity
+        }}
+      />
     </div>
   );
 } 

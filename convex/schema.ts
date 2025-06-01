@@ -75,4 +75,21 @@ export default defineSchema({
     .index("by_property", ["propertyId"])
     .index("by_type", ["type"])
     .index("by_category", ["category"]),
+  propertyImages: defineTable({
+    userId: v.string(),
+    propertyId: v.id("properties"),
+    storageId: v.string(), // Convex storage ID
+    name: v.string(), // Original filename
+    fileSize: v.number(), // in bytes
+    mimeType: v.string(), // image/jpeg, image/png, etc.
+    isCover: v.boolean(), // true if this is the cover image
+    description: v.optional(v.string()), // Optional image description
+    order: v.optional(v.number()), // Display order in gallery
+    uploadedAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_property", ["propertyId"])
+    .index("by_user", ["userId"])
+    .index("by_cover", ["propertyId", "isCover"])
+    .index("by_order", ["propertyId", "order"]),
 }); 

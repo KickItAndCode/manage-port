@@ -82,6 +82,37 @@ export const getDocuments = query({
   },
 });
 
+// Get image documents for a property (for quick image access from documents page)
+export const getImageDocuments = query({
+  args: {
+    userId: v.string(),
+    propertyId: v.optional(v.id("properties")),
+  },
+  handler: async (ctx, args) => {
+    let query = ctx.db
+      .query("documents")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId));
+
+    if (args.propertyId) {
+      query = query.filter((q) => q.eq(q.field("propertyId"), args.propertyId));
+    }
+
+    const documents = await query.collect();
+
+    // Filter for image documents only
+    const imageDocuments = documents.filter(doc => 
+      doc.mimeType && doc.mimeType.startsWith("image/")
+    );
+
+    // Sort by upload date (newest first)
+    imageDocuments.sort((a, b) => 
+      new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+    );
+
+    return imageDocuments;
+  },
+});
+
 // Get documents expiring soon
 export const getExpiringDocuments = query({
   args: {
