@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
@@ -26,13 +27,28 @@ import {
   Bed,
   Bath,
   Square,
-  Tag
+  Tag,
+  Edit,
+  Plus,
+  FileUp,
+  UserPlus,
+  Banknote
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PropertyForm } from "@/components/PropertyForm";
+import { useMutation } from "convex/react";
 
 export default function PropertyDetailsPage() {
   const params = useParams();
   const { user } = useUser();
   const propertyId = params?.id as string;
+  const [showCapEx, setShowCapEx] = useState(true);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  const updateProperty = useMutation(api.properties.updateProperty);
 
   const property = useQuery(
     api.properties.getProperty,
@@ -133,6 +149,10 @@ export default function PropertyDetailsPage() {
 
   const currentTenant = getCurrentTenant();
   const totalUtilityCost = calculateTotalUtilityCost();
+  const monthlyExpenses = totalUtilityCost + 
+    (property?.monthlyMortgage || 0) + 
+    (showCapEx ? (property?.monthlyCapEx || 0) : 0);
+  const netIncome = (property?.monthlyRent || 0) - monthlyExpenses;
 
   return (
     <div className="min-h-screen bg-background p-8">
@@ -146,10 +166,10 @@ export default function PropertyDetailsPage() {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Properties
           </Link>
-          <div className="flex items-start justify-between">
-            <div>
-              <h1 className="text-4xl font-bold mb-2">{property.name}</h1>
-              <div className="flex items-center gap-3 mb-4">
+          <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+            <div className="flex-1">
+              <h1 className="text-3xl sm:text-4xl font-bold mb-2">{property.name}</h1>
+              <div className="flex flex-wrap items-center gap-3 mb-4">
                 <div className="flex items-center text-muted-foreground">
                   <Home className="w-4 h-4 mr-1" />
                   {property.type}
@@ -161,7 +181,76 @@ export default function PropertyDetailsPage() {
                 <StatusBadge status={property.status} />
               </div>
             </div>
+            
+            {/* Quick Actions */}
+            <div className="flex flex-wrap gap-2">
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="gap-2"
+                onClick={() => setEditDialogOpen(true)}
+              >
+                <Edit className="h-4 w-4" />
+                Edit Property
+              </Button>
+              <Button size="sm" variant="outline" className="gap-2">
+                <UserPlus className="h-4 w-4" />
+                Add Lease
+              </Button>
+              <Button size="sm" variant="outline" className="gap-2">
+                <FileUp className="h-4 w-4" />
+                Upload Document
+              </Button>
+            </div>
           </div>
+        </div>
+
+        {/* Key Metrics Overview */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Monthly Income</p>
+                <p className="text-2xl font-bold">${property.monthlyRent?.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
+                <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Square Feet</p>
+                <p className="text-2xl font-bold">{property.squareFeet?.toLocaleString()}</p>
+              </div>
+              <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full">
+                <Square className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Bedrooms</p>
+                <p className="text-2xl font-bold">{property.bedrooms}</p>
+              </div>
+              <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-full">
+                <Bed className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
+          </Card>
+          <Card className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Bathrooms</p>
+                <p className="text-2xl font-bold">{property.bathrooms}</p>
+              </div>
+              <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full">
+                <Bath className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+              </div>
+            </div>
+          </Card>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -169,55 +258,94 @@ export default function PropertyDetailsPage() {
           <div className="lg:col-span-2 space-y-6">
             {/* Property Image */}
             {property.imageUrl && (
-              <Card>
-                <CardContent className="p-0">
+              <Card className="overflow-hidden">
+                <div className="relative group">
                   <img 
                     src={property.imageUrl} 
                     alt={property.name} 
-                    className="w-full h-64 object-cover rounded-lg" 
+                    className="w-full h-64 sm:h-80 lg:h-96 object-cover transition-transform duration-300 group-hover:scale-105" 
                   />
-                </CardContent>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <Button 
+                    size="sm" 
+                    variant="secondary" 
+                    className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300 gap-2"
+                  >
+                    <Edit className="h-4 w-4" />
+                    Change Image
+                  </Button>
+                </div>
               </Card>
             )}
 
             {/* Property Details */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Home className="w-5 h-5 mr-2" />
-                  Property Details
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center">
+                    <Home className="w-5 h-5 mr-2" />
+                    Property Details
+                  </span>
+                  <Button size="sm" variant="ghost" className="gap-2">
+                    <Edit className="h-4 w-4" />
+                    Edit
+                  </Button>
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  <div className="flex items-center space-x-2">
-                    <Bed className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Bedrooms</span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-lg">
+                        <Bed className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Bedrooms</span>
+                    </div>
                     <span className="font-semibold">{property.bedrooms}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Bath className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Bathrooms</span>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-lg">
+                        <Bath className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Bathrooms</span>
+                    </div>
                     <span className="font-semibold">{property.bathrooms}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Square className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Sq Ft</span>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-lg">
+                        <Square className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Sq Ft</span>
+                    </div>
                     <span className="font-semibold">{property.squareFeet?.toLocaleString()}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <DollarSign className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Monthly Rent</span>
-                    <span className="font-semibold">${property.monthlyRent?.toLocaleString()}</span>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-lg">
+                        <DollarSign className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Monthly Rent</span>
+                    </div>
+                    <span className="font-semibold text-green-600">${property.monthlyRent?.toLocaleString()}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Calendar className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Purchase Date</span>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-lg">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Purchase Date</span>
+                    </div>
                     <span className="font-semibold">{formatDate(property.purchaseDate)}</span>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Tag className="w-4 h-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Type</span>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-lg">
+                        <Tag className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Type</span>
+                    </div>
                     <span className="font-semibold">{property.type}</span>
                   </div>
                 </div>
@@ -225,12 +353,18 @@ export default function PropertyDetailsPage() {
             </Card>
 
             {/* Current Tenant */}
-            {currentTenant && (
-              <Card>
+            {currentTenant ? (
+              <Card className="border-l-4 border-l-green-500">
                 <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Users className="w-5 h-5 mr-2" />
-                    Current Tenant
+                  <CardTitle className="flex items-center justify-between">
+                    <span className="flex items-center">
+                      <Users className="w-5 h-5 mr-2" />
+                      Current Tenant
+                    </span>
+                    <Button size="sm" variant="ghost" className="gap-2">
+                      <Mail className="h-4 w-4" />
+                      Contact
+                    </Button>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -272,18 +406,45 @@ export default function PropertyDetailsPage() {
                   </div>
                 </CardContent>
               </Card>
+            ) : (
+              <Card className="border-l-4 border-l-yellow-500">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Users className="w-5 h-5 mr-2" />
+                    No Current Tenant
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-center py-8">
+                    <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+                    <p className="text-muted-foreground mb-4">This property is currently vacant</p>
+                    <Button className="gap-2">
+                      <UserPlus className="h-4 w-4" />
+                      Add New Lease
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
             {/* All Leases */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <FileText className="w-5 h-5 mr-2" />
-                  Lease History
-                </CardTitle>
-                <CardDescription>
-                  {leases?.length || 0} total lease{(leases?.length || 0) !== 1 ? 's' : ''}
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <FileText className="w-5 h-5 mr-2" />
+                      Lease History
+                    </CardTitle>
+                    <CardDescription>
+                      {leases?.length || 0} total lease{(leases?.length || 0) !== 1 ? 's' : ''}
+                    </CardDescription>
+                  </div>
+                  <Button size="sm" variant="outline" className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    New Lease
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {leases === undefined ? (
@@ -351,33 +512,77 @@ export default function PropertyDetailsPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Financial Summary */}
-            <Card>
+            <Card className="bg-gradient-to-br from-card to-muted/20">
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <DollarSign className="w-5 h-5 mr-2" />
-                  Financial Summary
+                <CardTitle className="flex items-center justify-between">
+                  <span className="flex items-center">
+                    <DollarSign className="w-5 h-5 mr-2" />
+                    Financial Summary
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-2 text-sm font-normal">
+                      <input
+                        type="checkbox"
+                        checked={showCapEx}
+                        onChange={(e) => setShowCapEx(e.target.checked)}
+                        className="rounded border-muted-foreground"
+                      />
+                      <span>Include CapEx</span>
+                    </label>
+                  </div>
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Monthly Rent</span>
-                    <span className="font-semibold">${property.monthlyRent?.toLocaleString()}</span>
+                  {/* Income */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Income</p>
+                    <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
+                      <span className="text-muted-foreground">Monthly Rent</span>
+                      <span className="font-semibold text-lg">${property.monthlyRent?.toLocaleString()}</span>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Utility Costs</span>
-                    <span className="font-semibold">${totalUtilityCost.toLocaleString()}</span>
+                  
+                  {/* Expenses */}
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Expenses</p>
+                    {property.monthlyMortgage && property.monthlyMortgage > 0 && (
+                      <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
+                        <span className="text-muted-foreground">Mortgage</span>
+                        <span className="font-semibold">-${property.monthlyMortgage.toLocaleString()}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
+                      <span className="text-muted-foreground">Utilities</span>
+                      <span className="font-semibold">-${totalUtilityCost.toLocaleString()}</span>
+                    </div>
+                    {showCapEx && property.monthlyCapEx && property.monthlyCapEx > 0 && (
+                      <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
+                        <span className="text-muted-foreground">
+                          CapEx Reserve
+                          <span className="text-xs text-muted-foreground ml-1">(10% of mortgage)</span>
+                        </span>
+                        <span className="font-semibold">-${property.monthlyCapEx.toLocaleString()}</span>
+                      </div>
+                    )}
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Net Income</span>
-                    <span className="font-semibold text-green-600">
-                      ${((property.monthlyRent || 0) - totalUtilityCost).toLocaleString()}
-                    </span>
+                  
+                  {/* Net Income */}
+                  <div className="pt-3 border-t">
+                    <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                      <span className="font-medium">Net Income</span>
+                      <span className={`font-bold text-lg ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        ${netIncome.toLocaleString()}
+                      </span>
+                    </div>
                   </div>
+                  
                   {currentTenant?.securityDeposit && (
-                    <div className="flex justify-between pt-2 border-t">
-                      <span className="text-muted-foreground">Security Deposit</span>
-                      <span className="font-semibold">${currentTenant.securityDeposit.toLocaleString()}</span>
+                    <div className="pt-3 border-t">
+                      <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
+                        <span className="text-muted-foreground">Security Deposit Held</span>
+                        <span className="font-semibold">${currentTenant.securityDeposit.toLocaleString()}</span>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -387,13 +592,21 @@ export default function PropertyDetailsPage() {
             {/* Utilities */}
             <Card>
               <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Zap className="w-5 h-5 mr-2" />
-                  Utilities
-                </CardTitle>
-                <CardDescription>
-                  {utilities?.length || 0} service{(utilities?.length || 0) !== 1 ? 's' : ''}
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <Zap className="w-5 h-5 mr-2" />
+                      Utilities
+                    </CardTitle>
+                    <CardDescription>
+                      {utilities?.length || 0} service{(utilities?.length || 0) !== 1 ? 's' : ''}
+                    </CardDescription>
+                  </div>
+                  <Button size="sm" variant="outline" className="gap-2">
+                    <Plus className="h-4 w-4" />
+                    Add
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {utilities === undefined ? (
@@ -476,6 +689,62 @@ export default function PropertyDetailsPage() {
           </div>
         </div>
       </div>
+      
+      {/* Edit Property Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={(isOpen) => {
+        setEditDialogOpen(isOpen);
+        if (!isOpen) {
+          setError(null);
+        }
+      }}>
+        <DialogContent className="bg-card border border-border shadow-xl rounded-xl max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Property</DialogTitle>
+          </DialogHeader>
+          {property && (
+            <PropertyForm
+              initial={{
+                name: property.name,
+                address: property.address,
+                type: property.type,
+                status: property.status,
+                bedrooms: property.bedrooms,
+                bathrooms: property.bathrooms,
+                squareFeet: property.squareFeet,
+                monthlyRent: property.monthlyRent,
+                purchaseDate: property.purchaseDate,
+                imageUrl: property.imageUrl,
+                monthlyMortgage: property.monthlyMortgage,
+                monthlyCapEx: property.monthlyCapEx,
+              }}
+              onSubmit={async (data) => {
+                if (!user) return;
+                try {
+                  setLoading(true);
+                  setError(null);
+                  await updateProperty({ 
+                    ...data, 
+                    id: property._id, 
+                    userId: user.id 
+                  });
+                  setEditDialogOpen(false);
+                } catch (err: any) {
+                  setError(err.data?.message || err.message || "An error occurred");
+                } finally {
+                  setLoading(false);
+                }
+              }}
+              onCancel={() => setEditDialogOpen(false)}
+              loading={loading}
+            />
+          )}
+          {error && (
+            <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-lg">
+              {error}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

@@ -14,6 +14,8 @@ export default defineSchema({
     monthlyRent: v.number(),
     purchaseDate: v.string(),
     imageUrl: v.optional(v.string()),
+    monthlyMortgage: v.optional(v.number()), // Monthly mortgage payment
+    monthlyCapEx: v.optional(v.number()), // Capital expenditure reserve (10% of mortgage)
     createdAt: v.string(),
   }),
   utilities: defineTable({

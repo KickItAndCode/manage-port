@@ -172,6 +172,8 @@ export const addProperty = mutation({
     monthlyRent: v.number(),
     purchaseDate: v.string(),
     imageUrl: v.optional(v.string()),
+    monthlyMortgage: v.optional(v.number()),
+    monthlyCapEx: v.optional(v.number()),
     userId: v.string(),
   },
   handler: async (ctx, args) => {
@@ -239,6 +241,8 @@ export const updateProperty = mutation({
     monthlyRent: v.number(),
     purchaseDate: v.string(),
     imageUrl: v.optional(v.string()),
+    monthlyMortgage: v.optional(v.number()),
+    monthlyCapEx: v.optional(v.number()),
     userId: v.string(),
   },
   handler: async (ctx, args) => {
@@ -296,6 +300,8 @@ export const updateProperty = mutation({
         monthlyRent: args.monthlyRent,
         purchaseDate: args.purchaseDate,
         imageUrl: args.imageUrl,
+        monthlyMortgage: args.monthlyMortgage,
+        monthlyCapEx: args.monthlyCapEx,
       });
     } catch (error) {
       throw new ConvexError({

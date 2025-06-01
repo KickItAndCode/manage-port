@@ -231,22 +231,32 @@ export default function DashboardPage() {
                   ${metrics.totalMonthlyRent.toLocaleString()}
                 </span>
               </div>
+              {metrics.totalMonthlyMortgage > 0 && (
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg gap-2 sm:gap-0">
+                  <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Mortgage</span>
+                  <span className="font-semibold text-orange-700 dark:text-orange-400 text-base sm:text-lg">
+                    -${metrics.totalMonthlyMortgage.toLocaleString()}
+                  </span>
+                </div>
+              )}
               <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-red-50 dark:bg-red-950/20 rounded-lg gap-2 sm:gap-0">
                 <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Utility Costs</span>
                 <span className="font-semibold text-red-700 dark:text-red-400 text-base sm:text-lg">
-                  ${metrics.totalUtilityCost.toLocaleString()}
+                  -${metrics.totalUtilityCost.toLocaleString()}
                 </span>
               </div>
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg gap-2 sm:gap-0">
-                <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Net Monthly Income</span>
+              {metrics.totalMonthlyCapEx > 0 && (
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg gap-2 sm:gap-0">
+                  <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">CapEx Reserve (10%)</span>
+                  <span className="font-semibold text-amber-700 dark:text-amber-400 text-base sm:text-lg">
+                    -${metrics.totalMonthlyCapEx.toLocaleString()}
+                  </span>
+                </div>
+              )}
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg gap-2 sm:gap-0 border-t-2 border-blue-200 dark:border-blue-800">
+                <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base font-medium">Net Monthly Income</span>
                 <span className="font-semibold text-blue-700 dark:text-blue-400 text-base sm:text-lg">
-                  ${(metrics.totalMonthlyRent - metrics.totalUtilityCost).toLocaleString()}
-                </span>
-              </div>
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg gap-2 sm:gap-0">
-                <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Total Square Feet</span>
-                <span className="font-semibold text-purple-700 dark:text-purple-400 text-base sm:text-lg">
-                  {metrics.totalSquareFeet.toLocaleString()} sq ft
+                  ${(metrics.totalMonthlyRent - metrics.totalUtilityCost - metrics.totalMonthlyMortgage - metrics.totalMonthlyCapEx).toLocaleString()}
                 </span>
               </div>
             </div>

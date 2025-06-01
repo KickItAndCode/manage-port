@@ -2,7 +2,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -18,6 +18,8 @@ export interface PropertyFormProps {
     monthlyRent: number;
     purchaseDate: string;
     imageUrl?: string;
+    monthlyMortgage?: number;
+    monthlyCapEx?: number;
   };
   onSubmit: (data: {
     name: string;
@@ -30,6 +32,8 @@ export interface PropertyFormProps {
     monthlyRent: number;
     purchaseDate: string;
     imageUrl?: string;
+    monthlyMortgage?: number;
+    monthlyCapEx?: number;
   }) => void;
   onCancel?: () => void;
   loading?: boolean;
@@ -46,6 +50,8 @@ const propertySchema = z.object({
   monthlyRent: z.coerce.number().min(0, "Monthly rent required"),
   purchaseDate: z.string().min(4, "Purchase date required"),
   imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
+  monthlyMortgage: z.coerce.number().min(0).optional(),
+  monthlyCapEx: z.coerce.number().min(0).optional(),
 });
 type PropertyFormType = z.infer<typeof propertySchema>;
 
@@ -54,12 +60,23 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<PropertyFormType>({
     resolver: zodResolver(propertySchema),
     defaultValues: initial || {},
   });
+
+  // Watch mortgage value to auto-calculate CapEx
+  const monthlyMortgage = watch("monthlyMortgage");
+  
+  // Auto-calculate CapEx when mortgage changes
+  useEffect(() => {
+    if (monthlyMortgage && monthlyMortgage > 0) {
+      setValue("monthlyCapEx", Math.round(monthlyMortgage * 0.1));
+    }
+  }, [monthlyMortgage, setValue]);
 
   // Dummy data generator with randomization
   function fillWithDummyData() {
@@ -231,6 +248,31 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
           required
         />
         {errors.purchaseDate && <span className="text-red-400 text-sm">{errors.purchaseDate.message}</span>}
+      </div>
+      <div className="flex gap-4">
+        <div className="flex-1">
+          <label className="block text-zinc-200 mb-1">Monthly Mortgage ($)</label>
+          <Input
+            className="bg-zinc-800 text-zinc-100 border-zinc-700"
+            type="number"
+            min={0}
+            {...register("monthlyMortgage", { valueAsNumber: true })}
+            placeholder="Optional"
+          />
+          {errors.monthlyMortgage && <span className="text-red-400 text-sm">{errors.monthlyMortgage.message}</span>}
+        </div>
+        <div className="flex-1">
+          <label className="block text-zinc-200 mb-1">Monthly CapEx Reserve ($)</label>
+          <Input
+            className="bg-zinc-800 text-zinc-100 border-zinc-700"
+            type="number"
+            min={0}
+            {...register("monthlyCapEx", { valueAsNumber: true })}
+            placeholder="Auto-calculated (10% of mortgage)"
+          />
+          <p className="text-xs text-zinc-400 mt-1">Auto-calculated as 10% of mortgage</p>
+          {errors.monthlyCapEx && <span className="text-red-400 text-sm">{errors.monthlyCapEx.message}</span>}
+        </div>
       </div>
       <div>
         <label className="block text-zinc-200 mb-1">Property Image URL</label>

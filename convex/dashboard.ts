@@ -40,6 +40,10 @@ export const getDashboardMetrics = query({
     // Calculate total utility costs
     const totalUtilityCost = utilities.reduce((sum, u) => sum + u.cost, 0);
     
+    // Calculate total mortgage and CapEx costs
+    const totalMonthlyMortgage = properties.reduce((sum, p) => sum + (p.monthlyMortgage || 0), 0);
+    const totalMonthlyCapEx = properties.reduce((sum, p) => sum + (p.monthlyCapEx || 0), 0);
+    
     // Properties by type
     const propertiesByType = properties.reduce((acc, p) => {
       acc[p.type] = (acc[p.type] || 0) + 1;
@@ -87,6 +91,8 @@ export const getDashboardMetrics = query({
       totalSquareFeet,
       occupancyRate,
       totalUtilityCost,
+      totalMonthlyMortgage,
+      totalMonthlyCapEx,
       totalSecurityDeposits,
       propertiesByType,
       propertiesByStatus,
