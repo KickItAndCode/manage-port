@@ -84,7 +84,7 @@
       "id": 3,
       "title": "Design and Implement Dashboard UI",
       "description": "Create a dashboard page with key metrics for property portfolio overview.",
-      "status": "pending",
+      "status": "done",
       "dependencies": [
         1,
         2
@@ -99,7 +99,7 @@
           "description": "Plan the overall layout, including sidebar, navbar, and main content areas, ensuring responsiveness and accessibility.",
           "dependencies": [],
           "details": "Reference Shadcn UI dashboard examples for best practices in layout and accessibility. Decide on placement of key metrics and navigation components.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Verify layout adapts to different screen sizes and meets accessibility standards using browser dev tools and accessibility checkers."
         },
         {
@@ -110,7 +110,7 @@
             1
           ],
           "details": "Install necessary dependencies and ensure Shadcn/UI and Tailwind CSS are properly configured for component styling and theming.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Check that Shadcn/UI components render correctly and Tailwind classes apply as expected."
         },
         {
@@ -121,7 +121,7 @@
             2
           ],
           "details": "Develop hooks for each metric, handle loading and error states, and ensure data is available for UI components. Ensure hooks are compatible with the updated Convex schema that supports all property fields.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Mock Convex API responses and verify hooks return correct data and handle edge cases. Test with the full range of property fields from the updated schema."
         },
         {
@@ -132,7 +132,7 @@
             3
           ],
           "details": "Use Shadcn/UI cards or stat blocks for each metric, ensuring clear visual hierarchy and accessibility. Consider how to display or summarize additional property fields from the updated schema.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Test components with sample data, check for correct rendering, and validate accessibility with screen readers."
         },
         {
@@ -155,7 +155,7 @@
             4
           ],
           "details": "Review the updated Convex schema and ensure the dashboard properly reflects all property fields. Consider adding additional metrics or visualizations that leverage the new property data.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Verify that all property fields are correctly represented in the dashboard. Test with a variety of property data to ensure accurate display."
         },
         {
@@ -249,7 +249,7 @@
         1,
         4
       ],
-      "status": "in-progress",
+      "status": "done",
       "subtasks": [
         {
           "id": 1,
@@ -257,7 +257,7 @@
           "description": "Initialize the project with Shadcn/UI components and configure Convex for data fetching and mutations.",
           "dependencies": [],
           "details": "Install and configure Shadcn/UI for forms and tables. Set up Convex client and ensure connectivity for CRUD operations.",
-          "status": "in-progress",
+          "status": "done",
           "testStrategy": "Verify that Shadcn/UI components render correctly and Convex client can fetch and mutate sample data."
         },
         {
@@ -268,7 +268,7 @@
             1
           ],
           "details": "Use Shadcn/UI Table component to render a paginated list of properties. Fetch property data from Convex and display relevant fields.",
-          "status": "in-progress",
+          "status": "done",
           "testStrategy": "Check that the table displays all properties from the database and updates when data changes."
         },
         {
@@ -279,7 +279,7 @@
             1
           ],
           "details": "Design and implement a form with validation for property fields. On submit, send data to Convex and update the list.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Test form validation, successful property creation, and automatic update of the properties list."
         },
         {
@@ -291,7 +291,7 @@
             3
           ],
           "details": "Allow users to select a property to edit, display a form with current values, and submit updates to Convex.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Verify that editing a property updates the correct record and changes are reflected in the list."
         },
         {
@@ -302,7 +302,7 @@
             2
           ],
           "details": "Add delete buttons to each property row. Confirm deletion and update the UI and Convex data accordingly.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Ensure that deleting a property removes it from both the UI and the database, and that the list updates in real time."
         }
       ]

@@ -1,15 +1,32 @@
 "use client";
 import { useClerk, useUser } from "@clerk/nextjs";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function Home() {
   const { signOut } = useClerk();
-  const { isSignedIn, user } = useUser();
+  const { isSignedIn, user, isLoaded } = useUser();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (isLoaded && isSignedIn) {
+      router.push("/dashboard");
+    }
+  }, [isLoaded, isSignedIn, router]);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-8 transition-colors duration-300">
       <div className="bg-card border border-border rounded-2xl shadow-xl p-10 flex flex-col items-center w-full max-w-xl">
-        <h1 className="text-4xl font-bold mb-4">Hello World</h1>
-        <p className="text-lg mb-6">Welcome to Manage Port!</p>
+        <h1 className="text-4xl font-bold mb-4">Welcome to Manage Port</h1>
+        <p className="text-lg mb-6">Your Real Estate Portfolio Manager</p>
         {isSignedIn ? (
           <>
             <p className="mb-2">Signed in as <span className="font-mono text-primary">{user?.primaryEmailAddress?.emailAddress}</span></p>
