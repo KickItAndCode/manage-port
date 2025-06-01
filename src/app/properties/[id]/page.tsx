@@ -77,8 +77,10 @@ export default function PropertyDetailsPage() {
           ) : (
             <ul className="list-disc pl-6">
               {utilities.map((u: any) => (
-                <li key={u._id}>
-                  <span className="font-semibold">{u.name}</span> <span className="text-muted-foreground">({u.provider})</span> - ${u.cost} <span className="text-xs text-muted-foreground">[{u.status}]</span>
+                <li key={u._id} className="mb-2">
+                  <span className="font-semibold">{u.name}</span> <span className="text-muted-foreground">({u.provider})</span> - ${u.cost}/mo
+                  {u.billingCycle && u.billingCycle !== "Monthly" && <span className="ml-2 text-xs text-muted-foreground">({u.billingCycle})</span>}
+                  {u.startDate && <span className="ml-2 text-xs text-muted-foreground">Since {new Date(u.startDate).toLocaleDateString()}</span>}
                 </li>
               ))}
             </ul>

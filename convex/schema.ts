@@ -19,11 +19,18 @@ export default defineSchema({
   utilities: defineTable({
     userId: v.string(), // Clerk user ID
     propertyId: v.id("properties"), // Link to property
-    name: v.string(), // Utility name (e.g., Electricity)
-    provider: v.string(), // Utility provider
+    name: v.string(), // Utility name (e.g., Electricity, Water, Gas, Internet)
+    provider: v.string(), // Utility provider company
     cost: v.number(), // Monthly cost
+    billingCycle: v.optional(v.string()), // e.g., "monthly", "quarterly"
+    startDate: v.optional(v.string()), // Service start date
+    endDate: v.optional(v.string()), // Service end date (if terminated)
+    notes: v.optional(v.string()), // Additional notes
     createdAt: v.string(),
-  }),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_property", ["propertyId"])
+    .index("by_user", ["userId"]),
   leases: defineTable({
     userId: v.string(), // Clerk user ID
     propertyId: v.id("properties"), // Link to property

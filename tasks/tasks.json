@@ -311,22 +311,22 @@
       "id": 6,
       "title": "Define Convex Database Schema for Utilities",
       "description": "Design and implement the database schema for utility management.",
-      "details": "Define Convex tables for utilities (id, propertyId, provider, cost, status, etc.). Link utilities to properties via propertyId. Implement CRUD operations using Convex functions.",
+      "details": "Define Convex tables for utilities (id, propertyId, provider, cost, etc.). Link utilities to properties via propertyId. Implement CRUD operations using Convex functions.",
       "testStrategy": "Test CRUD operations for utilities. Verify data integrity and schema validation.",
       "priority": "medium",
       "dependencies": [
         1,
         4
       ],
-      "status": "pending",
+      "status": "done",
       "subtasks": [
         {
           "id": 1,
           "title": "Define Utility Table Schema",
           "description": "Create the schema definition for the utilities table with all required fields",
           "dependencies": [],
-          "details": "Define a utilities table in schema.ts with fields including id (auto-generated), propertyId (as a reference to properties table), provider (string), cost (number), status (string), and any other relevant fields. Use Convex's v.id() for references and appropriate validators for each field type.",
-          "status": "pending",
+          "details": "Define a utilities table in schema.ts with fields including id (auto-generated), propertyId (as a reference to properties table), provider (string), cost (number), and any other relevant fields. Use Convex's v.id() for references and appropriate validators for each field type.",
+          "status": "done",
           "testStrategy": "Verify schema compilation and type safety by running the Convex dev server"
         },
         {
@@ -337,7 +337,7 @@
             1
           ],
           "details": "Add an index to the utilities table using .index('by_property', ['propertyId']) to enable efficient querying of utilities associated with specific properties. This follows Convex best practices for relationship querying.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Test index performance by querying utilities for a specific property and verifying query execution time"
         },
         {
@@ -349,7 +349,7 @@
             2
           ],
           "details": "Develop query functions in a utilities.ts file including getUtility(id), getUtilitiesByProperty(propertyId), and getAllUtilities(). Use proper filtering and pagination with .collect() for limited result sets following Convex best practices.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Write test cases for each query function verifying correct data retrieval and filtering"
         },
         {
@@ -360,7 +360,7 @@
             1
           ],
           "details": "Develop mutation functions including createUtility(), updateUtility(), and deleteUtility() with proper validation. Implement ACID transactions for data integrity and handle potential errors appropriately.",
-          "status": "pending",
+          "status": "done",
           "testStrategy": "Test each mutation function with valid and invalid inputs to verify proper operation and error handling"
         },
         {
@@ -371,8 +371,8 @@
             1,
             4
           ],
-          "details": "Enhance the utilities schema to use v.union() for the status field to restrict values to predefined options (e.g., 'active', 'inactive', 'pending'). Update mutation functions to enforce these constraints and provide appropriate error messages.",
-          "status": "pending",
+          "details": "Status field was removed per user request. No validation needed.",
+          "status": "done",
           "testStrategy": "Test status validation by attempting to create and update utilities with valid and invalid status values"
         }
       ]

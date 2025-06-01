@@ -7,11 +7,12 @@ import { UtilityForm } from "@/components/UtilityForm";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronUp, ChevronDown } from "lucide-react";
+import { ChevronUp, ChevronDown, Calendar, FileText } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { MoreHorizontal } from "lucide-react";
 import { LoadingContent } from "@/components/LoadingContent";
+import { Badge } from "@/components/ui/badge";
 
 export default function UtilitiesPage() {
   const { user } = useUser();
@@ -26,12 +27,11 @@ export default function UtilitiesPage() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [propertyFilter, setPropertyFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("");
   const [sortKey, setSortKey] = useState<UtilitySortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selected, setSelected] = useState<string[]>([]);
 
-  type UtilitySortKey = "name" | "provider" | "cost" | "propertyId";
+  type UtilitySortKey = "name" | "provider" | "cost" | "propertyId" | "billingCycle" | "startDate";
 
   function handleSort(key: UtilitySortKey) {
     if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
@@ -56,8 +56,6 @@ export default function UtilitiesPage() {
     setLoading(false);
     setSelected([]);
   }
-
-  const statusOptions = ["Active", "Inactive", "Pending", "Disconnected"];
 
   const filtered = (utilities || [])
     .filter((u) =>
@@ -85,6 +83,12 @@ export default function UtilitiesPage() {
       return 0;
     });
 
+  function formatDate(dateString?: string) {
+    if (!dateString) return "-";
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  }
+
   if (!user) return <div className="text-center text-zinc-200">Sign in to manage utilities.</div>;
   if (!properties) return <div className="text-center text-zinc-200">Loading properties...</div>;
 
@@ -96,7 +100,7 @@ export default function UtilitiesPage() {
           <DialogTrigger asChild>
             <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-colors duration-200">Add Utility</Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border border-border shadow-xl rounded-xl">
+          <DialogContent className="bg-card border border-border shadow-xl rounded-xl max-w-2xl">
             <DialogHeader>
               <DialogTitle>Add Utility</DialogTitle>
             </DialogHeader>
@@ -157,6 +161,9 @@ export default function UtilitiesPage() {
                 <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("name")}>Name {sortKey==="name" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
                 <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("provider")}>Provider {sortKey==="provider" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
                 <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("cost")}>Cost {sortKey==="cost" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+                <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("billingCycle")}>Billing {sortKey==="billingCycle" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+                <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("startDate")}>Start Date {sortKey==="startDate" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}</TableHead>
+                <TableHead>Info</TableHead>
                 <TableHead>Actions</TableHead>
               </TableRow>
             </TableHeader>
@@ -192,6 +199,34 @@ export default function UtilitiesPage() {
                     </TableCell>
                     <TableCell>${utility.cost}</TableCell>
                     <TableCell>
+                      {utility.billingCycle ? (
+                        <Badge variant="secondary" className="text-xs">
+                          {utility.billingCycle}
+                        </Badge>
+                      ) : "-"}
+                    </TableCell>
+                    <TableCell>{formatDate(utility.startDate)}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {utility.endDate && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <Calendar className="w-4 h-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent>End Date: {formatDate(utility.endDate)}</TooltipContent>
+                          </Tooltip>
+                        )}
+                        {utility.notes && (
+                          <Tooltip>
+                            <TooltipTrigger>
+                              <FileText className="w-4 h-4 text-muted-foreground" />
+                            </TooltipTrigger>
+                            <TooltipContent className="max-w-xs">{utility.notes}</TooltipContent>
+                          </Tooltip>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-primary">
@@ -210,7 +245,7 @@ export default function UtilitiesPage() {
                                 setLoading(false);
                               }
                             }}
-                            variant="destructive"
+                            className="text-destructive"
                           >
                             Delete
                           </DropdownMenuItem>
@@ -222,7 +257,7 @@ export default function UtilitiesPage() {
               })}
               {(!filtered || filtered.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={11} className="text-center text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground">
                     No utilities found.
                   </TableCell>
                 </TableRow>
@@ -232,7 +267,7 @@ export default function UtilitiesPage() {
         </LoadingContent>
       </div>
       <Dialog open={!!edit} onOpenChange={(v) => !v && setEdit(null)}>
-        <DialogContent className="bg-card border border-border shadow-xl rounded-xl">
+        <DialogContent className="bg-card border border-border shadow-xl rounded-xl max-w-2xl">
           <DialogHeader>
             <DialogTitle>Edit Utility</DialogTitle>
           </DialogHeader>
@@ -252,4 +287,4 @@ export default function UtilitiesPage() {
       </Dialog>
     </div>
   );
-} 
+}

@@ -1,0 +1,86 @@
+Task 6: Define Convex Database Schema for Utilities
+Status: COMPLETED
+Date Completed: December 2024
+
+## Summary
+Successfully designed and implemented the database schema for utility management, including comprehensive CRUD operations and efficient querying capabilities.
+
+## Completed Features
+
+### 1. Enhanced Utility Table Schema
+Updated the utilities table in `convex/schema.ts` with the following fields:
+- userId (string) - Clerk user ID for authentication
+- propertyId (v.id("properties")) - Link to property
+- name (string) - Utility name (e.g., Electricity, Water, Gas, Internet)
+- provider (string) - Utility provider company
+- cost (number) - Monthly cost
+- billingCycle (optional string) - e.g., "monthly", "quarterly"
+- startDate (optional string) - Service start date
+- endDate (optional string) - Service end date (if terminated)
+- notes (optional string) - Additional notes
+- createdAt (string) - Record creation timestamp
+- updatedAt (optional string) - Last update timestamp
+
+Note: Per user request, removed accountNumber and status fields from the original design.
+
+### 2. Database Indexes
+Implemented efficient indexes for optimized querying:
+- `by_property` - Index on propertyId for fast property-based lookups
+- `by_user` - Index on userId for user-specific queries
+
+### 3. Query Functions Implemented
+Created comprehensive query functions in `convex/utilities.ts`:
+- `getUtility` - Retrieve a single utility by ID
+- `getUtilities` - Get all utilities for a user (with optional property filter)
+- `getUtilitiesByProperty` - Get utilities for a specific property
+- `getAllUtilities` - Get all utilities with pagination support
+- `getUtilityStats` - Get aggregated statistics for utilities
+
+### 4. Mutation Functions Implemented
+Developed complete CRUD operations:
+- `addUtility` - Create new utility with duplicate checking
+- `updateUtility` - Update existing utility with authorization
+- `deleteUtility` - Remove utility with security checks
+
+### 5. Security Features
+- User authorization checks on all operations
+- Property ownership verification
+- Duplicate utility prevention (same name/provider per property)
+- Secure filtering by userId
+
+### 6. Additional Features
+- Pagination support for large datasets
+- Statistics aggregation by type and property
+- Comprehensive error handling with meaningful messages
+- Automatic timestamp management
+
+## Technical Implementation
+
+### Files Modified:
+1. `/convex/schema.ts` - Enhanced utilities table definition with indexes
+2. `/convex/utilities.ts` - Complete rewrite with all CRUD operations
+
+### Key Design Decisions:
+- Removed accountNumber field for simplicity
+- Removed status field per user feedback
+- Added indexes for performance optimization
+- Implemented duplicate checking to prevent data issues
+- Added comprehensive statistics function for dashboard integration
+
+## Testing Considerations
+- All functions include authorization checks
+- Error handling for invalid property IDs
+- Duplicate utility prevention
+- Pagination handling for large datasets
+- Security filtering ensures users only see their own data
+
+## Integration Points
+- Ready for use in Utilities Page (Task 7)
+- Statistics function integrates with Dashboard
+- Property association enables property-specific utility management
+- All functions follow Convex best practices for performance
+
+## Notes
+- The schema is flexible and can be extended with additional fields if needed
+- All timestamps use ISO string format for consistency
+- The implementation follows TypeScript best practices with full type safety

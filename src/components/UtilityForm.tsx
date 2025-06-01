@@ -12,12 +12,20 @@ export interface UtilityFormProps {
     name: string;
     provider: string;
     cost: number;
+    billingCycle?: string;
+    startDate?: string;
+    endDate?: string;
+    notes?: string;
   };
   onSubmit: (data: {
     propertyId: string;
     name: string;
     provider: string;
     cost: number;
+    billingCycle?: string;
+    startDate?: string;
+    endDate?: string;
+    notes?: string;
   }) => void;
   onCancel?: () => void;
   loading?: boolean;
@@ -28,6 +36,10 @@ const utilitySchema = z.object({
   name: z.string().min(2, "Utility name is required"),
   provider: z.string().min(2, "Provider is required"),
   cost: z.coerce.number().min(0, "Cost is required"),
+  billingCycle: z.string().optional(),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+  notes: z.string().optional(),
 });
 type UtilityFormType = z.infer<typeof utilitySchema>;
 
@@ -47,14 +59,21 @@ export function UtilityForm({ properties, initial, onSubmit, onCancel, loading }
   function fillWithDummyData() {
     const names = ["Electricity", "Water", "Gas", "Internet", "Trash", "Sewer"];
     const providers = ["UtilityCo", "AquaPure", "GasWorks", "FiberNet", "WasteAway", "CleanFlow"];
+    const billingCycles = ["Monthly", "Quarterly", "Annually"];
     function randomInt(min: number, max: number) {
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
+    const today = new Date();
+    const startDate = new Date(today.getFullYear() - randomInt(0, 2), randomInt(0, 11), randomInt(1, 28));
+    
     reset({
       propertyId: properties[randomInt(0, properties.length - 1)]?._id || "",
       name: names[randomInt(0, names.length - 1)],
       provider: providers[randomInt(0, providers.length - 1)],
       cost: randomInt(20, 300),
+      billingCycle: billingCycles[randomInt(0, billingCycles.length - 1)],
+      startDate: startDate.toISOString().split('T')[0],
+      notes: `Service account for ${names[randomInt(0, names.length - 1)].toLowerCase()}`,
     });
   }
 
@@ -89,6 +108,7 @@ export function UtilityForm({ properties, initial, onSubmit, onCancel, loading }
         <label className="block text-zinc-200 mb-1">Utility Name</label>
         <Input
           className="bg-zinc-800 text-zinc-100 border-zinc-700"
+          placeholder="e.g., Electricity, Water, Gas"
           {...register("name")}
           required
         />
@@ -98,6 +118,7 @@ export function UtilityForm({ properties, initial, onSubmit, onCancel, loading }
         <label className="block text-zinc-200 mb-1">Provider</label>
         <Input
           className="bg-zinc-800 text-zinc-100 border-zinc-700"
+          placeholder="e.g., Con Edison, National Grid"
           {...register("provider")}
           required
         />
@@ -109,10 +130,50 @@ export function UtilityForm({ properties, initial, onSubmit, onCancel, loading }
           className="bg-zinc-800 text-zinc-100 border-zinc-700"
           type="number"
           min={0}
+          step="0.01"
+          placeholder="0.00"
           {...register("cost", { valueAsNumber: true })}
           required
         />
         {errors.cost && <span className="text-red-400 text-sm">{errors.cost.message}</span>}
+      </div>
+      <div>
+        <label className="block text-zinc-200 mb-1">Billing Cycle (Optional)</label>
+        <select
+          className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2"
+          {...register("billingCycle")}
+        >
+          <option value="">Select billing cycle</option>
+          <option value="Monthly">Monthly</option>
+          <option value="Bi-Monthly">Bi-Monthly</option>
+          <option value="Quarterly">Quarterly</option>
+          <option value="Semi-Annually">Semi-Annually</option>
+          <option value="Annually">Annually</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-zinc-200 mb-1">Start Date (Optional)</label>
+        <Input
+          className="bg-zinc-800 text-zinc-100 border-zinc-700"
+          type="date"
+          {...register("startDate")}
+        />
+      </div>
+      <div>
+        <label className="block text-zinc-200 mb-1">End Date (Optional)</label>
+        <Input
+          className="bg-zinc-800 text-zinc-100 border-zinc-700"
+          type="date"
+          {...register("endDate")}
+        />
+      </div>
+      <div>
+        <label className="block text-zinc-200 mb-1">Notes (Optional)</label>
+        <textarea
+          className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2 min-h-[80px]"
+          placeholder="Additional notes about this utility"
+          {...register("notes")}
+        />
       </div>
       <div className="flex gap-2 justify-end mt-4">
         {onCancel && (
@@ -126,4 +187,4 @@ export function UtilityForm({ properties, initial, onSubmit, onCancel, loading }
       </div>
     </form>
   );
-} 
+}
