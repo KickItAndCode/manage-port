@@ -26,6 +26,7 @@ import { format } from "date-fns";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { DocumentForm } from "@/components/DocumentForm";
 import { DocumentUploadForm } from "@/components/DocumentUploadForm";
+import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 // Document type icons
 const typeIcons: Record<string, any> = {
@@ -51,6 +52,7 @@ export default function DocumentsPage() {
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<any>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
   // Queries
   const documents = useQuery(api.documents.getDocuments, 
@@ -344,8 +346,8 @@ export default function DocumentsPage() {
             const property = properties?.find((p: any) => p._id === doc.propertyId);
             
             return (
-              <Card key={doc._id} className="group hover:shadow-lg transition-shadow">
-                <CardContent className="p-4">
+              <Card key={doc._id} className="group hover:shadow-lg transition-shadow h-full flex flex-col">
+                <CardContent className="p-4 flex flex-col h-full">
                   <div className="flex items-start justify-between mb-3">
                     <div className={cn(
                       "p-3 rounded-lg",
@@ -362,6 +364,7 @@ export default function DocumentsPage() {
                         size="sm"
                         variant="ghost"
                         onClick={() => setEditingDoc(doc)}
+                        className="h-8 w-8 p-0"
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
@@ -376,7 +379,7 @@ export default function DocumentsPage() {
                     </p>
                   )}
                   
-                  <div className="space-y-2">
+                  <div className="flex-1 space-y-2">
                     <div className="flex items-center justify-between text-sm">
                       <span className="text-muted-foreground">Type</span>
                       <Badge variant="outline" className="text-xs">
@@ -402,12 +405,10 @@ export default function DocumentsPage() {
                       </div>
                     )}
                     
-                    {doc.fileSize && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Size</span>
-                        <span className="text-xs">{formatFileSize(doc.fileSize)}</span>
-                      </div>
-                    )}
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Size</span>
+                      <span className="text-xs">{doc.fileSize ? formatFileSize(doc.fileSize) : "N/A"}</span>
+                    </div>
                   </div>
                   
                   {doc.tags && doc.tags.length > 0 && (
@@ -429,7 +430,7 @@ export default function DocumentsPage() {
                     </div>
                   )}
                   
-                  <div className="flex gap-2 mt-4">
+                  <div className="flex gap-2 mt-auto pt-4">
                     <DocumentViewer
                       storageId={doc.url}
                       fileName={doc.name}
@@ -438,15 +439,22 @@ export default function DocumentsPage() {
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={async () => {
-                        if (confirm("Delete this document?")) {
-                          try {
-                            await deleteDocument({ id: doc._id, userId: user.id });
-                          } catch (err: any) {
-                            console.error("Delete document error:", err);
-                            alert("Failed to delete document: " + (err.message || "Unknown error"));
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      onClick={() => {
+                        confirm({
+                          title: "Delete Document",
+                          description: `Delete "${doc.name}"? This action cannot be undone.`,
+                          variant: "destructive",
+                          onConfirm: async () => {
+                            try {
+                              await deleteDocument({ id: doc._id, userId: user.id });
+                            } catch (err: any) {
+                              console.error("Delete document error:", err);
+                              const errorMessage = err.data?.message || err.message || "Unknown error";
+                              alert("Failed to delete document: " + errorMessage);
+                            }
                           }
-                        }
+                        });
                       }}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -521,15 +529,22 @@ export default function DocumentsPage() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={async () => {
-                              if (confirm("Delete this document?")) {
-                                try {
-                                  await deleteDocument({ id: doc._id, userId: user.id });
-                                } catch (err: any) {
-                                  console.error("Delete document error:", err);
-                                  alert("Failed to delete document: " + (err.message || "Unknown error"));
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
+                            onClick={() => {
+                              confirm({
+                                title: "Delete Document",
+                                description: `Delete "${doc.name}"? This action cannot be undone.`,
+                                variant: "destructive",
+                                onConfirm: async () => {
+                                  try {
+                                    await deleteDocument({ id: doc._id, userId: user.id });
+                                  } catch (err: any) {
+                                    console.error("Delete document error:", err);
+                                    const errorMessage = err.data?.message || err.message || "Unknown error";
+                                    alert("Failed to delete document: " + errorMessage);
+                                  }
                                 }
-                              }
+                              });
                             }}
                           >
                             <Trash2 className="h-4 w-4" />
@@ -563,6 +578,7 @@ export default function DocumentsPage() {
           // Document will be automatically refreshed via Convex reactivity
         }}
       />
+      {confirmDialog}
     </div>
   );
 }

@@ -188,15 +188,36 @@ export const deletePropertyImage = mutation({
     imageId: v.id("propertyImages"),
   },
   handler: async (ctx, args) => {
-    const image = await ctx.db.get(args.imageId);
-    if (!image || image.userId !== args.userId) {
-      throw new ConvexError({
-        code: "UNAUTHORIZED",
-        message: "You don't have permission to delete this image"
-      });
-    }
+    try {
+      console.log("Delete mutation called with:", args);
+      
+      const image = await ctx.db.get(args.imageId);
+      console.log("Found image:", image);
+      
+      if (!image) {
+        console.log("Image not found in database");
+        throw new Error("Image not found");
+      }
+      
+      if (image.userId !== args.userId) {
+        console.log("Authorization failed - user mismatch:", { 
+          imageUserId: image.userId, 
+          requestUserId: args.userId 
+        });
+        throw new Error("You don't have permission to delete this image");
+      }
 
-    await ctx.db.delete(args.imageId);
+      console.log("Deleting image from database...");
+      await ctx.db.delete(args.imageId);
+      console.log("Image deleted successfully");
+      
+      // Return success indicator
+      return { success: true, deletedImageId: args.imageId };
+      
+    } catch (error) {
+      console.error("Error in deletePropertyImage mutation:", error);
+      throw error;
+    }
     
     // TODO: Also delete from Convex storage
     // Note: Convex doesn't currently have a direct way to delete files from storage

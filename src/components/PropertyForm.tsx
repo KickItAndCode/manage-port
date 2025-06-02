@@ -132,161 +132,149 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
   const statusOptions = ["Available", "Occupied", "Maintenance", "Under Contract"];
 
   return (
-    <form
-      className="space-y-4 bg-zinc-900 p-6 rounded-xl shadow-xl w-full max-w-xl"
-      onSubmit={handleSubmit(onSubmit)}
-    >
+    <div className="dark:bg-gradient-to-br dark:from-gray-900/50 dark:to-gray-800/30 dark:border dark:border-gray-700/50 dark:rounded-lg dark:p-6">
+      <form
+        className="space-y-6"
+        onSubmit={handleSubmit(onSubmit)}
+      >
       <Button
         type="button"
         variant="outline"
-        className="mb-2"
+        size="sm"
         onClick={fillWithDummyData}
       >
         Fill with Dummy Data
       </Button>
-      <div>
-        <label className="block text-zinc-200 mb-1">Property Name</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Property Name</label>
         <Input
-          className="bg-zinc-800 text-zinc-100 border-zinc-700"
           {...register("name")}
-          required
+          placeholder="Enter property name"
         />
-        {errors.name && <span className="text-red-400 text-sm">{errors.name.message}</span>}
+        {errors.name && <span className="text-sm text-destructive">{errors.name.message}</span>}
       </div>
-      <div>
-        <label className="block text-zinc-200 mb-1">Address</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Address</label>
         <Input
-          className="bg-zinc-800 text-zinc-100 border-zinc-700"
           {...register("address")}
-          required
+          placeholder="Enter property address"
         />
-        {errors.address && <span className="text-red-400 text-sm">{errors.address.message}</span>}
+        {errors.address && <span className="text-sm text-destructive">{errors.address.message}</span>}
       </div>
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <label className="block text-zinc-200 mb-1">Property Type</label>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Property Type</label>
           <select
-            className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2"
+            className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
             {...register("type")}
-            required
           >
             <option value="">Select property type</option>
             {propertyTypes.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
           </select>
-          {errors.type && <span className="text-red-400 text-sm">{errors.type.message}</span>}
+          {errors.type && <span className="text-sm text-destructive">{errors.type.message}</span>}
         </div>
-        <div className="flex-1">
-          <label className="block text-zinc-200 mb-1">Status</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Status</label>
           <select
-            className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2"
+            className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
             {...register("status")}
-            required
           >
             {statusOptions.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
           </select>
-          {errors.status && <span className="text-red-400 text-sm">{errors.status.message}</span>}
+          {errors.status && <span className="text-sm text-destructive">{errors.status.message}</span>}
         </div>
       </div>
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <label className="block text-zinc-200 mb-1">Bedrooms</label>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Bedrooms</label>
           <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
             type="number"
             min={0}
             {...register("bedrooms", { valueAsNumber: true })}
-            required
+            placeholder="0"
           />
-          {errors.bedrooms && <span className="text-red-400 text-sm">{errors.bedrooms.message}</span>}
+          {errors.bedrooms && <span className="text-sm text-destructive">{errors.bedrooms.message}</span>}
         </div>
-        <div className="flex-1">
-          <label className="block text-zinc-200 mb-1">Bathrooms</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Bathrooms</label>
           <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
             type="number"
             min={0}
             {...register("bathrooms", { valueAsNumber: true })}
-            required
+            placeholder="0"
           />
-          {errors.bathrooms && <span className="text-red-400 text-sm">{errors.bathrooms.message}</span>}
+          {errors.bathrooms && <span className="text-sm text-destructive">{errors.bathrooms.message}</span>}
         </div>
       </div>
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <label className="block text-zinc-200 mb-1">Square Feet</label>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Square Feet</label>
           <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
             type="number"
             min={0}
             {...register("squareFeet", { valueAsNumber: true })}
-            required
+            placeholder="0"
           />
-          {errors.squareFeet && <span className="text-red-400 text-sm">{errors.squareFeet.message}</span>}
+          {errors.squareFeet && <span className="text-sm text-destructive">{errors.squareFeet.message}</span>}
         </div>
-        <div className="flex-1">
-          <label className="block text-zinc-200 mb-1">Monthly Rent ($)</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Monthly Rent ($)</label>
           <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
             type="number"
             min={0}
             {...register("monthlyRent", { valueAsNumber: true })}
-            required
+            placeholder="0"
           />
-          {errors.monthlyRent && <span className="text-red-400 text-sm">{errors.monthlyRent.message}</span>}
+          {errors.monthlyRent && <span className="text-sm text-destructive">{errors.monthlyRent.message}</span>}
         </div>
       </div>
-      <div>
-        <label className="block text-zinc-200 mb-1">Purchase Date</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Purchase Date</label>
         <Input
-          className="bg-zinc-800 text-zinc-100 border-zinc-700"
           type="date"
           {...register("purchaseDate")}
-          required
         />
-        {errors.purchaseDate && <span className="text-red-400 text-sm">{errors.purchaseDate.message}</span>}
+        {errors.purchaseDate && <span className="text-sm text-destructive">{errors.purchaseDate.message}</span>}
       </div>
-      <div className="flex gap-4">
-        <div className="flex-1">
-          <label className="block text-zinc-200 mb-1">Monthly Mortgage ($)</label>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Monthly Mortgage ($)</label>
           <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
             type="number"
             min={0}
             {...register("monthlyMortgage", { valueAsNumber: true })}
             placeholder="Optional"
           />
-          {errors.monthlyMortgage && <span className="text-red-400 text-sm">{errors.monthlyMortgage.message}</span>}
+          {errors.monthlyMortgage && <span className="text-sm text-destructive">{errors.monthlyMortgage.message}</span>}
         </div>
-        <div className="flex-1">
-          <label className="block text-zinc-200 mb-1">Monthly CapEx Reserve ($)</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Monthly CapEx Reserve ($)</label>
           <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
             type="number"
             min={0}
             {...register("monthlyCapEx", { valueAsNumber: true })}
             placeholder="Auto-calculated (10% of mortgage)"
           />
-          <p className="text-xs text-zinc-400 mt-1">Auto-calculated as 10% of mortgage</p>
-          {errors.monthlyCapEx && <span className="text-red-400 text-sm">{errors.monthlyCapEx.message}</span>}
+          <p className="text-xs text-muted-foreground mt-1">Auto-calculated as 10% of mortgage</p>
+          {errors.monthlyCapEx && <span className="text-sm text-destructive">{errors.monthlyCapEx.message}</span>}
         </div>
       </div>
-      <div>
-        <label className="block text-zinc-200 mb-1">Property Image URL</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Property Image URL</label>
         <Input
-          className="bg-zinc-800 text-zinc-100 border-zinc-700"
           type="url"
           {...register("imageUrl")}
           placeholder="https://..."
         />
-        {errors.imageUrl && <span className="text-red-400 text-sm">{errors.imageUrl.message}</span>}
+        {errors.imageUrl && <span className="text-sm text-destructive">{errors.imageUrl.message}</span>}
       </div>
-      <div className="flex gap-2 justify-end mt-4">
+      <div className="flex gap-2 justify-end pt-4">
         {onCancel && (
-          <Button type="button" variant="ghost" onClick={onCancel} disabled={loading || isSubmitting}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={loading || isSubmitting}>
             Cancel
           </Button>
         )}
@@ -294,6 +282,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
           {loading || isSubmitting ? "Saving..." : "Save"}
         </Button>
       </div>
-    </form>
+      </form>
+    </div>
   );
 } 

@@ -4,9 +4,10 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
-import { Search, Home, MapPin, DollarSign, X, ArrowRight } from "lucide-react";
+import { Search, Home, MapPin, DollarSign, X, ArrowRight, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { PropertyImage } from "@/components/PropertyImage";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
@@ -19,6 +20,75 @@ interface Property {
   monthlyRent: number;
   bedrooms: number;
   bathrooms: number;
+}
+
+// Component for individual search result item to handle cover image query
+function SearchResultItem({ 
+  property, 
+  index, 
+  selectedIndex, 
+  onNavigate, 
+  onMouseEnter 
+}: {
+  property: Property;
+  index: number;
+  selectedIndex: number;
+  onNavigate: (id: string) => void;
+  onMouseEnter: (index: number) => void;
+}) {
+  const { user } = useUser();
+  
+  const coverImage = useQuery(api.propertyImages.getCoverImage, 
+    user ? { propertyId: property._id as any, userId: user.id } : "skip"
+  );
+
+  return (
+    <button
+      onClick={() => onNavigate(property._id)}
+      onMouseEnter={() => onMouseEnter(index)}
+      className={cn(
+        "w-full px-4 py-3 flex items-start gap-3 hover:bg-muted/50 transition-colors text-left",
+        selectedIndex === index && "bg-muted/50"
+      )}
+    >
+      {/* Property Thumbnail */}
+      <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
+        {coverImage ? (
+          <PropertyImage
+            storageId={coverImage.storageId}
+            alt={property.name}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <ImageIcon className="h-5 w-5 text-muted-foreground" />
+          </div>
+        )}
+      </div>
+      
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center justify-between gap-2">
+          <h4 className="font-semibold text-sm truncate">{property.name}</h4>
+          <StatusBadge status={property.status} variant="compact" />
+        </div>
+        <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1 truncate">
+            <MapPin className="h-3 w-3" />
+            {property.address}
+          </span>
+        </div>
+        <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
+          <span>{property.type}</span>
+          <span className="flex items-center gap-1">
+            <DollarSign className="h-3 w-3" />
+            ${property.monthlyRent?.toLocaleString()}/mo
+          </span>
+          <span>{property.bedrooms}BR/{property.bathrooms}BA</span>
+        </div>
+      </div>
+      <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-3" />
+    </button>
+  );
 }
 
 export function GlobalSearch() {
@@ -34,6 +104,7 @@ export function GlobalSearch() {
     api.properties.getProperties,
     user ? { userId: user.id } : "skip"
   );
+
 
   // Filter properties based on search
   const filteredProperties = properties?.filter((property: Property) => {
@@ -137,40 +208,14 @@ export function GlobalSearch() {
         <div className="absolute top-full mt-2 w-full bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50">
           <div className="py-2">
             {filteredProperties.map((property: Property, index: number) => (
-              <button
+              <SearchResultItem
                 key={property._id}
-                onClick={() => navigateToProperty(property._id)}
-                onMouseEnter={() => setSelectedIndex(index)}
-                className={cn(
-                  "w-full px-4 py-3 flex items-start gap-3 hover:bg-muted/50 transition-colors text-left",
-                  selectedIndex === index && "bg-muted/50"
-                )}
-              >
-                <div className="p-2 bg-primary/10 rounded-lg flex-shrink-0">
-                  <Home className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-2">
-                    <h4 className="font-semibold text-sm truncate">{property.name}</h4>
-                    <StatusBadge status={property.status} variant="compact" />
-                  </div>
-                  <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                    <span className="flex items-center gap-1 truncate">
-                      <MapPin className="h-3 w-3" />
-                      {property.address}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-4 mt-1 text-xs text-muted-foreground">
-                    <span>{property.type}</span>
-                    <span className="flex items-center gap-1">
-                      <DollarSign className="h-3 w-3" />
-                      ${property.monthlyRent?.toLocaleString()}/mo
-                    </span>
-                    <span>{property.bedrooms}BR/{property.bathrooms}BA</span>
-                  </div>
-                </div>
-                <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-3" />
-              </button>
+                property={property}
+                index={index}
+                selectedIndex={selectedIndex}
+                onNavigate={navigateToProperty}
+                onMouseEnter={setSelectedIndex}
+              />
             ))}
           </div>
           {filteredProperties.length === 5 && (

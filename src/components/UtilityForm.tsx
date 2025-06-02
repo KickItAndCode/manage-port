@@ -78,69 +78,63 @@ export function UtilityForm({ properties, initial, onSubmit, onCancel, loading }
   }
 
   return (
-    <form
-      className="space-y-4 bg-zinc-900 p-6 rounded-xl shadow-xl w-full max-w-md"
-      onSubmit={handleSubmit(onSubmit)}
-    >
+    <div className="dark:bg-gradient-to-br dark:from-gray-900/50 dark:to-gray-800/30 dark:border dark:border-gray-700/50 dark:rounded-lg dark:p-6">
+      <form
+        className="space-y-6"
+        onSubmit={handleSubmit(onSubmit)}
+      >
       <Button
         type="button"
         variant="outline"
-        className="mb-2"
+        size="sm"
         onClick={fillWithDummyData}
       >
         Fill with Dummy Data
       </Button>
-      <div>
-        <label className="block text-zinc-200 mb-1">Property</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Property</label>
         <select
-          className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2"
+          className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
           {...register("propertyId")}
-          required
         >
           <option value="">Select property</option>
           {properties.map((p) => (
             <option key={p._id} value={p._id}>{p.name}</option>
           ))}
         </select>
-        {errors.propertyId && <span className="text-red-400 text-sm">{errors.propertyId.message}</span>}
+        {errors.propertyId && <span className="text-sm text-destructive">{errors.propertyId.message}</span>}
       </div>
-      <div>
-        <label className="block text-zinc-200 mb-1">Utility Name</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Utility Name</label>
         <Input
-          className="bg-zinc-800 text-zinc-100 border-zinc-700"
           placeholder="e.g., Electricity, Water, Gas"
           {...register("name")}
-          required
         />
-        {errors.name && <span className="text-red-400 text-sm">{errors.name.message}</span>}
+        {errors.name && <span className="text-sm text-destructive">{errors.name.message}</span>}
       </div>
-      <div>
-        <label className="block text-zinc-200 mb-1">Provider</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Provider</label>
         <Input
-          className="bg-zinc-800 text-zinc-100 border-zinc-700"
           placeholder="e.g., Con Edison, National Grid"
           {...register("provider")}
-          required
         />
-        {errors.provider && <span className="text-red-400 text-sm">{errors.provider.message}</span>}
+        {errors.provider && <span className="text-sm text-destructive">{errors.provider.message}</span>}
       </div>
-      <div>
-        <label className="block text-zinc-200 mb-1">Monthly Cost ($)</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Monthly Cost ($)</label>
         <Input
-          className="bg-zinc-800 text-zinc-100 border-zinc-700"
           type="number"
           min={0}
           step="0.01"
           placeholder="0.00"
           {...register("cost", { valueAsNumber: true })}
-          required
         />
-        {errors.cost && <span className="text-red-400 text-sm">{errors.cost.message}</span>}
+        {errors.cost && <span className="text-sm text-destructive">{errors.cost.message}</span>}
       </div>
-      <div>
-        <label className="block text-zinc-200 mb-1">Billing Cycle (Optional)</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Billing Cycle (Optional)</label>
         <select
-          className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2"
+          className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
           {...register("billingCycle")}
         >
           <option value="">Select billing cycle</option>
@@ -151,33 +145,31 @@ export function UtilityForm({ properties, initial, onSubmit, onCancel, loading }
           <option value="Annually">Annually</option>
         </select>
       </div>
-      <div>
-        <label className="block text-zinc-200 mb-1">Start Date (Optional)</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Start Date (Optional)</label>
         <Input
-          className="bg-zinc-800 text-zinc-100 border-zinc-700"
           type="date"
           {...register("startDate")}
         />
       </div>
-      <div>
-        <label className="block text-zinc-200 mb-1">End Date (Optional)</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-foreground dark:text-gray-200">End Date (Optional)</label>
         <Input
-          className="bg-zinc-800 text-zinc-100 border-zinc-700"
           type="date"
           {...register("endDate")}
         />
       </div>
-      <div>
-        <label className="block text-zinc-200 mb-1">Notes (Optional)</label>
+      <div className="space-y-2">
+        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Notes (Optional)</label>
         <textarea
-          className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2 min-h-[80px]"
+          className="w-full px-3 py-2 rounded-md border transition-all outline-none min-h-[80px] bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary resize-y"
           placeholder="Additional notes about this utility"
           {...register("notes")}
         />
       </div>
-      <div className="flex gap-2 justify-end mt-4">
+      <div className="flex gap-2 justify-end pt-4">
         {onCancel && (
-          <Button type="button" variant="ghost" onClick={onCancel} disabled={loading || isSubmitting}>
+          <Button type="button" variant="outline" onClick={onCancel} disabled={loading || isSubmitting}>
             Cancel
           </Button>
         )}
@@ -185,6 +177,7 @@ export function UtilityForm({ properties, initial, onSubmit, onCancel, loading }
           {loading || isSubmitting ? "Saving..." : "Save"}
         </Button>
       </div>
-    </form>
+      </form>
+    </div>
   );
 }

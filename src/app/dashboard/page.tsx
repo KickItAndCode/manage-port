@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { PropertyCard } from "@/components/PropertyCard";
 import { cn } from "@/lib/utils";
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
@@ -288,6 +289,7 @@ export default function DashboardPage() {
                   <th className="pb-3 px-2 sm:px-0" scope="col">Type</th>
                   <th className="pb-3 px-2 sm:px-0" scope="col">Status</th>
                   <th className="pb-3 text-right px-2 sm:px-0" scope="col">Monthly Rent</th>
+                  <th className="pb-3 px-2 sm:px-0" scope="col"></th>
                 </tr>
               </thead>
               <tbody>
@@ -300,35 +302,30 @@ export default function DashboardPage() {
                     role="row"
                     onClick={() => router.push(`/properties/${property.id}`)}
                   >
+                    <PropertyCard
+                      property={{
+                        _id: property.id,
+                        name: property.name,
+                        address: property.address,
+                        type: property.type,
+                        status: property.status,
+                        bedrooms: property.bedrooms || 0,
+                        bathrooms: property.bathrooms || 0,
+                        squareFeet: property.squareFeet || 0,
+                        monthlyRent: property.monthlyRent,
+                        purchaseDate: property.purchaseDate || new Date().toISOString(),
+                      }}
+                      variant="table-row"
+                      showActions={false}
+                    />
                     <td className="py-3 px-2 sm:px-0" role="cell">
-                      <div className="flex items-center justify-between">
-                        <div className="min-w-0 flex-1">
-                          <p className="font-medium text-sm sm:text-base group-hover:text-primary transition-colors">
-                            {property.name}
-                          </p>
-                          <p className="text-xs sm:text-sm text-muted-foreground truncate max-w-[200px] sm:max-w-none">
-                            {property.address}
-                          </p>
-                        </div>
-                        <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0" />
-                      </div>
-                    </td>
-                    <td className="py-3 px-2 sm:px-0" role="cell">
-                      <span className="px-2 py-1 bg-blue-100 dark:bg-blue-950/30 text-blue-700 dark:text-blue-400 rounded-full text-xs whitespace-nowrap">
-                        {property.type}
-                      </span>
-                    </td>
-                    <td className="py-3 px-2 sm:px-0" role="cell">
-                      <StatusBadge status={property.status} variant="compact" />
-                    </td>
-                    <td className="py-3 text-right font-medium px-2 sm:px-0 text-sm sm:text-base" role="cell">
-                      ${property.monthlyRent.toLocaleString()}
+                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0" />
                     </td>
                   </tr>
                 ))}
                 {metrics.recentProperties.length === 0 && (
                   <tr role="row">
-                    <td colSpan={4} className="py-6 text-center text-muted-foreground text-sm" role="cell">
+                    <td colSpan={5} className="py-6 text-center text-muted-foreground text-sm" role="cell">
                       No properties found. Add your first property to get started.
                     </td>
                   </tr>

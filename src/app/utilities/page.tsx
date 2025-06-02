@@ -13,6 +13,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { MoreHorizontal } from "lucide-react";
 import { LoadingContent } from "@/components/LoadingContent";
 import { Badge } from "@/components/ui/badge";
+import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 export default function UtilitiesPage() {
   const { user } = useUser();
@@ -30,6 +31,7 @@ export default function UtilitiesPage() {
   const [sortKey, setSortKey] = useState<UtilitySortKey>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selected, setSelected] = useState<string[]>([]);
+  const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
   type UtilitySortKey = "name" | "provider" | "cost" | "propertyId" | "billingCycle" | "startDate";
 
@@ -50,16 +52,23 @@ export default function UtilitiesPage() {
   }
   async function handleBulkDelete() {
     if (selected.length === 0 || !user) return;
-    if (!confirm(`Delete ${selected.length} selected utilities?`)) return;
-    setLoading(true);
-    try {
-      await Promise.all(selected.map(id => deleteUtility({ id: id as any, userId: user.id })));
-      setSelected([]);
-    } catch (err: any) {
-      console.error("Bulk delete utilities error:", err);
-      alert("Some utilities could not be deleted: " + (err.message || "Unknown error"));
-    }
-    setLoading(false);
+    confirm({
+      title: "Delete Utilities",
+      description: `Delete ${selected.length} selected utilities?`,
+      variant: "destructive",
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          await Promise.all(selected.map(id => deleteUtility({ id: id as any, userId: user.id })));
+          setSelected([]);
+        } catch (err: any) {
+          console.error("Bulk delete utilities error:", err);
+          const errorMessage = err.data?.message || err.message || "Unknown error";
+          alert("Some utilities could not be deleted: " + errorMessage);
+        }
+        setLoading(false);
+      }
+    });
   }
 
   const filtered = (utilities || [])
@@ -105,7 +114,7 @@ export default function UtilitiesPage() {
           <DialogTrigger asChild>
             <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-colors duration-200">Add Utility</Button>
           </DialogTrigger>
-          <DialogContent className="bg-card border border-border shadow-xl rounded-xl max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Utility</DialogTitle>
             </DialogHeader>
@@ -113,9 +122,16 @@ export default function UtilitiesPage() {
               properties={properties || []}
               onSubmit={async (data) => {
                 setLoading(true);
-                await addUtility({ ...data, userId: user.id, propertyId: data.propertyId as any });
-                setLoading(false);
-                setOpen(false);
+                try {
+                  await addUtility({ ...data, userId: user.id, propertyId: data.propertyId as any });
+                  setOpen(false);
+                } catch (err: any) {
+                  console.error("Add utility error:", err);
+                  const errorMessage = err.data?.message || err.message || "Unknown error";
+                  alert("Failed to add utility: " + errorMessage);
+                } finally {
+                  setLoading(false);
+                }
               }}
               loading={loading}
             />
@@ -205,10 +221,12 @@ export default function UtilitiesPage() {
                     <TableCell>${utility.cost}</TableCell>
                     <TableCell>
                       {utility.billingCycle ? (
-                        <Badge variant="secondary" className="text-xs">
+                        <Badge variant="outline" className="text-xs bg-muted/50 dark:bg-muted/20 border-border text-foreground">
                           {utility.billingCycle}
                         </Badge>
-                      ) : "-"}
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
                     </TableCell>
                     <TableCell>{formatDate(utility.startDate)}</TableCell>
                     <TableCell>
@@ -232,35 +250,41 @@ export default function UtilitiesPage() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-primary">
-                            <MoreHorizontal />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => setEdit(utility)}>
-                            Edit
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={async () => {
-                              if (confirm("Delete this utility?")) {
+                      <div className="flex items-center gap-1">
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => setEdit(utility)}
+                          className="h-8 px-2"
+                        >
+                          Edit
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            confirm({
+                              title: "Delete Utility",
+                              description: "Delete this utility?",
+                              variant: "destructive",
+                              onConfirm: async () => {
                                 setLoading(true);
                                 try {
                                   await deleteUtility({ id: utility._id as any, userId: user.id });
                                 } catch (err: any) {
                                   console.error("Delete utility error:", err);
-                                  alert("Failed to delete utility: " + (err.message || "Unknown error"));
+                                  const errorMessage = err.data?.message || err.message || "Unknown error";
+                                  alert("Failed to delete utility: " + errorMessage);
                                 }
                                 setLoading(false);
                               }
-                            }}
-                            className="text-destructive"
-                          >
-                            Delete
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
+                            });
+                          }}
+                        >
+                          Delete
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 );
@@ -277,7 +301,7 @@ export default function UtilitiesPage() {
         </LoadingContent>
       </div>
       <Dialog open={!!edit} onOpenChange={(v) => !v && setEdit(null)}>
-        <DialogContent className="bg-card border border-border shadow-xl rounded-xl max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Utility</DialogTitle>
           </DialogHeader>
@@ -286,15 +310,23 @@ export default function UtilitiesPage() {
             initial={edit}
             onSubmit={async (data) => {
               setLoading(true);
-              await updateUtility({ ...data, id: edit._id, userId: user.id, propertyId: data.propertyId as any });
-              setLoading(false);
-              setEdit(null);
+              try {
+                await updateUtility({ ...data, id: edit._id, userId: user.id, propertyId: data.propertyId as any });
+                setEdit(null);
+              } catch (err: any) {
+                console.error("Update utility error:", err);
+                const errorMessage = err.data?.message || err.message || "Unknown error";
+                alert("Failed to update utility: " + errorMessage);
+              } finally {
+                setLoading(false);
+              }
             }}
             onCancel={() => setEdit(null)}
             loading={loading}
           />
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </div>
   );
 }

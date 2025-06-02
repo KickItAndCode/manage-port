@@ -17,6 +17,7 @@ import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
+import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 export default function LeasesPage() {
   const { user } = useUser();
@@ -37,6 +38,7 @@ export default function LeasesPage() {
   const [filterProperty, setFilterProperty] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
   // Auto-open modal if coming from property page
   useEffect(() => {
@@ -244,39 +246,45 @@ export default function LeasesPage() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button size="icon" variant="ghost" className="text-muted-foreground hover:text-primary">
-                          <MoreHorizontal />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => {
+                    <div className="flex items-center gap-1">
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        onClick={() => {
                           setEditLease(lease);
                           setModalOpen(true);
-                        }}>
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={async () => {
-                            if (confirm("Delete this lease? This will also delete any associated documents.")) {
+                        }}
+                        className="h-8 px-2"
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                        onClick={() => {
+                          confirm({
+                            title: "Delete Lease",
+                            description: "Delete this lease? This will also delete any associated documents.",
+                            variant: "destructive",
+                            onConfirm: async () => {
                               setLoading(true);
                               setError(null);
                               try {
                                 await deleteLease({ id: lease._id as any, userId: user.id });
                               } catch (err: any) {
-                                setError(err.message || "Failed to delete lease");
+                                const errorMessage = err.data?.message || err.message || "Failed to delete lease";
+                                setError(errorMessage);
                                 console.error("Delete lease error:", err);
                               }
                               setLoading(false);
                             }
-                          }}
-                          className="text-destructive"
-                        >
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                          });
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               );
@@ -350,7 +358,7 @@ export default function LeasesPage() {
       </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="bg-card border border-border shadow-xl rounded-xl max-w-2xl">
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editLease ? "Edit Lease" : "Add Lease"}</DialogTitle>
           </DialogHeader>
@@ -372,6 +380,7 @@ export default function LeasesPage() {
           />
         </DialogContent>
       </Dialog>
+      {confirmDialog}
     </div>
   );
 }

@@ -139,7 +139,7 @@ export function DocumentUploadForm({ open, onOpenChange, onUploadComplete }: Doc
           <DialogTitle>Upload Documents</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-6">
+        <div className="space-y-6 dark:bg-gradient-to-br dark:from-gray-900/50 dark:to-gray-800/30 dark:border dark:border-gray-700/50 dark:rounded-lg dark:p-6">
           {/* File Drop Zone */}
           <div
             {...getRootProps()}
@@ -168,7 +168,7 @@ export function DocumentUploadForm({ open, onOpenChange, onUploadComplete }: Doc
           {/* Selected Files */}
           {files.length > 0 && (
             <div className="space-y-2">
-              <h3 className="font-medium">Selected Files ({files.length})</h3>
+              <h3 className="text-sm font-medium text-foreground dark:text-gray-200">Selected Files ({files.length})</h3>
               <div className="space-y-2 max-h-40 overflow-y-auto">
                 {files.map((file, index) => (
                   <div key={index} className="flex items-center justify-between p-3 border rounded-lg">
@@ -194,14 +194,14 @@ export function DocumentUploadForm({ open, onOpenChange, onUploadComplete }: Doc
 
           {/* Document Metadata */}
           <div className="space-y-4">
-            <h3 className="font-medium">Document Information</h3>
+            <h3 className="text-sm font-medium text-foreground dark:text-gray-200">Document Information</h3>
             
             {/* Type and Category */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Type</label>
+                <label className="text-sm font-medium text-foreground dark:text-gray-200">Type</label>
                 <select
-                  className="w-full px-3 py-2 rounded-md border border-border bg-background"
+                  className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
                   value={formData.type}
                   onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
                 >
@@ -214,9 +214,9 @@ export function DocumentUploadForm({ open, onOpenChange, onUploadComplete }: Doc
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Category</label>
+                <label className="text-sm font-medium text-foreground dark:text-gray-200">Category</label>
                 <select
-                  className="w-full px-3 py-2 rounded-md border border-border bg-background"
+                  className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
                   value={formData.category}
                   onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
                 >
@@ -233,9 +233,9 @@ export function DocumentUploadForm({ open, onOpenChange, onUploadComplete }: Doc
             {/* Property and Lease */}
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <label className="text-sm font-medium">Property (Optional)</label>
+                <label className="text-sm font-medium text-foreground dark:text-gray-200">Property (Optional)</label>
                 <select
-                  className="w-full px-3 py-2 rounded-md border border-border bg-background"
+                  className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
                   value={formData.propertyId}
                   onChange={(e) => setFormData(prev => ({ ...prev, propertyId: e.target.value }))}
                 >
@@ -249,9 +249,9 @@ export function DocumentUploadForm({ open, onOpenChange, onUploadComplete }: Doc
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Lease (Optional)</label>
+                <label className="text-sm font-medium text-foreground dark:text-gray-200">Lease (Optional)</label>
                 <select
-                  className="w-full px-3 py-2 rounded-md border border-border bg-background"
+                  className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
                   value={formData.leaseId}
                   onChange={(e) => setFormData(prev => ({ ...prev, leaseId: e.target.value }))}
                 >
@@ -267,7 +267,7 @@ export function DocumentUploadForm({ open, onOpenChange, onUploadComplete }: Doc
 
             {/* Notes */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Notes (Optional)</label>
+              <label className="text-sm font-medium text-foreground dark:text-gray-200">Notes (Optional)</label>
               <Input
                 value={formData.notes}
                 onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}

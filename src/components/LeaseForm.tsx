@@ -107,193 +107,187 @@ export function LeaseForm({ properties, initial, onSubmit, onCancel, loading }: 
   }
 
   return (
-    <form
-      className="space-y-4 bg-zinc-900 p-6 rounded-xl shadow-xl w-full max-w-2xl max-h-[80vh] overflow-y-auto"
-      onSubmit={handleSubmit((data) => {
-        // Include the document storage ID in the submission
-        onSubmit({
-          ...data,
-          leaseDocumentUrl: leaseDocumentStorageId || data.leaseDocumentUrl,
-        });
-      })}
-    >
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold">Lease Information</h3>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={fillWithDummyData}
-        >
-          Fill with Dummy Data
-        </Button>
-      </div>
+    <div className="dark:bg-gradient-to-br dark:from-gray-900/50 dark:to-gray-800/30 dark:border dark:border-gray-700/50 dark:rounded-lg dark:p-6">
+      <form
+        className="space-y-6"
+        onSubmit={handleSubmit((data) => {
+          // Include the document storage ID in the submission
+          onSubmit({
+            ...data,
+            leaseDocumentUrl: leaseDocumentStorageId || data.leaseDocumentUrl,
+          });
+        })}
+      >
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-semibold">Lease Information</h3>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={fillWithDummyData}
+          >
+            Fill with Dummy Data
+          </Button>
+        </div>
       
-      <div>
-        <label className="block text-zinc-200 mb-1">Property *</label>
-        <select
-          className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2"
-          {...register("propertyId")}
-          required
-        >
-          <option value="">Select property</option>
-          {properties.map((p) => (
-            <option key={p._id} value={p._id}>
-              {p.name} {p.address ? `- ${p.address}` : ''}
-            </option>
-          ))}
-        </select>
-        {errors.propertyId && <span className="text-red-400 text-sm">{errors.propertyId.message}</span>}
-      </div>
-
-      <div>
-        <label className="block text-zinc-200 mb-1">Tenant Name *</label>
-        <Input
-          className="bg-zinc-800 text-zinc-100 border-zinc-700"
-          placeholder="e.g., John Smith"
-          {...register("tenantName")}
-          required
-        />
-        {errors.tenantName && <span className="text-red-400 text-sm">{errors.tenantName.message}</span>}
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-zinc-200 mb-1">Tenant Email (optional)</label>
-          <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
-            type="email"
-            placeholder="tenant@email.com"
-            {...register("tenantEmail")}
-          />
-          {errors.tenantEmail && <span className="text-red-400 text-sm">{errors.tenantEmail.message}</span>}
-        </div>
-        <div>
-          <label className="block text-zinc-200 mb-1">Tenant Phone (optional)</label>
-          <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
-            type="tel"
-            placeholder="(555) 123-4567"
-            {...register("tenantPhone")}
-          />
-          {errors.tenantPhone && <span className="text-red-400 text-sm">{errors.tenantPhone.message}</span>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-zinc-200 mb-1">Start Date *</label>
-          <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
-            type="date"
-            {...register("startDate")}
-            required
-          />
-          {errors.startDate && <span className="text-red-400 text-sm">{errors.startDate.message}</span>}
-        </div>
-        <div>
-          <label className="block text-zinc-200 mb-1">End Date *</label>
-          <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
-            type="date"
-            {...register("endDate")}
-            required
-          />
-          {errors.endDate && <span className="text-red-400 text-sm">{errors.endDate.message}</span>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-zinc-200 mb-1">Monthly Rent ($) *</label>
-          <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
-            type="number"
-            min={0}
-            step="0.01"
-            placeholder="0.00"
-            {...register("rent", { valueAsNumber: true })}
-            required
-          />
-          {errors.rent && <span className="text-red-400 text-sm">{errors.rent.message}</span>}
-        </div>
-        <div>
-          <label className="block text-zinc-200 mb-1">Security Deposit ($)</label>
-          <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
-            type="number"
-            min={0}
-            step="0.01"
-            placeholder="0.00"
-            {...register("securityDeposit", { valueAsNumber: true })}
-          />
-          {errors.securityDeposit && <span className="text-red-400 text-sm">{errors.securityDeposit.message}</span>}
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-zinc-200 mb-1">Status *</label>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Property *</label>
           <select
-            className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2"
-            {...register("status")}
+            className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
+            {...register("propertyId")}
             required
           >
-            <option value="pending">Pending</option>
-            <option value="active">Active</option>
-            <option value="expired">Expired</option>
+            <option value="">Select property</option>
+            {properties.map((p) => (
+              <option key={p._id} value={p._id}>
+                {p.name} {p.address ? `- ${p.address}` : ''}
+              </option>
+            ))}
           </select>
-          <div className="mt-1">
-            {status === "active" && <Badge variant="default">Active Lease</Badge>}
-            {status === "pending" && <Badge variant="secondary">Pending Lease</Badge>}
-            {status === "expired" && <Badge variant="destructive">Expired Lease</Badge>}
-          </div>
-          {errors.status && <span className="text-red-400 text-sm">{errors.status.message}</span>}
+          {errors.propertyId && <span className="text-sm text-destructive">{errors.propertyId.message}</span>}
         </div>
-        <div>
-          <label className="block text-zinc-200 mb-1">Payment Day (1-31)</label>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Tenant Name *</label>
           <Input
-            className="bg-zinc-800 text-zinc-100 border-zinc-700"
-            type="number"
-            min={1}
-            max={31}
-            placeholder="1"
-            {...register("paymentDay", { valueAsNumber: true })}
+            placeholder="e.g., John Smith"
+            {...register("tenantName")}
+            required
           />
-          {errors.paymentDay && <span className="text-red-400 text-sm">{errors.paymentDay.message}</span>}
-          <p className="text-xs text-muted-foreground mt-1">Day of month rent is due</p>
+          {errors.tenantName && <span className="text-sm text-destructive">{errors.tenantName.message}</span>}
         </div>
-      </div>
 
-      <LeaseDocumentUpload
-        propertyId={watch("propertyId")}
-        onUploadComplete={(storageId) => {
-          setLeaseDocumentStorageId(storageId);
-        }}
-        onUploadError={(error) => {
-          console.error("Document upload error:", error);
-        }}
-      />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Tenant Email (optional)</label>
+            <Input
+              type="email"
+              placeholder="tenant@email.com"
+              {...register("tenantEmail")}
+            />
+            {errors.tenantEmail && <span className="text-sm text-destructive">{errors.tenantEmail.message}</span>}
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Tenant Phone (optional)</label>
+            <Input
+              type="tel"
+              placeholder="(555) 123-4567"
+              {...register("tenantPhone")}
+            />
+            {errors.tenantPhone && <span className="text-sm text-destructive">{errors.tenantPhone.message}</span>}
+          </div>
+        </div>
 
-      <div>
-        <label className="block text-zinc-200 mb-1">Notes (optional)</label>
-        <textarea
-          className="bg-zinc-800 text-zinc-100 border-zinc-700 rounded-lg w-full px-3 py-2 min-h-[80px]"
-          placeholder="Additional lease notes or terms"
-          {...register("notes")}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Start Date *</label>
+            <Input
+              type="date"
+              {...register("startDate")}
+              required
+            />
+            {errors.startDate && <span className="text-sm text-destructive">{errors.startDate.message}</span>}
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground dark:text-gray-200">End Date *</label>
+            <Input
+              type="date"
+              {...register("endDate")}
+              required
+            />
+            {errors.endDate && <span className="text-sm text-destructive">{errors.endDate.message}</span>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Monthly Rent ($) *</label>
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="0.00"
+              {...register("rent", { valueAsNumber: true })}
+              required
+            />
+            {errors.rent && <span className="text-sm text-destructive">{errors.rent.message}</span>}
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Security Deposit ($)</label>
+            <Input
+              type="number"
+              min={0}
+              step="0.01"
+              placeholder="0.00"
+              {...register("securityDeposit", { valueAsNumber: true })}
+            />
+            {errors.securityDeposit && <span className="text-sm text-destructive">{errors.securityDeposit.message}</span>}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Status *</label>
+            <select
+              className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
+              {...register("status")}
+              required
+            >
+              <option value="pending">Pending</option>
+              <option value="active">Active</option>
+              <option value="expired">Expired</option>
+            </select>
+            <div className="mt-1">
+              {status === "active" && <Badge variant="default">Active Lease</Badge>}
+              {status === "pending" && <Badge variant="secondary">Pending Lease</Badge>}
+              {status === "expired" && <Badge variant="destructive">Expired Lease</Badge>}
+            </div>
+            {errors.status && <span className="text-sm text-destructive">{errors.status.message}</span>}
+          </div>
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Payment Day (1-31)</label>
+            <Input
+              type="number"
+              min={1}
+              max={31}
+              placeholder="1"
+              {...register("paymentDay", { valueAsNumber: true })}
+            />
+            {errors.paymentDay && <span className="text-sm text-destructive">{errors.paymentDay.message}</span>}
+            <p className="text-xs text-muted-foreground mt-1">Day of month rent is due</p>
+          </div>
+        </div>
+
+        <LeaseDocumentUpload
+          propertyId={watch("propertyId")}
+          onUploadComplete={(storageId) => {
+            setLeaseDocumentStorageId(storageId);
+          }}
+          onUploadError={(error) => {
+            console.error("Document upload error:", error);
+          }}
         />
-      </div>
 
-      <div className="flex gap-2 justify-end mt-6 pt-4 border-t border-zinc-700">
-        {onCancel && (
-          <Button type="button" variant="ghost" onClick={onCancel} disabled={loading || isSubmitting}>
-            Cancel
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Notes (optional)</label>
+          <textarea
+            className="w-full px-3 py-2 rounded-md border transition-all outline-none min-h-[80px] bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary resize-y"
+            placeholder="Additional lease notes or terms"
+            {...register("notes")}
+          />
+        </div>
+
+        <div className="flex gap-2 justify-end pt-4">
+          {onCancel && (
+            <Button type="button" variant="outline" onClick={onCancel} disabled={loading || isSubmitting}>
+              Cancel
+            </Button>
+          )}
+          <Button type="submit" disabled={loading || isSubmitting}>
+            {loading || isSubmitting ? "Saving..." : "Save Lease"}
           </Button>
-        )}
-        <Button type="submit" disabled={loading || isSubmitting}>
-          {loading || isSubmitting ? "Saving..." : "Save Lease"}
-        </Button>
-      </div>
-    </form>
+        </div>
+      </form>
+    </div>
   );
 }

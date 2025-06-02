@@ -78,18 +78,49 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
   };
 
   const handleDeleteImage = async (imageId: string) => {
-    if (!user) return;
+    alert("DELETE FUNCTION CALLED - Image ID: " + imageId);
+    
+    if (!user) {
+      alert("No user found");
+      return;
+    }
+    
+    // Debug: Find and log the full image object
+    const imageObj = images?.find(img => img._id === imageId);
+    alert("User ID: " + user.id + "\nImage User ID: " + imageObj?.userId);
     
     if (confirm("Delete this image? This action cannot be undone.")) {
       try {
-        await deletePropertyImage({ userId: user.id, imageId: imageId as any });
+        console.log("Attempting to delete image:", imageId, "for user:", user.id);
+        console.log("Image object details:", {
+          id: imageObj?._id,
+          userId: imageObj?.userId,
+          propertyId: imageObj?.propertyId,
+          storageId: imageObj?.storageId
+        });
+        
+        const result = await deletePropertyImage({ userId: user.id, imageId: imageId as any });
+        console.log("Delete mutation completed successfully:", result);
+        
+        // Clear from selection
         setSelectedImages(prev => {
           const newSet = new Set(prev);
           newSet.delete(imageId);
           return newSet;
         });
+        
+        // If we're in carousel mode and deleted the current image, adjust index
+        if (viewMode === "carousel" && images && selectedImageIndex >= images.length - 1) {
+          setSelectedImageIndex(Math.max(0, images.length - 2));
+        }
+        
+        console.log("Image should be deleted, current images count:", images?.length);
+        
       } catch (error) {
-        console.error("Error deleting image:", error);
+        console.error("Error deleting image - full error object:", error);
+        console.error("Error message:", (error as any)?.message);
+        console.error("Error data:", (error as any)?.data);
+        alert("Failed to delete image: " + ((error as any)?.message || (error as any)?.data?.message || "Unknown error"));
       }
     }
   };
@@ -108,6 +139,12 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
     } catch (error) {
       console.error("Error updating image:", error);
     }
+  };
+
+  // Helper function to get image URL from storage ID
+  const getImageUrl = (storageId: string) => {
+    // For now, just return the storage ID - this should be replaced with proper Convex storage URL resolution
+    return `/api/storage/${storageId}`;
   };
 
   const handleBulkDownload = async () => {
@@ -327,7 +364,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
 
       {viewMode === "grid" ? (
         /* Grid View */
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {images.map((image, index) => (
             <Card key={image._id} className="group overflow-hidden">
               <CardContent className="p-0">
@@ -335,7 +372,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                   <PropertyImage
                     storageId={image.storageId}
                     alt={image.name}
-                    className="w-full h-48 object-cover cursor-pointer"
+                    className="w-full h-52 sm:h-48 md:h-52 object-cover cursor-pointer"
                     onClick={() => {
                       setSelectedImageIndex(index);
                       setFullscreenOpen(true);
@@ -372,14 +409,14 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                             setSelectedImageIndex(index);
                             setFullscreenOpen(true);
                           }}
-                          className="shadow-xl bg-slate-900/90 hover:bg-slate-900 text-white border-white/20 backdrop-blur-md"
+                          className="shadow-xl bg-background/90 hover:bg-background text-foreground border border-border/50 backdrop-blur-md p-2"
                         >
                           <Maximize2 className="h-4 w-4" />
                         </Button>
                         <Button 
                           size="sm" 
                           onClick={() => setEditingImage(image)}
-                          className="shadow-xl bg-slate-900/90 hover:bg-slate-900 text-white border-white/20 backdrop-blur-md"
+                          className="shadow-xl bg-background/90 hover:bg-background text-foreground border border-border/50 backdrop-blur-md p-2"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -389,7 +426,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                         <DropdownMenuTrigger asChild>
                           <Button 
                             size="sm"
-                            className="shadow-xl bg-slate-900/90 hover:bg-slate-900 text-white border-white/20 backdrop-blur-md"
+                            className="shadow-xl bg-background/90 hover:bg-background text-foreground border border-border/50 backdrop-blur-md p-2"
                           >
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
@@ -402,8 +439,11 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem 
-                            onClick={() => handleDeleteImage(image._id)}
-                            className="text-destructive"
+                            onClick={() => {
+                              alert("DROPDOWN DELETE CLICKED - Image ID: " + image._id);
+                              handleDeleteImage(image._id);
+                            }}
+                            variant="destructive"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete
@@ -482,7 +522,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                         <Button 
                           size="sm" 
                           onClick={() => setFullscreenOpen(true)}
-                          className="shadow-xl bg-slate-900/90 hover:bg-slate-900 text-white border-white/20 backdrop-blur-md"
+                          className="shadow-xl bg-background/90 hover:bg-background text-foreground border border-border/50 backdrop-blur-md"
                         >
                           <Maximize2 className="h-4 w-4 mr-2" />
                           Fullscreen
@@ -490,7 +530,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                         <Button 
                           size="sm" 
                           onClick={() => setEditingImage(images[selectedImageIndex])}
-                          className="shadow-xl bg-slate-900/90 hover:bg-slate-900 text-white border-white/20 backdrop-blur-md"
+                          className="shadow-xl bg-background/90 hover:bg-background text-foreground border border-border/50 backdrop-blur-md"
                         >
                           <Edit className="h-4 w-4 mr-2" />
                           Edit
@@ -501,7 +541,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                         <DropdownMenuTrigger asChild>
                           <Button 
                             size="sm"
-                            className="shadow-xl bg-slate-900/90 hover:bg-slate-900 text-white border-white/20 backdrop-blur-md"
+                            className="shadow-xl bg-background/90 hover:bg-background text-foreground border border-border/50 backdrop-blur-md"
                           >
                             <MoreHorizontal className="h-4 w-4 mr-2" />
                             More
@@ -515,8 +555,11 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                             </DropdownMenuItem>
                           )}
                           <DropdownMenuItem 
-                            onClick={() => handleDeleteImage(images[selectedImageIndex]._id)}
-                            className="text-destructive"
+                            onClick={() => {
+                              alert("CAROUSEL DELETE CLICKED - Image ID: " + images[selectedImageIndex]._id);
+                              handleDeleteImage(images[selectedImageIndex]._id);
+                            }}
+                            variant="destructive"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
                             Delete
@@ -530,7 +573,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                   <Button
                     size="lg"
                     variant="outline"
-                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-xl backdrop-blur-sm"
+                    className="absolute left-4 top-1/2 -translate-y-1/2 bg-background/90 hover:bg-background border-border text-foreground shadow-xl backdrop-blur-sm"
                     onClick={() => navigateCarousel('prev')}
                   >
                     <ChevronLeft className="h-6 w-6" />
@@ -539,7 +582,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                   <Button
                     size="lg"
                     variant="outline"
-                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-white/90 hover:bg-white shadow-xl backdrop-blur-sm"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 bg-background/90 hover:bg-background border-border text-foreground shadow-xl backdrop-blur-sm"
                     onClick={() => navigateCarousel('next')}
                   >
                     <ChevronRight className="h-6 w-6" />
@@ -620,7 +663,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
       {/* Fullscreen Modal */}
       {images && images[selectedImageIndex] && (
         <Dialog open={fullscreenOpen} onOpenChange={setFullscreenOpen}>
-          <DialogContent className="max-w-6xl max-h-[90vh] p-0">
+          <DialogContent className="max-w-6xl max-h-[90vh] p-0 bg-white dark:bg-gray-900">
             <DialogHeader className="sr-only">
               <DialogTitle>Image Viewer</DialogTitle>
             </DialogHeader>
