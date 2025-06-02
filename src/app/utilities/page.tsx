@@ -65,8 +65,9 @@ export default function UtilitiesPage() {
           console.error("Bulk delete utilities error:", err);
           const errorMessage = err.data?.message || err.message || "Unknown error";
           alert("Some utilities could not be deleted: " + errorMessage);
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       }
     });
   }
@@ -107,9 +108,9 @@ export default function UtilitiesPage() {
   if (!properties) return <div className="text-center text-zinc-200">Loading properties...</div>;
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-8 transition-colors duration-300">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Utilities</h1>
+    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8 transition-colors duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold">Utilities</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button className="bg-primary hover:bg-primary/90 text-primary-foreground shadow-md transition-colors duration-200">Add Utility</Button>
@@ -138,18 +139,18 @@ export default function UtilitiesPage() {
           </DialogContent>
         </Dialog>
       </div>
-      <div className="flex flex-wrap gap-4 mb-4 items-end">
+      <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-4 items-start sm:items-end">
         <input
           type="text"
           placeholder="Search by utility, provider, or property..."
-          className="bg-input text-foreground px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary w-64 transition-colors duration-200"
+          className="w-full sm:w-64 bg-input text-foreground px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary transition-colors duration-200"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={(e) => setSearch(e.target.value)}
         />
         <select
-          className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
+          className="w-full sm:w-auto bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
           value={propertyFilter}
-          onChange={e => setPropertyFilter(e.target.value)}
+          onChange={(e) => setPropertyFilter(e.target.value)}
         >
           <option value="">All Properties</option>
           {properties?.map((p) => (
@@ -158,14 +159,134 @@ export default function UtilitiesPage() {
         </select>
       </div>
       {selected.length > 0 && (
-        <div className="mb-2 flex gap-2 items-center">
-          <span className="text-muted-foreground">{selected.length} selected</span>
+        <div className="mb-4 flex flex-col sm:flex-row gap-2 sm:items-center">
+          <span className="text-sm text-muted-foreground">{selected.length} selected</span>
           <Button variant="destructive" onClick={handleBulkDelete} disabled={loading} className="transition-colors duration-200">
             Delete Selected
           </Button>
         </div>
       )}
-      <div className="overflow-x-auto rounded-2xl shadow-2xl bg-card border border-border transition-colors duration-300">
+      {/* Mobile Card View */}
+      <div className="lg:hidden space-y-4 mb-6">
+        <LoadingContent loading={!utilities} skeletonRows={6} skeletonHeight={120}>
+          {filtered.map((utility) => {
+            const property = properties?.find((p) => p._id === utility.propertyId);
+            return (
+              <div key={utility._id} className={`p-4 rounded-lg border transition-colors duration-200 ${
+                selected.includes(String(utility._id)) 
+                  ? "bg-primary/10 dark:bg-primary/15 border-primary" 
+                  : "bg-card border-border hover:bg-muted/50"
+              }`}>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selected.includes(String(utility._id))}
+                        onChange={() => toggleSelect(String(utility._id))}
+                        aria-label="Select utility"
+                        className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 checked:bg-primary checked:border-primary"
+                      />
+                      <div>
+                        <h3 className="font-medium">{utility.name}</h3>
+                        <p className="text-sm text-muted-foreground">{property?.name || "Unknown Property"}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold">${utility.cost}</p>
+                      {utility.billingCycle && (
+                        <Badge variant="outline" className="text-xs bg-muted/50 dark:bg-muted/20 border-border text-foreground mt-1">
+                          {utility.billingCycle}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">Provider:</span>
+                      <p className="font-medium">{utility.provider}</p>
+                    </div>
+                    {utility.startDate && (
+                      <div>
+                        <span className="text-muted-foreground">Start:</span>
+                        <p className="font-medium">{formatDate(utility.startDate)}</p>
+                      </div>
+                    )}
+                    {utility.endDate && (
+                      <div>
+                        <span className="text-muted-foreground">End:</span>
+                        <p className="font-medium">{formatDate(utility.endDate)}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {utility.notes && (
+                    <div className="text-sm">
+                      <span className="text-muted-foreground">Notes:</span>
+                      <p className="text-foreground mt-1">{utility.notes}</p>
+                    </div>
+                  )}
+                  
+                  <div className="flex justify-between items-center pt-2 border-t">
+                    <div className="flex gap-2">
+                      {utility.endDate && (
+                        <div className="flex items-center gap-1 text-muted-foreground">
+                          <Calendar className="w-3 h-3" />
+                          <span className="text-xs">Ends {formatDate(utility.endDate)}</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={() => setEdit(utility)}
+                        className="h-8 px-2"
+                      >
+                        Edit
+                      </Button>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="h-8 px-2 text-destructive hover:text-destructive"
+                        onClick={() => {
+                          confirm({
+                            title: "Delete Utility",
+                            description: "Delete this utility?",
+                            variant: "destructive",
+                            onConfirm: async () => {
+                              setLoading(true);
+                              try {
+                                await deleteUtility({ id: utility._id as any, userId: user.id });
+                              } catch (err: any) {
+                                console.error("Delete utility error:", err);
+                                const errorMessage = err.data?.message || err.message || "Unknown error";
+                                alert("Failed to delete utility: " + errorMessage);
+                              }
+                              setLoading(false);
+                            }
+                          });
+                        }}
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {(!filtered || filtered.length === 0) && (
+            <div className="text-center text-muted-foreground py-8">
+              No utilities found.
+            </div>
+          )}
+        </LoadingContent>
+      </div>
+
+      {/* Desktop Table View */}
+      <div className="hidden lg:block overflow-x-auto rounded-2xl shadow-2xl bg-card border border-border transition-colors duration-300">
         <LoadingContent loading={!utilities} skeletonRows={6} skeletonHeight={40}>
           <Table>
             <TableHeader>
@@ -192,7 +313,7 @@ export default function UtilitiesPage() {
               {filtered.map((utility) => {
                 const property = properties?.find((p) => p._id === utility.propertyId);
                 return (
-                  <TableRow key={utility._id} className={selected.includes(String(utility._id)) ? "text-primary-foreground" : "hover:bg-muted/50 transition-colors duration-200"} style={selected.includes(String(utility._id)) ? { backgroundColor: '#00ddeb' } : {}}>
+                  <TableRow key={utility._id} className={selected.includes(String(utility._id)) ? "bg-primary/10 dark:bg-primary/15 border-l-4 border-l-primary" : "hover:bg-muted/50 transition-colors duration-200 border-l-4 border-l-transparent"}>
                     <TableCell className="w-8">
                       <input
                         type="checkbox"

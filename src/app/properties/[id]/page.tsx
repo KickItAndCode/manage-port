@@ -197,10 +197,10 @@ export default function PropertyDetailsPage() {
   const netIncome = (property?.monthlyRent || 0) - monthlyExpenses;
 
   return (
-    <div className="min-h-screen bg-background p-8">
-      <div className="max-w-6xl mx-auto">
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+      <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Link 
             href="/properties" 
             className="inline-flex items-center text-muted-foreground hover:text-primary transition-colors mb-4"
@@ -210,7 +210,7 @@ export default function PropertyDetailsPage() {
           </Link>
           <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
             <div className="flex-1">
-              <h1 className="text-3xl sm:text-4xl font-bold mb-2">{property.name}</h1>
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2">{property.name}</h1>
               <div className="flex flex-wrap items-center gap-3 mb-4">
                 <div className="flex items-center text-muted-foreground">
                   <Home className="w-4 h-4 mr-1" />
@@ -258,45 +258,45 @@ export default function PropertyDetailsPage() {
         </div>
 
         {/* Key Metrics Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-          <Card className="p-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <Card className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Monthly Income</p>
-                <p className="text-2xl font-bold">${property.monthlyRent?.toLocaleString()}</p>
+                <p className="text-xl sm:text-2xl font-bold">${property.monthlyRent?.toLocaleString()}</p>
               </div>
               <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
                 <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
               </div>
             </div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Square Feet</p>
-                <p className="text-2xl font-bold">{property.squareFeet?.toLocaleString()}</p>
+                <p className="text-xl sm:text-2xl font-bold">{property.squareFeet?.toLocaleString()}</p>
               </div>
               <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full">
                 <Square className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Bedrooms</p>
-                <p className="text-2xl font-bold">{property.bedrooms}</p>
+                <p className="text-xl sm:text-2xl font-bold">{property.bedrooms}</p>
               </div>
               <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-full">
                 <Bed className="h-5 w-5 text-purple-600 dark:text-purple-400" />
               </div>
             </div>
           </Card>
-          <Card className="p-4">
+          <Card className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Bathrooms</p>
-                <p className="text-2xl font-bold">{property.bathrooms}</p>
+                <p className="text-xl sm:text-2xl font-bold">{property.bathrooms}</p>
               </div>
               <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full">
                 <Bath className="h-5 w-5 text-orange-600 dark:text-orange-400" />
@@ -305,9 +305,9 @@ export default function PropertyDetailsPage() {
           </Card>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
           {/* Main Content */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="xl:col-span-2 space-y-4 lg:space-y-6">
             {/* Property Images Gallery */}
             <Card>
               <CardHeader>
@@ -349,7 +349,7 @@ export default function PropertyDetailsPage() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
                   <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                     <div className="flex items-center gap-2">
                       <div className="p-2 bg-background rounded-lg">
@@ -425,21 +425,21 @@ export default function PropertyDetailsPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                       <div>
                         <h3 className="font-semibold text-lg">{currentTenant.tenantName}</h3>
                         <div className="flex items-center gap-2 mt-1">
                           {getLeaseStatusBadge(currentTenant.status, currentTenant.endDate)}
                         </div>
                       </div>
-                      <div className="text-right">
+                      <div className="text-left sm:text-right">
                         <div className="font-semibold text-lg">${currentTenant.rent?.toLocaleString()}/mo</div>
                         <div className="text-sm text-muted-foreground">
                           {formatDate(currentTenant.startDate)} - {formatDate(currentTenant.endDate)}
                         </div>
                       </div>
                     </div>
-                    <div className="flex gap-4">
+                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                       {currentTenant.tenantEmail && (
                         <div className="flex items-center text-sm text-muted-foreground">
                           <Mail className="w-4 h-4 mr-1" />
@@ -516,21 +516,21 @@ export default function PropertyDetailsPage() {
                   <div className="space-y-4">
                     {leases.map((lease: any) => (
                       <div key={lease._id} className="border rounded-lg p-4">
-                        <div className="flex items-start justify-between mb-2">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0 sm:mb-2">
                           <div>
                             <h4 className="font-semibold">{lease.tenantName}</h4>
                             <div className="flex items-center gap-2 mt-1">
                               {getLeaseStatusBadge(lease.status, lease.endDate)}
                             </div>
                           </div>
-                          <div className="text-right">
+                          <div className="text-left sm:text-right">
                             <div className="font-semibold">${lease.rent?.toLocaleString()}/mo</div>
                             <div className="text-sm text-muted-foreground">
                               {formatDate(lease.startDate)} - {formatDate(lease.endDate)}
                             </div>
                           </div>
                         </div>
-                        <div className="flex gap-4 text-sm text-muted-foreground">
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm text-muted-foreground">
                           {lease.tenantEmail && (
                             <div className="flex items-center">
                               <Mail className="w-3 h-3 mr-1" />
@@ -569,7 +569,7 @@ export default function PropertyDetailsPage() {
           </div>
 
           {/* Sidebar */}
-          <div className="space-y-6">
+          <div className="space-y-4 lg:space-y-6">
             {/* Financial Summary */}
             <Card className="bg-gradient-to-br from-card to-muted/20">
               <CardHeader>
@@ -578,8 +578,8 @@ export default function PropertyDetailsPage() {
                     <DollarSign className="w-5 h-5 mr-2" />
                     Financial Summary
                   </span>
-                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
-                    <span className="text-sm text-muted-foreground">Include CapEx</span>
+                  <div className="flex flex-col items-start gap-2">
+                    <span className="text-xs sm:text-sm text-muted-foreground">Include CapEx</span>
                     <button
                       onClick={() => setShowCapEx(!showCapEx)}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20 ${

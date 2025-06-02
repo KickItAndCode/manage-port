@@ -16,11 +16,11 @@ export function Topbar() {
   }, []);
 
   return (
-    <header className="flex items-center justify-between px-8 py-4 border-b border-border bg-card text-foreground shadow-md transition-colors duration-300 md:ml-0 ml-16">
-      <div className="flex-1 flex items-center gap-4">
+    <header className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 border-b border-border bg-card text-foreground shadow-md transition-colors duration-300">
+      <div className="flex-1 flex items-center gap-2 sm:gap-4 ml-12 sm:ml-0">
         <GlobalSearch />
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-2 sm:gap-4">
         {mounted && (
           <button
             className="p-2 rounded-full hover:bg-muted/60 text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors duration-200"
@@ -38,9 +38,9 @@ export function Topbar() {
         {isLoaded && isSignedIn ? (
           <UserButton afterSignOutUrl="/" />
         ) : (
-          <div className="flex gap-2">
-            <Link href="/sign-in" className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors duration-200">Sign in</Link>
-            <Link href="/sign-up" className="px-4 py-2 bg-muted text-foreground rounded border border-border hover:bg-muted/70 transition-colors duration-200">Sign up</Link>
+          <div className="flex gap-1 sm:gap-2">
+            <Link href="/sign-in" className="px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors duration-200 text-sm">Sign in</Link>
+            <Link href="/sign-up" className="px-3 sm:px-4 py-2 bg-muted text-foreground rounded border border-border hover:bg-muted/70 transition-colors duration-200 text-sm">Sign up</Link>
           </div>
         )}
       </div>

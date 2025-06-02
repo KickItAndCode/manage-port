@@ -290,7 +290,7 @@ export default function PropertiesPage() {
         ) : (
         /* Table View */
         <div className="overflow-x-auto rounded-2xl shadow-2xl bg-card border border-border transition-colors duration-300">
-          <Table>
+          <Table className="min-w-[800px]">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-8">

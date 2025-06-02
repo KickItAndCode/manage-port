@@ -115,7 +115,7 @@ export default function DocumentsPage() {
       <div className="mb-8">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Document Management</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Document Management</h1>
             <p className="text-muted-foreground mt-1">
               Store and organize all your property-related documents
             </p>
@@ -212,7 +212,7 @@ export default function DocumentsPage() {
       {/* Filters */}
       <Card className="mb-6">
         <CardContent className="p-4">
-          <div className="flex flex-col lg:flex-row gap-4">
+          <div className="flex flex-col gap-4">
             {/* Search */}
             <div className="flex-1">
               <div className="relative">
@@ -226,49 +226,52 @@ export default function DocumentsPage() {
               </div>
             </div>
 
-            {/* Type Filter */}
-            <select
-              className="px-3 py-2 rounded-md border border-border bg-background"
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-            >
-              <option value="">All Types</option>
-              {Object.entries(DOCUMENT_TYPES).map(([key, value]) => (
-                <option key={key} value={value}>
-                  {value.charAt(0).toUpperCase() + value.slice(1)}
-                </option>
-              ))}
-            </select>
-
-            {/* Category Filter */}
-            <select
-              className="px-3 py-2 rounded-md border border-border bg-background"
-              value={categoryFilter}
-              onChange={(e) => setCategoryFilter(e.target.value)}
-            >
-              <option value="">All Categories</option>
-              {Object.entries(DOCUMENT_CATEGORIES).map(([key, value]) => (
-                <option key={key} value={value}>
-                  {value.charAt(0).toUpperCase() + value.slice(1)}
-                </option>
-              ))}
-            </select>
-
-            {/* Property Filter */}
-            {properties && (
+            {/* Filters Row */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Type Filter */}
               <select
-                className="px-3 py-2 rounded-md border border-border bg-background"
-                value={propertyFilter}
-                onChange={(e) => setPropertyFilter(e.target.value)}
+                className="flex-1 px-3 py-2 rounded-md border border-border bg-background"
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
               >
-                <option value="">All Properties</option>
-                {properties.map((property: any) => (
-                  <option key={property._id} value={property._id}>
-                    {property.name}
+                <option value="">All Types</option>
+                {Object.entries(DOCUMENT_TYPES).map(([key, value]) => (
+                  <option key={key} value={value}>
+                    {value.charAt(0).toUpperCase() + value.slice(1)}
                   </option>
                 ))}
               </select>
-            )}
+
+              {/* Category Filter */}
+              <select
+                className="flex-1 px-3 py-2 rounded-md border border-border bg-background"
+                value={categoryFilter}
+                onChange={(e) => setCategoryFilter(e.target.value)}
+              >
+                <option value="">All Categories</option>
+                {Object.entries(DOCUMENT_CATEGORIES).map(([key, value]) => (
+                  <option key={key} value={value}>
+                    {value.charAt(0).toUpperCase() + value.slice(1)}
+                  </option>
+                ))}
+              </select>
+
+              {/* Property Filter */}
+              {properties && (
+                <select
+                  className="flex-1 px-3 py-2 rounded-md border border-border bg-background"
+                  value={propertyFilter}
+                  onChange={(e) => setPropertyFilter(e.target.value)}
+                >
+                  <option value="">All Properties</option>
+                  {properties.map((property: any) => (
+                    <option key={property._id} value={property._id}>
+                      {property.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
 
             {/* View Toggle */}
             <div className="flex gap-1 border rounded-md p-1">
@@ -340,7 +343,7 @@ export default function DocumentsPage() {
           </CardContent>
         </Card>
       ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
           {documents.map((doc: any) => {
             const Icon = typeIcons[doc.type] || FileText;
             const property = properties?.find((p: any) => p._id === doc.propertyId);
@@ -469,15 +472,15 @@ export default function DocumentsPage() {
         // List View
         <Card>
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b">
-                  <th className="text-left p-4">Name</th>
-                  <th className="text-left p-4">Type</th>
-                  <th className="text-left p-4">Property</th>
-                  <th className="text-left p-4">Size</th>
-                  <th className="text-left p-4">Uploaded</th>
-                  <th className="text-left p-4">Actions</th>
+                  <th className="text-left p-2 sm:p-4">Name</th>
+                  <th className="text-left p-2 sm:p-4">Type</th>
+                  <th className="text-left p-2 sm:p-4">Property</th>
+                  <th className="text-left p-2 sm:p-4">Size</th>
+                  <th className="text-left p-2 sm:p-4">Uploaded</th>
+                  <th className="text-left p-2 sm:p-4">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -486,7 +489,7 @@ export default function DocumentsPage() {
                   
                   return (
                     <tr key={doc._id} className="border-b hover:bg-muted/50">
-                      <td className="p-4">
+                      <td className="p-2 sm:p-4">
                         <div className="flex items-center gap-3">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                           <div>
@@ -497,19 +500,19 @@ export default function DocumentsPage() {
                           </div>
                         </div>
                       </td>
-                      <td className="p-4">
+                      <td className="p-2 sm:p-4">
                         <Badge variant="outline">{doc.type}</Badge>
                       </td>
-                      <td className="p-4">
+                      <td className="p-2 sm:p-4">
                         {property?.name || "-"}
                       </td>
-                      <td className="p-4 text-sm text-muted-foreground">
+                      <td className="p-2 sm:p-4 text-sm text-muted-foreground">
                         {formatFileSize(doc.fileSize)}
                       </td>
-                      <td className="p-4 text-sm text-muted-foreground">
+                      <td className="p-2 sm:p-4 text-sm text-muted-foreground">
                         {format(new Date(doc.uploadedAt), "MMM d, yyyy")}
                       </td>
-                      <td className="p-4">
+                      <td className="p-2 sm:p-4">
                         <div className="flex gap-2">
                           <DocumentViewer
                             storageId={doc.url}

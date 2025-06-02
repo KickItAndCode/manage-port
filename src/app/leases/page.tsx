@@ -136,10 +136,135 @@ export default function LeasesPage() {
   if (!user) return <div className="text-center text-muted-foreground">Sign in to manage leases.</div>;
   if (!properties) return <div className="text-center text-muted-foreground">Loading properties...</div>;
 
-  const LeaseTable = ({ leases: leaseList, title }: { leases: any[], title: string }) => (
-    <Card className="p-6">
+  const LeaseTable = ({ leases: leaseList, title }: { leases: any[], title: string }) => {
+    return (
+    <Card className="p-4 sm:p-6">
       <h2 className="text-lg font-semibold mb-4">{title}</h2>
-      <div className="overflow-x-auto">
+      
+      {/* Mobile Card View */}
+      <div className="lg:hidden space-y-4">
+        {leaseList.map((lease) => {
+          const property = properties?.find((p: any) => p._id === lease.propertyId);
+          const daysUntilExpiry = calculateDaysUntilExpiry(lease.endDate);
+          return (
+            <Card key={lease._id} className="p-4 border">
+              <div className="space-y-3">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="font-medium">{lease.tenantName}</h3>
+                    <p className="text-sm text-muted-foreground">{property?.name || "Unknown Property"}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-semibold">${lease.rent.toLocaleString()}/mo</p>
+                    {getStatusBadge(lease.status, lease.endDate)}
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">Start:</span>
+                    <p className="font-medium">{formatDate(lease.startDate)}</p>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">End:</span>
+                    <p className="font-medium">{formatDate(lease.endDate)}</p>
+                  </div>
+                  {lease.securityDeposit && (
+                    <div>
+                      <span className="text-muted-foreground">Deposit:</span>
+                      <p className="font-medium">${lease.securityDeposit.toLocaleString()}</p>
+                    </div>
+                  )}
+                  {lease.paymentDay && (
+                    <div>
+                      <span className="text-muted-foreground">Payment:</span>
+                      <p className="font-medium">{lease.paymentDay}{lease.paymentDay === 1 ? "st" : lease.paymentDay === 2 ? "nd" : lease.paymentDay === 3 ? "rd" : "th"}</p>
+                    </div>
+                  )}
+                </div>
+                
+                {(lease.tenantEmail || lease.tenantPhone) && (
+                  <div className="space-y-1 text-sm text-muted-foreground">
+                    {lease.tenantEmail && <p>{lease.tenantEmail}</p>}
+                    {lease.tenantPhone && <p>{lease.tenantPhone}</p>}
+                  </div>
+                )}
+                
+                {lease.status === "active" && daysUntilExpiry <= 60 && daysUntilExpiry >= 0 && (
+                  <div className="flex items-center gap-1 text-orange-500 text-sm">
+                    <AlertCircle className="w-3 h-3" />
+                    <span>{daysUntilExpiry} days left</span>
+                  </div>
+                )}
+                
+                <div className="flex items-center justify-between pt-2 border-t">
+                  <div className="flex gap-2">
+                    {lease.leaseDocumentUrl && (
+                      <DocumentViewer
+                        storageId={lease.leaseDocumentUrl}
+                        fileName={`${lease.tenantName} - Lease Document`}
+                      >
+                        <Button size="sm" variant="outline" className="h-8 px-2">
+                          <FileText className="w-3 h-3 mr-1" />
+                          Document
+                        </Button>
+                      </DocumentViewer>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      onClick={() => {
+                        setEditLease(lease);
+                        setModalOpen(true);
+                      }}
+                      className="h-8 px-2"
+                    >
+                      Edit
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="h-8 px-2 text-destructive hover:text-destructive"
+                      onClick={() => {
+                        confirm({
+                          title: "Delete Lease",
+                          description: "Delete this lease? This will also delete any associated documents.",
+                          variant: "destructive",
+                          onConfirm: async () => {
+                            setLoading(true);
+                            setError(null);
+                            try {
+                              await deleteLease({ id: lease._id as any, userId: user.id });
+                            } catch (err: any) {
+                              const errorMessage = err.data?.message || err.message || "Failed to delete lease";
+                              setError(errorMessage);
+                              console.error("Delete lease error:", err);
+                            } finally {
+                              setLoading(false);
+                            }
+                          }
+                        });
+                      }}
+                    >
+                      Delete
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          );
+        })}
+        {leaseList.length === 0 && (
+          <div className="text-center text-muted-foreground py-8">
+            No {title.toLowerCase()} found.
+          </div>
+        )}
+      </div>
+      
+      {/* Desktop Table View */}
+      <div className="hidden lg:block overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -302,12 +427,13 @@ export default function LeasesPage() {
         </Table>
       </div>
     </Card>
-  );
+    );
+  };
 
   return (
-    <div className="min-h-screen bg-background text-foreground p-8 transition-colors duration-300">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">Leases</h1>
+    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8 transition-colors duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold">Leases</h1>
         <Button 
           onClick={() => {
             setEditLease(null);
@@ -320,17 +446,17 @@ export default function LeasesPage() {
         </Button>
       </div>
       
-      <div className="flex flex-wrap gap-4 mb-6 items-end">
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 items-start sm:items-end">
         <Input
           placeholder="Search tenant name..."
           value={search}
-          onChange={e => setSearch(e.target.value)}
-          className="max-w-xs bg-input text-foreground border border-border transition-colors duration-200"
+          onChange={(e) => setSearch(e.target.value)}
+          className="w-full sm:max-w-xs bg-input text-foreground border border-border transition-colors duration-200"
         />
         <select
-          className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
+          className="w-full sm:w-auto bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
           value={filterProperty}
-          onChange={e => setFilterProperty(e.target.value)}
+          onChange={(e) => setFilterProperty(e.target.value)}
         >
           <option value="">All Properties</option>
           {properties?.map((p: any) => (
@@ -338,9 +464,9 @@ export default function LeasesPage() {
           ))}
         </select>
         <select
-          className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
+          className="w-full sm:w-auto bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200"
           value={filterStatus}
-          onChange={e => setFilterStatus(e.target.value)}
+          onChange={(e) => setFilterStatus(e.target.value)}
         >
           <option value="">All Statuses</option>
           <option value="active">Active</option>
