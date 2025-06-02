@@ -8,8 +8,6 @@ import { api } from "@/../convex/_generated/api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Skeleton } from "@/components/ui/skeleton";
 import { 
   ArrowLeft, 
@@ -20,7 +18,6 @@ import {
   Users, 
   FileText, 
   Zap, 
-  AlertCircle,
   Phone,
   Mail,
   ExternalLink,
@@ -31,8 +28,7 @@ import {
   Edit,
   Plus,
   FileUp,
-  UserPlus,
-  Banknote
+  UserPlus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -180,7 +176,7 @@ export default function PropertyDetailsPage() {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <h1 className="text-2xl font-bold mb-2">Property Not Found</h1>
-          <p className="text-muted-foreground mb-4">The property you're looking for doesn't exist or you don't have access to it.</p>
+          <p className="text-muted-foreground mb-4">The property you&apos;re looking for doesn&apos;t exist or you don&apos;t have access to it.</p>
           <Link href="/properties" className="text-primary hover:underline">
             ← Back to Properties
           </Link>
@@ -827,7 +823,6 @@ export default function PropertyDetailsPage() {
           </DialogHeader>
           <UtilityForm
             properties={property ? [{ _id: property._id, name: property.name }] : []}
-            initial={{ propertyId: propertyId }}
             onSubmit={async (data) => {
               setLoading(true);
               try {

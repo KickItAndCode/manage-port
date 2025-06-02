@@ -18,7 +18,13 @@ export default function ConvexTest() {
           addProperty({
             name: "Test Property",
             address: "123 Main St",
-            rent: 1000,
+            monthlyRent: 1000,
+            type: "single-family",
+            status: "occupied",
+            bedrooms: 3,
+            bathrooms: 2,
+            squareFeet: 1500,
+            purchaseDate: new Date().toISOString(),
             userId: user.id,
           })
         }
@@ -28,7 +34,7 @@ export default function ConvexTest() {
       <ul className="mt-4">
         {properties?.map((p) => (
           <li key={p._id} className="mb-2">
-            <span className="font-bold">{p.name}</span> - {p.address} - ${p.rent}
+            <span className="font-bold">{p.name}</span> - {p.address} - ${p.monthlyRent}
           </li>
         ))}
       </ul>

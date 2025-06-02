@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
-import { Search, Home, MapPin, DollarSign, X, ArrowRight, ImageIcon } from "lucide-react";
+import { Search, MapPin, DollarSign, X, ArrowRight, ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PropertyImage } from "@/components/PropertyImage";
@@ -130,6 +130,14 @@ export function GlobalSearch() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Navigation function
+  const navigateToProperty = useCallback((propertyId: string) => {
+    router.push(`/properties/${propertyId}`);
+    setSearch("");
+    setIsOpen(false);
+    setSelectedIndex(0);
+  }, [router]);
+
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!filteredProperties || filteredProperties.length === 0) return;
@@ -159,14 +167,7 @@ export function GlobalSearch() {
         inputRef.current?.blur();
         break;
     }
-  }, [filteredProperties, selectedIndex]);
-
-  const navigateToProperty = (propertyId: string) => {
-    router.push(`/properties/${propertyId}`);
-    setSearch("");
-    setIsOpen(false);
-    setSelectedIndex(0);
-  };
+  }, [filteredProperties, selectedIndex, navigateToProperty]);
 
   const handleSearchChange = (value: string) => {
     setSearch(value);

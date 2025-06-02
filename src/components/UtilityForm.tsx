@@ -47,7 +47,6 @@ export function UtilityForm({ properties, initial, onSubmit, onCancel, loading }
   const {
     register,
     handleSubmit,
-    setValue,
     formState: { errors, isSubmitting },
     reset,
   } = useForm<UtilityFormType>({

@@ -21,7 +21,7 @@ export default function Error({
     }
 
     // Handle the error using our error handling system
-    const appError = handleError(error, "Next.js Error Boundary");
+    handleError(error, "Next.js Error Boundary");
     
     // TODO: Send to error reporting service in production
     // Example: Sentry.captureException(error);

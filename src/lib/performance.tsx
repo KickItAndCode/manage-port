@@ -1,13 +1,13 @@
 // Performance optimization utilities
 
-import { useCallback, useRef, useMemo, useEffect, useState } from 'react';
+import React, { useCallback, useRef, useMemo, useEffect, useState } from 'react';
 
 // Debounce hook for search inputs and API calls
 export function useDebounce<T extends (...args: any[]) => any>(
   callback: T,
   delay: number
 ): T {
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   return useCallback(
     ((...args: Parameters<T>) => {
@@ -29,7 +29,7 @@ export function useThrottle<T extends (...args: any[]) => any>(
   delay: number
 ): T {
   const lastRunRef = useRef<number>(0);
-  const timeoutRef = useRef<NodeJS.Timeout>();
+  const timeoutRef = useRef<NodeJS.Timeout | undefined>(undefined);
 
   return useCallback(
     ((...args: Parameters<T>) => {
@@ -62,7 +62,7 @@ export function useMemoWithComparator<T>(
   const ref = useRef<{
     deps: React.DependencyList;
     value: T;
-  }>();
+  } | undefined>(undefined);
 
   if (!ref.current || !compare || !compare(ref.current.deps, deps)) {
     ref.current = {
@@ -164,14 +164,6 @@ export function analyzeBundle() {
     return;
   }
 
-  // Dynamic import for bundle analyzer
-  import('webpack-bundle-analyzer')
-    .then(({ BundleAnalyzerPlugin }) => {
-      console.log('Bundle analyzer available');
-    })
-    .catch(() => {
-      console.log('Bundle analyzer not installed');
-    });
 }
 
 // Performance monitoring
@@ -248,7 +240,7 @@ export function withPerformanceTracking<P extends object>(
           endTiming.current();
         }
       };
-    });
+    }, [componentName]);
 
     return <Component {...props} />;
   };
@@ -331,7 +323,7 @@ export function useCachedQuery<T>(
     // Check cache first
     const cached = cache.get(key);
     if (cached && !refetchOnMount) {
-      setData(cached);
+      setData(cached as T);
       return;
     }
 
@@ -366,20 +358,10 @@ export function useCachedQuery<T>(
   };
 }
 
-// Web Vitals monitoring
+// Web Vitals monitoring placeholder
 export function initWebVitals() {
   if (typeof window === 'undefined') return;
-
-  // Dynamic import to avoid bundling in SSR
-  import('web-vitals').then(({ getCLS, getFID, getFCP, getLCP, getTTFB }) => {
-    getCLS(metric => performanceMonitor.addMetric('CLS', metric.value));
-    getFID(metric => performanceMonitor.addMetric('FID', metric.value));
-    getFCP(metric => performanceMonitor.addMetric('FCP', metric.value));
-    getLCP(metric => performanceMonitor.addMetric('LCP', metric.value));
-    getTTFB(metric => performanceMonitor.addMetric('TTFB', metric.value));
-  }).catch(() => {
-    // web-vitals not available
-  });
+  // Web vitals monitoring would go here
 }
 
 // Resource preloading

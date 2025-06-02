@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
@@ -181,7 +181,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
     }
   };
 
-  const toggleImageSelection = (imageId: string) => {
+  const toggleImageSelection = useCallback((imageId: string) => {
     setSelectedImages(prev => {
       const newSet = new Set(prev);
       if (newSet.has(imageId)) {
@@ -191,7 +191,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
       }
       return newSet;
     });
-  };
+  }, []);
 
   const selectAllImages = () => {
     if (!images) return;
@@ -202,7 +202,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
     setSelectedImages(new Set());
   };
 
-  const navigateCarousel = (direction: 'prev' | 'next') => {
+  const navigateCarousel = useCallback((direction: 'prev' | 'next') => {
     if (!images) return;
     
     setSelectedImageIndex(prev => {
@@ -223,7 +223,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
       
       return newIndex;
     });
-  };
+  }, [images, viewMode]);
 
   // Enhanced keyboard navigation for both carousel and fullscreen
   useEffect(() => {
@@ -259,7 +259,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [fullscreenOpen, viewMode, images, selectedImageIndex]);
+  }, [fullscreenOpen, viewMode, images, selectedImageIndex, navigateCarousel, toggleImageSelection]);
 
   if (!user) {
     return (
@@ -385,7 +385,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                     <div className="absolute top-3 left-3">
                       <Checkbox
                         checked={selectedImages.has(image._id)}
-                        onCheckedChange={(checked) => toggleImageSelection(image._id)}
+                        onCheckedChange={() => toggleImageSelection(image._id)}
                         className="bg-white/90 border-2 border-white shadow-lg backdrop-blur-sm"
                       />
                     </div>
@@ -494,7 +494,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                     <div className="absolute top-4 left-4">
                       <Checkbox
                         checked={selectedImages.has(images[selectedImageIndex]._id)}
-                        onCheckedChange={(checked) => toggleImageSelection(images[selectedImageIndex]._id)}
+                        onCheckedChange={() => toggleImageSelection(images[selectedImageIndex]._id)}
                         className="bg-white/90 border-2 border-white shadow-lg backdrop-blur-sm scale-125"
                       />
                     </div>

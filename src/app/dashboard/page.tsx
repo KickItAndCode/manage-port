@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
-import { LoadingContent } from "@/components/LoadingContent";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/PropertyForm";
 import { UtilityForm } from "@/components/UtilityForm";
@@ -20,8 +20,8 @@ import {
   Building2, Receipt, Calendar, Users, ArrowRight 
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { PropertyCard } from "@/components/PropertyCard";
 import { cn } from "@/lib/utils";
+import { StatusBadge } from "@/components/ui/status-badge";
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
@@ -48,7 +48,15 @@ export default function DashboardPage() {
   const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
 
   if (!user || !metrics) {
-    return <LoadingContent />;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="space-y-3">
+          <Skeleton className="h-12 w-48" />
+          <Skeleton className="h-32 w-full max-w-md" />
+          <Skeleton className="h-32 w-full max-w-md" />
+        </div>
+      </div>
+    );
   }
 
   const statCards = [
@@ -112,7 +120,7 @@ export default function DashboardPage() {
             <div>
               <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
               <p className="text-muted-foreground mt-1 text-sm sm:text-base">
-                Welcome back! Here's an overview of your real estate portfolio.
+                Welcome back! Here&apos;s an overview of your real estate portfolio.
               </p>
             </div>
             <div className="flex gap-2">
@@ -389,22 +397,21 @@ export default function DashboardPage() {
                     role="row"
                     onClick={() => router.push(`/properties/${property.id}`)}
                   >
-                    <PropertyCard
-                      property={{
-                        _id: property.id,
-                        name: property.name,
-                        address: property.address,
-                        type: property.type,
-                        status: property.status,
-                        bedrooms: property.bedrooms || 0,
-                        bathrooms: property.bathrooms || 0,
-                        squareFeet: property.squareFeet || 0,
-                        monthlyRent: property.monthlyRent,
-                        purchaseDate: property.purchaseDate || new Date().toISOString(),
-                      }}
-                      variant="table-row"
-                      showActions={false}
-                    />
+                    <td className="py-3 px-2 sm:px-0" role="cell">
+                      <div>
+                        <p className="font-medium">{property.name}</p>
+                        <p className="text-sm text-muted-foreground">{property.address}</p>
+                      </div>
+                    </td>
+                    <td className="py-3 px-2 sm:px-0" role="cell">
+                      <span className="text-sm">{property.type}</span>
+                    </td>
+                    <td className="py-3 px-2 sm:px-0" role="cell">
+                      <StatusBadge status={property.status as any} />
+                    </td>
+                    <td className="py-3 px-2 sm:px-0 text-right" role="cell">
+                      <span className="font-medium">${property.monthlyRent.toLocaleString()}</span>
+                    </td>
                     <td className="py-3 px-2 sm:px-0" role="cell">
                       <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0" />
                     </td>
@@ -486,7 +493,12 @@ export default function DashboardPage() {
             onSubmit={async (data) => {
               setLoading(true);
               try {
-                await addLease({ ...data, userId: user.id });
+                await addLease({ 
+                  ...data, 
+                  userId: user.id,
+                  propertyId: data.propertyId as any,
+                  status: data.status as "active" | "expired" | "pending"
+                });
                 setLeaseModalOpen(false);
               } catch (err: any) {
                 console.error("Add lease error:", err);

@@ -72,7 +72,7 @@ export function LeaseDocumentUpload({
         name: file.name,
         type: DOCUMENT_TYPES.LEASE,
         category: DOCUMENT_CATEGORIES.LEGAL,
-        propertyId: propertyId || undefined,
+        propertyId: propertyId ? propertyId as any : undefined,
         fileSize: file.size,
         mimeType: file.type,
         notes: "Lease document uploaded during lease creation",

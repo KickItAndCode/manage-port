@@ -1,17 +1,15 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LeaseForm } from "@/components/LeaseForm";
 import { Card } from "@/components/ui/card";
-import { LoadingContent } from "@/components/LoadingContent";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Calendar, FileText, AlertCircle, DollarSign } from "lucide-react";
+import { Calendar, FileText, AlertCircle, DollarSign } from "lucide-react";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -19,7 +17,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
-export default function LeasesPage() {
+function LeasesPageContent() {
   const { user } = useUser();
   const searchParams = useSearchParams();
   const preSelectedPropertyId = searchParams.get('propertyId');
@@ -510,5 +508,13 @@ export default function LeasesPage() {
       </Dialog>
       {confirmDialog}
     </div>
+  );
+}
+
+export default function LeasesPage() {
+  return (
+    <Suspense fallback={<div className="p-4">Loading...</div>}>
+      <LeasesPageContent />
+    </Suspense>
   );
 }

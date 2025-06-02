@@ -4,14 +4,19 @@ import type { NextRequest } from "next/server";
 
 const isPublicRoute = createRouteMatcher(["/", "/sign-in", "/sign-up", "/landing"]);
 
-export default clerkMiddleware((auth, req) => {
+export default clerkMiddleware(async (auth, req) => {
   if (isPublicRoute(req)) {
     // Allow public routes but still add security headers
     return addSecurityHeaders(NextResponse.next());
   }
   
   // Protect non-public routes
-  auth().protect();
+  const authResult = await auth();
+  if (!authResult.userId) {
+    // Redirect to sign-in if not authenticated
+    const signInUrl = new URL('/sign-in', req.url);
+    return NextResponse.redirect(signInUrl);
+  }
   
   // Add security headers to all responses
   return addSecurityHeaders(NextResponse.next());

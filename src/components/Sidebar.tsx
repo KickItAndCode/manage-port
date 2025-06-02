@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Building, FileText, Settings, Flashlight, File, Layers } from "lucide-react";
+import { Home, Building, FileText, Settings, Flashlight, Layers } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const navItems = [

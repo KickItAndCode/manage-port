@@ -8,12 +8,9 @@ import { PropertyCard } from "@/components/PropertyCard";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronUp, ChevronDown, Grid3X3, List, ImageIcon, MoreHorizontal } from "lucide-react";
+import { ChevronUp, ChevronDown, Grid3X3, List, ImageIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { Badge } from "@/components/ui/badge";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
 import { StatusBadge } from "@/components/ui/status-badge";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
@@ -69,8 +66,8 @@ export default function PropertiesPage() {
       (!statusFilter || p.status === statusFilter)
     )
     .sort((a, b) => {
-      let v1 = a[sortKey];
-      let v2 = b[sortKey];
+      const v1 = a[sortKey];
+      const v2 = b[sortKey];
       if (typeof v1 === "string" && typeof v2 === "string") {
         return sortDir === "asc"
           ? v1.localeCompare(v2)

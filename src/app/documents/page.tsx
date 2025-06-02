@@ -61,7 +61,7 @@ export default function DocumentsPage() {
       search: search || undefined,
       type: typeFilter || undefined,
       category: categoryFilter || undefined,
-      propertyId: propertyFilter || undefined,
+      propertyId: propertyFilter ? propertyFilter as any : undefined,
       tags: selectedTags.length > 0 ? selectedTags : undefined,
     } : "skip"
   );

@@ -141,7 +141,7 @@ export function DocumentForm({ document, open, onOpenChange, onSave }: DocumentF
               <select
                 className="w-full px-3 py-2 rounded-md border border-border bg-background"
                 value={formData.type}
-                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
               >
                 {Object.entries(DOCUMENT_TYPES).map(([key, value]) => (
                   <option key={key} value={value}>
@@ -262,9 +262,8 @@ export function DocumentForm({ document, open, onOpenChange, onSave }: DocumentF
           {document && (
             <DocumentFileReplace
               currentFileName={document.name}
-              currentStorageId={document.url}
               documentId={document._id}
-              onFileReplaced={(newStorageId) => {
+              onFileReplaced={() => {
                 // File replacement is handled internally by the component
                 // The document will be automatically updated via the mutation
               }}

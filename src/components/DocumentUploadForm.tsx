@@ -93,8 +93,8 @@ export function DocumentUploadForm({ open, onOpenChange, onUploadComplete }: Doc
           name: file.name,
           type: formData.type,
           category: formData.category || undefined,
-          propertyId: formData.propertyId || undefined,
-          leaseId: formData.leaseId || undefined,
+          propertyId: formData.propertyId ? formData.propertyId as any : undefined,
+          leaseId: formData.leaseId ? formData.leaseId as any : undefined,
           fileSize: file.size,
           mimeType: file.type,
           notes: formData.notes || undefined,
@@ -203,7 +203,7 @@ export function DocumentUploadForm({ open, onOpenChange, onUploadComplete }: Doc
                 <select
                   className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
                   value={formData.type}
-                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value }))}
+                  onChange={(e) => setFormData(prev => ({ ...prev, type: e.target.value as any }))}
                 >
                   {Object.entries(DOCUMENT_TYPES).map(([key, value]) => (
                     <option key={key} value={value}>

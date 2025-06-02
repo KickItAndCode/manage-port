@@ -9,8 +9,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronUp, ChevronDown, Calendar, FileText } from "lucide-react";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
-import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal } from "lucide-react";
 import { LoadingContent } from "@/components/LoadingContent";
 import { Badge } from "@/components/ui/badge";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -82,8 +80,8 @@ export default function UtilitiesPage() {
       (!propertyFilter || u.propertyId === propertyFilter)
     )
     .sort((a, b) => {
-      let v1 = a[sortKey];
-      let v2 = b[sortKey];
+      const v1 = a[sortKey];
+      const v2 = b[sortKey];
       if (sortKey === "propertyId") {
         const p1 = properties?.find((p) => p._id === v1)?.name || "";
         const p2 = properties?.find((p) => p._id === v2)?.name || "";

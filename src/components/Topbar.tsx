@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 
 export function Topbar() {
   const { isSignedIn, isLoaded } = useUser();
-  const { theme, setTheme, resolvedTheme } = useTheme();
+  const { setTheme, resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

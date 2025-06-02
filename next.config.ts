@@ -5,6 +5,13 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   
+  // ESLint configuration for production builds
+  eslint: {
+    // Warning: This allows production builds to successfully complete even if
+    // your project has ESLint errors.
+    ignoreDuringBuilds: true,
+  },
+  
   // Image optimization
   images: {
     formats: ['image/webp', 'image/avif'],

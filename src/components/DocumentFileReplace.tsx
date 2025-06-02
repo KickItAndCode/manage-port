@@ -9,14 +9,12 @@ import { cn } from "@/lib/utils";
 import { 
   Upload, 
   FileText,
-  X,
   CheckCircle,
   AlertCircle
 } from "lucide-react";
 
 interface DocumentFileReplaceProps {
   currentFileName: string;
-  currentStorageId: string;
   documentId: string;
   onFileReplaced?: (newStorageId: string) => void;
   onReplaceError?: (error: string) => void;
@@ -25,7 +23,6 @@ interface DocumentFileReplaceProps {
 
 export function DocumentFileReplace({ 
   currentFileName,
-  currentStorageId,
   documentId,
   onFileReplaced, 
   onReplaceError,
