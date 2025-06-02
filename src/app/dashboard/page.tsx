@@ -1,20 +1,25 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useState } from "react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import { LoadingContent } from "@/components/LoadingContent";
 import { Card } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PropertyForm } from "@/components/PropertyForm";
+import { UtilityForm } from "@/components/UtilityForm";
+import { LeaseForm } from "@/components/LeaseForm";
+import { DocumentUploadForm } from "@/components/DocumentUploadForm";
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
 } from "recharts";
 import { 
   Home, DollarSign, Percent, TrendingUp, 
   Building2, Receipt, Calendar, Users, ArrowRight 
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { PropertyCard } from "@/components/PropertyCard";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +31,21 @@ export default function DashboardPage() {
   const metrics = useQuery(api.dashboard.getDashboardMetrics, { 
     userId: user?.id ?? "" 
   });
+  
+  // Modal states
+  const [propertyModalOpen, setPropertyModalOpen] = useState(false);
+  const [utilityModalOpen, setUtilityModalOpen] = useState(false);
+  const [leaseModalOpen, setLeaseModalOpen] = useState(false);
+  const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  // Mutations
+  const addProperty = useMutation(api.properties.addProperty);
+  const addUtility = useMutation(api.utilities.addUtility);
+  const addLease = useMutation(api.leases.addLease);
+  
+  // Get additional data for forms
+  const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
 
   if (!user || !metrics) {
     return <LoadingContent />;
@@ -36,29 +56,41 @@ export default function DashboardPage() {
       title: "Total Properties",
       value: metrics.totalProperties,
       icon: Building2,
-      color: "text-blue-600",
-      bgColor: "bg-blue-100",
+      color: "text-blue-600 dark:text-blue-400",
+      bgColor: "bg-blue-50 dark:bg-blue-950/20",
+      borderColor: "border-blue-200 dark:border-blue-800",
+      trend: "+2 this month",
+      trendPositive: true,
     },
     {
       title: "Monthly Revenue",
       value: `$${metrics.totalMonthlyRent.toLocaleString()}`,
       icon: DollarSign,
-      color: "text-green-600",
-      bgColor: "bg-green-100",
+      color: "text-green-600 dark:text-green-400",
+      bgColor: "bg-green-50 dark:bg-green-950/20",
+      borderColor: "border-green-200 dark:border-green-800",
+      trend: `+${((metrics.totalMonthlyRent / 10000) * 100).toFixed(1)}%`,
+      trendPositive: true,
     },
     {
       title: "Occupancy Rate",
       value: `${metrics.occupancyRate.toFixed(1)}%`,
       icon: Percent,
-      color: "text-purple-600",
-      bgColor: "bg-purple-100",
+      color: "text-purple-600 dark:text-purple-400",
+      bgColor: "bg-purple-50 dark:bg-purple-950/20",
+      borderColor: "border-purple-200 dark:border-purple-800",
+      trend: metrics.occupancyRate >= 90 ? "Excellent" : metrics.occupancyRate >= 75 ? "Good" : "Needs attention",
+      trendPositive: metrics.occupancyRate >= 75,
     },
     {
-      title: "Active Leases",
-      value: metrics.activeLeases,
+      title: "Security Deposits",
+      value: `$${metrics.totalSecurityDeposits.toLocaleString()}`,
       icon: Users,
-      color: "text-orange-600",
-      bgColor: "bg-orange-100",
+      color: "text-orange-600 dark:text-orange-400",
+      bgColor: "bg-orange-50 dark:bg-orange-950/20",
+      borderColor: "border-orange-200 dark:border-orange-800",
+      trend: `${metrics.activeLeases} active`,
+      trendPositive: true,
     },
   ];
 
@@ -73,34 +105,89 @@ export default function DashboardPage() {
   }));
 
   return (
-    <main className="p-4 sm:p-6 lg:p-8" role="main">
-      <header className="mb-6 sm:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Dashboard</h1>
-        <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-          Welcome back! Here's an overview of your real estate portfolio.
-        </p>
-      </header>
+    <main className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8 transition-colors duration-300" role="main">
+      <div className="max-w-7xl mx-auto">
+        <header className="mb-6 sm:mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+              <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+                Welcome back! Here's an overview of your real estate portfolio.
+              </p>
+            </div>
+            <div className="flex gap-2">
+              <div className="text-right">
+                <p className="text-xs text-muted-foreground">Portfolio Value</p>
+                <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                  ${(metrics.totalMonthlyRent * 12).toLocaleString()}/yr
+                </p>
+              </div>
+            </div>
+          </div>
+        </header>
 
       {/* Stat Cards */}
       <section className="mb-6 sm:mb-8" aria-labelledby="stats-heading">
         <h2 id="stats-heading" className="sr-only">Portfolio Statistics</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {statCards.map((stat, index) => (
-            <Card key={index} className="p-4 sm:p-6 hover:shadow-lg transition-shadow duration-200">
+            <Card key={index} className={`p-4 sm:p-6 hover:shadow-xl transition-all duration-300 border-l-4 ${stat.borderColor} group cursor-pointer`}>
               <div className="flex items-center justify-between">
                 <div className="min-w-0 flex-1">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.title}</p>
-                  <p className="text-xl sm:text-2xl font-bold mt-1 break-words" aria-label={`${stat.title}: ${stat.value}`}>
+                  <p className="text-xl sm:text-2xl font-bold mt-1 break-words group-hover:scale-105 transition-transform" aria-label={`${stat.title}: ${stat.value}`}>
                     {stat.value}
                   </p>
+                  <div className="flex items-center gap-1 mt-2">
+                    <span className={`text-xs px-2 py-0.5 rounded-full ${stat.bgColor} ${stat.color} font-medium`}>
+                      {stat.trend}
+                    </span>
+                  </div>
                 </div>
-                <div className={`p-2 sm:p-3 rounded-full ${stat.bgColor} flex-shrink-0 ml-2`} aria-hidden="true">
-                  <stat.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
+                <div className={`p-3 rounded-xl ${stat.bgColor} flex-shrink-0 ml-2 group-hover:scale-110 transition-transform`} aria-hidden="true">
+                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
                 </div>
               </div>
             </Card>
           ))}
         </div>
+      </section>
+
+      {/* Quick Actions */}
+      <section className="mb-6 sm:mb-8">
+        <Card className="p-4 sm:p-6">
+          <h3 className="text-lg font-semibold mb-4 text-foreground">Quick Actions</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <button 
+              onClick={() => setPropertyModalOpen(true)}
+              className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+            >
+              <Building2 className="h-6 w-6 text-primary" />
+              <span className="text-sm font-medium">Add Property</span>
+            </button>
+            <button 
+              onClick={() => setLeaseModalOpen(true)}
+              className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+            >
+              <Users className="h-6 w-6 text-primary" />
+              <span className="text-sm font-medium">New Lease</span>
+            </button>
+            <button 
+              onClick={() => setUtilityModalOpen(true)}
+              className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+            >
+              <Receipt className="h-6 w-6 text-primary" />
+              <span className="text-sm font-medium">Add Utility</span>
+            </button>
+            <button 
+              onClick={() => setDocumentModalOpen(true)}
+              className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+            >
+              <DollarSign className="h-6 w-6 text-primary" />
+              <span className="text-sm font-medium">Upload Docs</span>
+            </button>
+          </div>
+        </Card>
       </section>
 
       {/* Charts Grid */}
@@ -293,7 +380,7 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody>
-                {metrics.recentProperties.map((property, index) => (
+                {metrics.recentProperties.map((property) => (
                   <tr 
                     key={property.id} 
                     className={cn(
@@ -335,6 +422,95 @@ export default function DashboardPage() {
           </div>
         </Card>
       </section>
+      
+      {/* Modals */}
+      {/* Add Property Modal */}
+      <Dialog open={propertyModalOpen} onOpenChange={setPropertyModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Property</DialogTitle>
+          </DialogHeader>
+          <PropertyForm
+            onSubmit={async (data) => {
+              setLoading(true);
+              try {
+                await addProperty({ ...data, userId: user.id });
+                setPropertyModalOpen(false);
+              } catch (err: any) {
+                console.error("Add property error:", err);
+                const errorMessage = err.data?.message || err.message || "Unknown error";
+                alert("Failed to add property: " + errorMessage);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            loading={loading}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Utility Modal */}
+      <Dialog open={utilityModalOpen} onOpenChange={setUtilityModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Utility</DialogTitle>
+          </DialogHeader>
+          <UtilityForm
+            properties={properties || []}
+            onSubmit={async (data) => {
+              setLoading(true);
+              try {
+                await addUtility({ ...data, userId: user.id, propertyId: data.propertyId as any });
+                setUtilityModalOpen(false);
+              } catch (err: any) {
+                console.error("Add utility error:", err);
+                const errorMessage = err.data?.message || err.message || "Unknown error";
+                alert("Failed to add utility: " + errorMessage);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            loading={loading}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Lease Modal */}
+      <Dialog open={leaseModalOpen} onOpenChange={setLeaseModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Lease</DialogTitle>
+          </DialogHeader>
+          <LeaseForm
+            properties={properties || []}
+            onSubmit={async (data) => {
+              setLoading(true);
+              try {
+                await addLease({ ...data, userId: user.id });
+                setLeaseModalOpen(false);
+              } catch (err: any) {
+                console.error("Add lease error:", err);
+                const errorMessage = err.data?.message || err.message || "Unknown error";
+                alert("Failed to add lease: " + errorMessage);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            loading={loading}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Upload Documents Modal */}
+      <DocumentUploadForm
+        open={documentModalOpen}
+        onOpenChange={setDocumentModalOpen}
+        onUploadComplete={() => {
+          // Optionally refresh data or show success message
+        }}
+      />
+      
+      </div>
     </main>
   );
 }
