@@ -37,6 +37,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/PropertyForm";
+import { UtilityForm } from "@/components/UtilityForm";
 import { useMutation } from "convex/react";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { PropertyImageGallery } from "@/components/PropertyImageGallery";
@@ -50,10 +51,12 @@ export default function PropertyDetailsPage() {
   const [showCapEx, setShowCapEx] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [imageUploadOpen, setImageUploadOpen] = useState(false);
+  const [utilityModalOpen, setUtilityModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   const updateProperty = useMutation(api.properties.updateProperty);
+  const addUtility = useMutation(api.utilities.addUtility);
 
   // Validate propertyId - it should not be a storage ID (starts with kg, jt, etc.) or URL
   const isValidPropertyId = propertyId && 
@@ -575,16 +578,26 @@ export default function PropertyDetailsPage() {
                     <DollarSign className="w-5 h-5 mr-2" />
                     Financial Summary
                   </span>
-                  <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-2 text-sm font-normal">
-                      <input
-                        type="checkbox"
-                        checked={showCapEx}
-                        onChange={(e) => setShowCapEx(e.target.checked)}
-                        className="rounded border-muted-foreground"
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+                    <span className="text-sm text-muted-foreground">Include CapEx</span>
+                    <button
+                      onClick={() => setShowCapEx(!showCapEx)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary/20 ${
+                        showCapEx 
+                          ? 'bg-primary' 
+                          : 'bg-muted'
+                      }`}
+                      role="switch"
+                      aria-checked={showCapEx}
+                      aria-label="Include CapEx in calculations"
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`pointer-events-none inline-block h-3 w-3 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${
+                          showCapEx ? 'translate-x-4' : 'translate-x-0'
+                        }`}
                       />
-                      <span>Include CapEx</span>
-                    </label>
+                    </button>
                   </div>
                 </CardTitle>
               </CardHeader>
@@ -658,7 +671,12 @@ export default function PropertyDetailsPage() {
                       {utilities?.length || 0} service{(utilities?.length || 0) !== 1 ? 's' : ''}
                     </CardDescription>
                   </div>
-                  <Button size="sm" variant="outline" className="gap-2">
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => setUtilityModalOpen(true)}
+                  >
                     <Plus className="h-4 w-4" />
                     Add
                   </Button>
@@ -801,6 +819,33 @@ export default function PropertyDetailsPage() {
         </DialogContent>
       </Dialog>
       
+      {/* Add Utility Modal */}
+      <Dialog open={utilityModalOpen} onOpenChange={setUtilityModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Utility</DialogTitle>
+          </DialogHeader>
+          <UtilityForm
+            properties={property ? [{ _id: property._id, name: property.name }] : []}
+            initial={{ propertyId: propertyId }}
+            onSubmit={async (data) => {
+              setLoading(true);
+              try {
+                await addUtility({ ...data, userId: user.id, propertyId: data.propertyId as any });
+                setUtilityModalOpen(false);
+              } catch (err: any) {
+                console.error("Add utility error:", err);
+                const errorMessage = err.data?.message || err.message || "Unknown error";
+                alert("Failed to add utility: " + errorMessage);
+              } finally {
+                setLoading(false);
+              }
+            }}
+            loading={loading}
+          />
+        </DialogContent>
+      </Dialog>
+
       {/* Image Upload Dialog */}
       <PropertyImageUpload
         propertyId={propertyId}

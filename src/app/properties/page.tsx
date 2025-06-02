@@ -104,8 +104,9 @@ export default function PropertiesPage() {
           console.error("Bulk delete error:", err);
           const errorMessage = err.data?.message || err.message || "Unknown error";
           alert("Some properties could not be deleted: " + errorMessage);
+        } finally {
+          setLoading(false);
         }
-        setLoading(false);
       }
     });
   }
@@ -258,8 +259,9 @@ export default function PropertiesPage() {
                         console.error("Delete property error:", err);
                         const errorMessage = err.data?.message || err.message || "Unknown error";
                         alert("Failed to delete property: " + errorMessage);
+                      } finally {
+                        setLoading(false);
                       }
-                      setLoading(false);
                     }
                   });
                 }}
@@ -402,8 +404,9 @@ export default function PropertiesPage() {
                                 console.error("Delete property error:", err);
                                 const errorMessage = err.data?.message || err.message || "Unknown error";
                                 alert("Failed to delete property: " + errorMessage);
+                              } finally {
+                                setLoading(false);
                               }
-                              setLoading(false);
                             }
                           });
                         }}

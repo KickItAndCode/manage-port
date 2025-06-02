@@ -393,7 +393,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                     {/* Cover Badge */}
                     {image.isCover && (
                       <div className="absolute top-3 right-3">
-                        <div className="bg-yellow-500 text-white px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 shadow-lg">
+                        <div className="bg-primary text-primary-foreground px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1 shadow-lg">
                           <Star className="h-3 w-3 fill-current" />
                           Cover
                         </div>
@@ -502,7 +502,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                     {/* Cover Badge */}
                     {images[selectedImageIndex].isCover && (
                       <div className="absolute top-4 right-4">
-                        <div className="bg-yellow-500 text-white px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg">
+                        <div className="bg-primary text-primary-foreground px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2 shadow-lg">
                           <Star className="h-4 w-4 fill-current" />
                           Cover Image
                         </div>
@@ -650,7 +650,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                   {/* Cover indicator */}
                   {image.isCover && (
                     <div className="absolute top-1 right-1">
-                      <Star className="h-3 w-3 text-yellow-500 fill-current" />
+                      <Star className="h-3 w-3 text-primary fill-current" />
                     </div>
                   )}
                 </div>
@@ -663,7 +663,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
       {/* Fullscreen Modal */}
       {images && images[selectedImageIndex] && (
         <Dialog open={fullscreenOpen} onOpenChange={setFullscreenOpen}>
-          <DialogContent className="max-w-6xl max-h-[90vh] p-0 bg-white dark:bg-gray-900">
+          <DialogContent className="max-w-[95vw] max-h-[95vh] p-0 bg-white dark:bg-gray-900">
             <DialogHeader className="sr-only">
               <DialogTitle>Image Viewer</DialogTitle>
             </DialogHeader>
@@ -671,7 +671,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
               <PropertyImage
                 storageId={images[selectedImageIndex].storageId}
                 alt={images[selectedImageIndex].name}
-                className="w-full max-h-[80vh] object-contain"
+                className="w-full max-h-[90vh] object-contain"
               />
               
               {/* Navigation */}

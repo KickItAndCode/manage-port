@@ -128,8 +128,9 @@ export default function LeasesPage() {
       setEditLease(null);
     } catch (err: any) {
       setError(err.message || "An error occurred");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   if (!user) return <div className="text-center text-muted-foreground">Sign in to manage leases.</div>;
@@ -276,8 +277,9 @@ export default function LeasesPage() {
                                 const errorMessage = err.data?.message || err.message || "Failed to delete lease";
                                 setError(errorMessage);
                                 console.error("Delete lease error:", err);
+                              } finally {
+                                setLoading(false);
                               }
-                              setLoading(false);
                             }
                           });
                         }}

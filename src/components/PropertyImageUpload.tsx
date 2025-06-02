@@ -278,7 +278,7 @@ export function PropertyImageUpload({
                           {/* Cover Image Badge */}
                           {fileData.isCover && (
                             <div className="absolute top-2 left-2">
-                              <div className="bg-yellow-500 text-white px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1">
+                              <div className="bg-primary text-primary-foreground px-2 py-1 rounded-md text-xs font-medium flex items-center gap-1">
                                 <Star className="h-3 w-3" />
                                 Cover
                               </div>
