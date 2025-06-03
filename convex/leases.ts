@@ -12,7 +12,14 @@ export const getLease = query({
     if (!lease || lease.userId !== args.userId) {
       return null;
     }
-    return lease;
+    
+    // Include unit information if available
+    let unit = null;
+    if (lease.unitId) {
+      unit = await ctx.db.get(lease.unitId);
+    }
+    
+    return { ...lease, unit };
   },
 });
 
@@ -30,11 +37,23 @@ export const getLeases = query({
     const leases = await q.collect();
     
     // Filter by property if specified
+    let filteredLeases = leases;
     if (args.propertyId) {
-      return leases.filter(l => l.propertyId === args.propertyId);
+      filteredLeases = leases.filter(l => l.propertyId === args.propertyId);
     }
     
-    return leases;
+    // Add unit information to each lease
+    const leasesWithUnits = await Promise.all(
+      filteredLeases.map(async (lease) => {
+        let unit = null;
+        if (lease.unitId) {
+          unit = await ctx.db.get(lease.unitId);
+        }
+        return { ...lease, unit };
+      })
+    );
+    
+    return leasesWithUnits;
   },
 });
 
@@ -55,6 +74,30 @@ export const getLeasesByProperty = query({
   },
 });
 
+// Get leases by unit ID
+export const getLeasesByUnit = query({
+  args: { 
+    unitId: v.id("units"),
+    userId: v.string() 
+  },
+  handler: async (ctx, args) => {
+    // Verify unit ownership
+    const unit = await ctx.db.get(args.unitId);
+    if (!unit) return [];
+    
+    const property = await ctx.db.get(unit.propertyId);
+    if (!property || property.userId !== args.userId) return [];
+    
+    const leases = await ctx.db
+      .query("leases")
+      .withIndex("by_unit", (q) => q.eq("unitId", args.unitId))
+      .collect();
+    
+    // Add unit information to each lease
+    return leases.map(lease => ({ ...lease, unit }));
+  },
+});
+
 // Get active leases
 export const getActiveLeases = query({
   args: { userId: v.string() },
@@ -64,15 +107,29 @@ export const getActiveLeases = query({
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .collect();
     
-    return leases.filter(l => l.userId === args.userId);
+    const userLeases = leases.filter(l => l.userId === args.userId);
+    
+    // Add unit information to each lease
+    const leasesWithUnits = await Promise.all(
+      userLeases.map(async (lease) => {
+        let unit = null;
+        if (lease.unitId) {
+          unit = await ctx.db.get(lease.unitId);
+        }
+        return { ...lease, unit };
+      })
+    );
+    
+    return leasesWithUnits;
   },
 });
 
-// Add a lease for a property (enforce only one active lease per property)
+// Add a lease for a property (enforce only one active lease per property/unit)
 export const addLease = mutation({
   args: {
     userId: v.string(),
     propertyId: v.id("properties"),
+    unitId: v.optional(v.id("units")), // Optional for backward compatibility
     tenantName: v.string(),
     tenantEmail: v.optional(v.string()),
     tenantPhone: v.optional(v.string()),
@@ -92,6 +149,14 @@ export const addLease = mutation({
       throw new Error("Unauthorized: Property not found or doesn't belong to user");
     }
     
+    // Verify unit if provided
+    if (args.unitId) {
+      const unit = await ctx.db.get(args.unitId);
+      if (!unit || unit.propertyId !== args.propertyId) {
+        throw new Error("Invalid unit for this property");
+      }
+    }
+    
     // Validate payment day if provided
     if (args.paymentDay && (args.paymentDay < 1 || args.paymentDay > 31)) {
       throw new Error("Payment day must be between 1 and 31");
@@ -99,14 +164,29 @@ export const addLease = mutation({
     
     // Check for existing active lease if trying to add an active lease
     if (args.status === "active") {
-      const activeLeases = await ctx.db
-        .query("leases")
-        .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-        .filter(q => q.eq(q.field("status"), "active"))
-        .collect();
-      
-      if (activeLeases.length > 0) {
-        throw new Error("There is already an active lease for this property.");
+      if (args.unitId) {
+        // Check for active lease on the specific unit
+        const activeLeases = await ctx.db
+          .query("leases")
+          .withIndex("by_unit", (q) => q.eq("unitId", args.unitId))
+          .filter(q => q.eq(q.field("status"), "active"))
+          .collect();
+        
+        if (activeLeases.length > 0) {
+          throw new Error("There is already an active lease for this unit.");
+        }
+      } else {
+        // Check for active lease on the property (backward compatibility)
+        const activeLeases = await ctx.db
+          .query("leases")
+          .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+          .filter(q => q.eq(q.field("status"), "active"))
+          .filter(q => q.eq(q.field("unitId"), undefined))
+          .collect();
+        
+        if (activeLeases.length > 0) {
+          throw new Error("There is already an active lease for this property.");
+        }
       }
     }
     
@@ -121,6 +201,11 @@ export const addLease = mutation({
       ...args,
       createdAt: new Date().toISOString(),
     });
+    
+    // Update unit status if unit-based lease
+    if (args.unitId && args.status === "active") {
+      await ctx.db.patch(args.unitId, { status: "occupied" });
+    }
     
     // Create document record if lease document is provided
     if (args.leaseDocumentUrl) {
@@ -145,6 +230,7 @@ export const updateLease = mutation({
     id: v.id("leases"),
     userId: v.string(),
     propertyId: v.id("properties"),
+    unitId: v.optional(v.id("units")), // Optional for backward compatibility
     tenantName: v.string(),
     tenantEmail: v.optional(v.string()),
     tenantPhone: v.optional(v.string()),
@@ -174,17 +260,41 @@ export const updateLease = mutation({
       throw new Error("Payment day must be between 1 and 31");
     }
     
+    // Verify unit if provided
+    if (args.unitId) {
+      const unit = await ctx.db.get(args.unitId);
+      if (!unit || unit.propertyId !== args.propertyId) {
+        throw new Error("Invalid unit for this property");
+      }
+    }
+    
     // Check for existing active lease if changing to active
     if (args.status === "active" && lease.status !== "active") {
-      const activeLeases = await ctx.db
-        .query("leases")
-        .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-        .filter(q => q.eq(q.field("status"), "active"))
-        .filter(q => q.neq(q.field("_id"), args.id))
-        .collect();
-      
-      if (activeLeases.length > 0) {
-        throw new Error("There is already an active lease for this property.");
+      if (args.unitId) {
+        // Check for active lease on the specific unit
+        const activeLeases = await ctx.db
+          .query("leases")
+          .withIndex("by_unit", (q) => q.eq("unitId", args.unitId))
+          .filter(q => q.eq(q.field("status"), "active"))
+          .filter(q => q.neq(q.field("_id"), args.id))
+          .collect();
+        
+        if (activeLeases.length > 0) {
+          throw new Error("There is already an active lease for this unit.");
+        }
+      } else {
+        // Check for active lease on the property (backward compatibility)
+        const activeLeases = await ctx.db
+          .query("leases")
+          .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+          .filter(q => q.eq(q.field("status"), "active"))
+          .filter(q => q.eq(q.field("unitId"), undefined))
+          .filter(q => q.neq(q.field("_id"), args.id))
+          .collect();
+        
+        if (activeLeases.length > 0) {
+          throw new Error("There is already an active lease for this property.");
+        }
       }
     }
     
@@ -201,6 +311,15 @@ export const updateLease = mutation({
       ...updateData,
       updatedAt: new Date().toISOString(),
     });
+    
+    // Update unit status based on lease status changes
+    if (args.unitId) {
+      if (args.status === "active" && lease.status !== "active") {
+        await ctx.db.patch(args.unitId, { status: "occupied" });
+      } else if (args.status !== "active" && lease.status === "active") {
+        await ctx.db.patch(args.unitId, { status: "available" });
+      }
+    }
     
     // Update or create document record if lease document is provided
     if (args.leaseDocumentUrl) {
@@ -240,6 +359,11 @@ export const deleteLease = mutation({
     const lease = await ctx.db.get(args.id);
     if (!lease || lease.userId !== args.userId) {
       throw new Error("Unauthorized");
+    }
+    
+    // Update unit status if this was an active lease
+    if (lease.unitId && lease.status === "active") {
+      await ctx.db.patch(lease.unitId, { status: "available" });
     }
     
     // Delete associated documents

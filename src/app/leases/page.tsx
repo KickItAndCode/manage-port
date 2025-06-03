@@ -9,7 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
-import { Calendar, FileText, AlertCircle, DollarSign } from "lucide-react";
+import { Calendar, FileText, AlertCircle, DollarSign, Percent } from "lucide-react";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -221,6 +221,7 @@ function LeasesPageContent() {
                     >
                       Edit
                     </Button>
+                    {/* Utility settings moved to universal allocation in property details */}
                     <Button 
                       size="sm" 
                       variant="outline" 
@@ -497,6 +498,7 @@ function LeasesPageContent() {
             initial={editLease || (preSelectedPropertyId ? { propertyId: preSelectedPropertyId } : undefined)}
             onSubmit={handleSubmit}
             loading={loading}
+            userId={user!.id}
             onCancel={() => {
               setModalOpen(false);
               setEditLease(null);
@@ -506,6 +508,9 @@ function LeasesPageContent() {
           />
         </DialogContent>
       </Dialog>
+
+      {/* Utility settings moved to universal allocation in property details */}
+
       {confirmDialog}
     </div>
   );

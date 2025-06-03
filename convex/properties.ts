@@ -227,6 +227,83 @@ export const getProperties = query({
   },
 });
 
+// Get property with units
+export const getPropertyWithUnits = query({
+  args: { 
+    propertyId: v.id("properties"),
+    userId: v.string() 
+  },
+  handler: async (ctx, args) => {
+    const property = await ctx.db.get(args.propertyId);
+    if (!property || property.userId !== args.userId) {
+      return null;
+    }
+
+    // Get all units for this property
+    const units = await ctx.db
+      .query("units")
+      .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .collect();
+
+    // Get active leases for each unit
+    const unitsWithLeases = await Promise.all(
+      units.map(async (unit) => {
+        const activeLease = await ctx.db
+          .query("leases")
+          .withIndex("by_unit", (q) => q.eq("unitId", unit._id))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .first();
+        return { ...unit, activeLease };
+      })
+    );
+
+    return {
+      ...property,
+      units: unitsWithLeases.sort((a, b) => 
+        a.unitIdentifier.localeCompare(b.unitIdentifier)
+      ),
+    };
+  },
+});
+
+// Convert property to multi-unit
+export const convertToMultiUnit = mutation({
+  args: {
+    propertyId: v.id("properties"),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const property = await ctx.db.get(args.propertyId);
+    if (!property) {
+      throw new ConvexError({
+        code: "NOT_FOUND",
+        message: "Property not found"
+      });
+    }
+
+    if (property.userId !== args.userId) {
+      throw new ConvexError({
+        code: "FORBIDDEN",
+        message: "You don't have permission to modify this property"
+      });
+    }
+
+    if (property.propertyType === "multi-family") {
+      throw new ConvexError({
+        code: "INVALID_STATE",
+        message: "Property is already multi-family"
+      });
+    }
+
+    // Update property type
+    await ctx.db.patch(args.propertyId, { 
+      propertyType: "multi-family" 
+    });
+
+    return { success: true };
+  },
+});
+
 // Update a property
 export const updateProperty = mutation({
   args: {
@@ -335,6 +412,19 @@ export const deleteProperty = mutation({
       });
     }
 
+    // Check for units
+    const units = await ctx.db
+      .query("units")
+      .withIndex("by_property", (q) => q.eq("propertyId", args.id))
+      .collect();
+
+    if (units.length > 0) {
+      throw new ConvexError({
+        code: "CONFLICT",
+        message: "Cannot delete property with units. Please delete all units first."
+      });
+    }
+
     // Check for active leases
     const activeLeases = await ctx.db
       .query("leases")
@@ -354,15 +444,6 @@ export const deleteProperty = mutation({
     }
 
     try {
-      // Delete associated utilities first
-      const utilities = await ctx.db
-        .query("utilities")
-        .filter((q) => q.eq(q.field("propertyId"), args.id))
-        .collect();
-      
-      for (const utility of utilities) {
-        await ctx.db.delete(utility._id);
-      }
 
       // Delete associated documents
       const documents = await ctx.db

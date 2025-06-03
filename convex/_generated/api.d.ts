@@ -15,11 +15,15 @@ import type {
 } from "convex/server";
 import type * as dashboard from "../dashboard.js";
 import type * as documents from "../documents.js";
+import type * as leaseUtilitySettings from "../leaseUtilitySettings.js";
 import type * as leases from "../leases.js";
 import type * as properties from "../properties.js";
 import type * as propertyImages from "../propertyImages.js";
 import type * as storage from "../storage.js";
-import type * as utilities from "../utilities.js";
+import type * as tenantUtilityCharges from "../tenantUtilityCharges.js";
+import type * as units from "../units.js";
+import type * as utilityBills from "../utilityBills.js";
+import type * as utilityPayments from "../utilityPayments.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -32,11 +36,15 @@ import type * as utilities from "../utilities.js";
 declare const fullApi: ApiFromModules<{
   dashboard: typeof dashboard;
   documents: typeof documents;
+  leaseUtilitySettings: typeof leaseUtilitySettings;
   leases: typeof leases;
   properties: typeof properties;
   propertyImages: typeof propertyImages;
   storage: typeof storage;
-  utilities: typeof utilities;
+  tenantUtilityCharges: typeof tenantUtilityCharges;
+  units: typeof units;
+  utilityBills: typeof utilityBills;
+  utilityPayments: typeof utilityPayments;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

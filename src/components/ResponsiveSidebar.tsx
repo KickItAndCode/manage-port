@@ -10,7 +10,8 @@ import {
   Layers, 
   Menu, 
   X,
-  ChevronLeft
+  ChevronLeft,
+  DollarSign
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
@@ -21,7 +22,8 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
   { label: "Properties", href: "/properties", icon: Building },
   { label: "Leases", href: "/leases", icon: Layers },
-  { label: "Utilities", href: "/utilities", icon: Flashlight },
+  { label: "Utility Bills", href: "/utility-bills", icon: Flashlight },
+  { label: "Payments", href: "/payments", icon: DollarSign },
   { label: "Documents", href: "/documents", icon: FileText },
   { label: "Settings", href: "/settings", icon: Settings },
 ];

@@ -33,11 +33,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/PropertyForm";
-import { UtilityForm } from "@/components/UtilityForm";
 import { useMutation } from "convex/react";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { PropertyImageGallery } from "@/components/PropertyImageGallery";
 import { PropertyImageUpload } from "@/components/PropertyImageUpload";
+import { UnitList } from "@/components/UnitList";
+import { UnitForm } from "@/components/UnitForm";
+import { BulkUnitCreator } from "@/components/BulkUnitCreator";
+import { UniversalUtilityAllocation } from "@/components/UniversalUtilityAllocation";
+import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -47,12 +51,16 @@ export default function PropertyDetailsPage() {
   const [showCapEx, setShowCapEx] = useState(true);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [imageUploadOpen, setImageUploadOpen] = useState(false);
-  const [utilityModalOpen, setUtilityModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [unitDialogOpen, setUnitDialogOpen] = useState(false);
+  const [bulkUnitDialogOpen, setBulkUnitDialogOpen] = useState(false);
+  const [editingUnit, setEditingUnit] = useState<any>(null);
   
   const updateProperty = useMutation(api.properties.updateProperty);
-  const addUtility = useMutation(api.utilities.addUtility);
+  const addUnit = useMutation(api.units.addUnit);
+  const updateUnit = useMutation(api.units.updateUnit);
+  const bulkCreateUnits = useMutation(api.units.bulkCreateUnits);
 
   // Validate propertyId - it should not be a storage ID (starts with kg, jt, etc.) or URL
   const isValidPropertyId = propertyId && 
@@ -65,10 +73,6 @@ export default function PropertyDetailsPage() {
     api.properties.getProperty,
     user && isValidPropertyId ? { id: propertyId as any, userId: user.id } : "skip"
   );
-  const utilities = useQuery(
-    api.utilities.getUtilities,
-    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
-  );
   const leases = useQuery(
     api.leases.getLeases,
     user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
@@ -79,6 +83,10 @@ export default function PropertyDetailsPage() {
   );
   const propertyImages = useQuery(
     api.propertyImages.getPropertyImages,
+    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
+  );
+  const propertyWithUnits = useQuery(
+    api.properties.getPropertyWithUnits,
     user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
   );
 
@@ -105,10 +113,6 @@ export default function PropertyDetailsPage() {
     return <StatusBadge status={status} variant="compact" />;
   };
 
-  const calculateTotalUtilityCost = () => {
-    if (!utilities) return 0;
-    return utilities.reduce((sum: number, utility: any) => sum + utility.cost, 0);
-  };
 
   const getActiveLeases = () => {
     if (!leases) return [];
@@ -186,9 +190,8 @@ export default function PropertyDetailsPage() {
   }
 
   const currentTenant = getCurrentTenant();
-  const totalUtilityCost = calculateTotalUtilityCost();
-  const monthlyExpenses = totalUtilityCost + 
-    (property?.monthlyMortgage || 0) + 
+  // No longer tracking utilities at property level - use utility bills instead
+  const monthlyExpenses = (property?.monthlyMortgage || 0) + 
     (showCapEx ? (property?.monthlyCapEx || 0) : 0);
   const netIncome = (property?.monthlyRent || 0) - monthlyExpenses;
 
@@ -404,6 +407,78 @@ export default function PropertyDetailsPage() {
               </CardContent>
             </Card>
 
+            {/* Units Management - Only show for multi-family properties */}
+            {(property.propertyType === "multi-family" || (propertyWithUnits?.units && propertyWithUnits.units.length > 0)) && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center">
+                        <Home className="w-5 h-5 mr-2" />
+                        Units
+                      </CardTitle>
+                      <CardDescription>
+                        Manage individual units in this property
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="gap-2"
+                        onClick={() => setBulkUnitDialogOpen(true)}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Bulk Add
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <UnitList 
+                    propertyId={propertyId as any}
+                    userId={user.id}
+                    onEditUnit={(unit) => {
+                      setEditingUnit(unit);
+                      setUnitDialogOpen(true);
+                    }}
+                    onAddUnit={() => {
+                      setEditingUnit(null);
+                      setUnitDialogOpen(true);
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Convert to Multi-Unit Property */}
+            {property.propertyType !== "multi-family" && !propertyWithUnits?.units?.length && (
+              <Card className="border-2 border-dashed">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Home className="w-5 h-5 mr-2" />
+                    Multi-Unit Property
+                  </CardTitle>
+                  <CardDescription>
+                    Convert this property to support multiple units
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Managing a duplex, triplex, or apartment building? Add units to track multiple tenants and split utilities.
+                  </p>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setBulkUnitDialogOpen(true)}
+                    className="w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Units
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Current Tenant */}
             {currentTenant ? (
               <Card className="border-l-4 border-l-green-500">
@@ -617,10 +692,7 @@ export default function PropertyDetailsPage() {
                         <span className="font-semibold">-${property.monthlyMortgage.toLocaleString()}</span>
                       </div>
                     )}
-                    <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
-                      <span className="text-muted-foreground">Utilities</span>
-                      <span className="font-semibold">-${totalUtilityCost.toLocaleString()}</span>
-                    </div>
+                    {/* Utility costs now tracked in utility bills section */}
                     {showCapEx && property.monthlyCapEx && property.monthlyCapEx > 0 && (
                       <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
                         <span className="text-muted-foreground">
@@ -654,68 +726,7 @@ export default function PropertyDetailsPage() {
               </CardContent>
             </Card>
 
-            {/* Utilities */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center">
-                      <Zap className="w-5 h-5 mr-2" />
-                      Utilities
-                    </CardTitle>
-                    <CardDescription>
-                      {utilities?.length || 0} service{(utilities?.length || 0) !== 1 ? 's' : ''}
-                    </CardDescription>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="gap-2"
-                    onClick={() => setUtilityModalOpen(true)}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {utilities === undefined ? (
-                  <div className="text-muted-foreground">Loading utilities...</div>
-                ) : utilities.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-4">
-                    No utilities configured
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {utilities.map((utility: any) => (
-                      <div key={utility._id} className="flex justify-between items-start">
-                        <div>
-                          <div className="font-medium">{utility.name}</div>
-                          <div className="text-sm text-muted-foreground">{utility.provider}</div>
-                          {utility.startDate && (
-                            <div className="text-xs text-muted-foreground">
-                              Since {formatDate(utility.startDate)}
-                            </div>
-                          )}
-                        </div>
-                        <div className="text-right">
-                          <div className="font-semibold">${utility.cost}</div>
-                          <div className="text-xs text-muted-foreground">
-                            {utility.billingCycle || 'Monthly'}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    <div className="pt-2 border-t">
-                      <div className="flex justify-between font-semibold">
-                        <span>Total Monthly</span>
-                        <span>${totalUtilityCost.toLocaleString()}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            {/* Utilities now managed through Utility Bills section */}
 
             {/* Documents */}
             <Card>
@@ -755,6 +766,22 @@ export default function PropertyDetailsPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Universal Utility Allocation */}
+            {property && (property.propertyType === "multi-family" || (propertyWithUnits?.units && propertyWithUnits.units.length > 0)) && (
+              <UniversalUtilityAllocation
+                propertyId={property._id as any}
+                userId={user!.id}
+              />
+            )}
+
+            {/* Tenant Statement Generator */}
+            {property && getActiveLeases().length > 0 && (
+              <TenantStatementGenerator
+                propertyId={property._id as any}
+                userId={user!.id}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -815,31 +842,6 @@ export default function PropertyDetailsPage() {
         </DialogContent>
       </Dialog>
       
-      {/* Add Utility Modal */}
-      <Dialog open={utilityModalOpen} onOpenChange={setUtilityModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add Utility</DialogTitle>
-          </DialogHeader>
-          <UtilityForm
-            properties={property ? [{ _id: property._id, name: property.name }] : []}
-            onSubmit={async (data) => {
-              setLoading(true);
-              try {
-                await addUtility({ ...data, userId: user.id, propertyId: data.propertyId as any });
-                setUtilityModalOpen(false);
-              } catch (err: any) {
-                console.error("Add utility error:", err);
-                const errorMessage = err.data?.message || err.message || "Unknown error";
-                alert("Failed to add utility: " + errorMessage);
-              } finally {
-                setLoading(false);
-              }
-            }}
-            loading={loading}
-          />
-        </DialogContent>
-      </Dialog>
 
       {/* Image Upload Dialog */}
       <PropertyImageUpload
@@ -850,6 +852,74 @@ export default function PropertyDetailsPage() {
           // Images will be automatically refreshed via Convex reactivity
         }}
       />
+
+      {/* Unit Dialog */}
+      <Dialog open={unitDialogOpen} onOpenChange={(open) => {
+        setUnitDialogOpen(open);
+        if (!open) setEditingUnit(null);
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingUnit ? 'Edit Unit' : 'Add Unit'}</DialogTitle>
+          </DialogHeader>
+          <UnitForm
+            propertyId={propertyId as any}
+            initial={editingUnit}
+            onSubmit={async (data) => {
+              setLoading(true);
+              try {
+                if (editingUnit) {
+                  await updateUnit({ ...data, userId: user.id });
+                } else {
+                  await addUnit({ ...data, userId: user.id });
+                }
+                setUnitDialogOpen(false);
+                setEditingUnit(null);
+              } catch (err: any) {
+                console.error("Unit operation error:", err);
+                alert(err.message || "Failed to save unit");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            onCancel={() => {
+              setUnitDialogOpen(false);
+              setEditingUnit(null);
+            }}
+            loading={loading}
+          />
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Unit Creation Dialog */}
+      <Dialog open={bulkUnitDialogOpen} onOpenChange={setBulkUnitDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Multiple Units</DialogTitle>
+          </DialogHeader>
+          <BulkUnitCreator
+            propertyId={propertyId as any}
+            onSubmit={async (units) => {
+              setLoading(true);
+              try {
+                await bulkCreateUnits({ 
+                  propertyId: propertyId as any, 
+                  units, 
+                  userId: user.id 
+                });
+                setBulkUnitDialogOpen(false);
+              } catch (err: any) {
+                console.error("Bulk unit creation error:", err);
+                alert(err.message || "Failed to create units");
+              } finally {
+                setLoading(false);
+              }
+            }}
+            onCancel={() => setBulkUnitDialogOpen(false)}
+            loading={loading}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 

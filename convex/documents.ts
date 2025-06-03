@@ -29,7 +29,6 @@ export const getDocuments = query({
     category: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
     leaseId: v.optional(v.id("leases")),
-    utilityId: v.optional(v.id("utilities")),
     search: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
   },
@@ -51,9 +50,6 @@ export const getDocuments = query({
     }
     if (args.leaseId) {
       documents = documents.filter(doc => doc.leaseId === args.leaseId);
-    }
-    if (args.utilityId) {
-      documents = documents.filter(doc => doc.utilityId === args.utilityId);
     }
     
     // Search in name and notes
@@ -149,7 +145,6 @@ export const addDocument = mutation({
     category: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
     leaseId: v.optional(v.id("leases")),
-    utilityId: v.optional(v.id("utilities")),
     fileSize: v.optional(v.number()),
     mimeType: v.optional(v.string()),
     expiryDate: v.optional(v.string()),
@@ -204,7 +199,6 @@ export const updateDocument = mutation({
     category: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
     leaseId: v.optional(v.id("leases")),
-    utilityId: v.optional(v.id("utilities")),
     expiryDate: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
     notes: v.optional(v.string()),
@@ -231,7 +225,6 @@ export const updateDocument = mutation({
     if (args.category !== undefined) updates.category = args.category;
     if (args.propertyId !== undefined) updates.propertyId = args.propertyId;
     if (args.leaseId !== undefined) updates.leaseId = args.leaseId;
-    if (args.utilityId !== undefined) updates.utilityId = args.utilityId;
     if (args.expiryDate !== undefined) updates.expiryDate = args.expiryDate;
     if (args.tags !== undefined) updates.tags = args.tags;
     if (args.notes !== undefined) updates.notes = args.notes;

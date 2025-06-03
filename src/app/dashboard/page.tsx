@@ -8,9 +8,10 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/PropertyForm";
-import { UtilityForm } from "@/components/UtilityForm";
 import { LeaseForm } from "@/components/LeaseForm";
 import { DocumentUploadForm } from "@/components/DocumentUploadForm";
+import { UtilityBillForm } from "@/components/UtilityBillForm";
+import { OutstandingBalances } from "@/components/OutstandingBalances";
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
@@ -34,15 +35,16 @@ export default function DashboardPage() {
   
   // Modal states
   const [propertyModalOpen, setPropertyModalOpen] = useState(false);
-  const [utilityModalOpen, setUtilityModalOpen] = useState(false);
   const [leaseModalOpen, setLeaseModalOpen] = useState(false);
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
+  const [utilityBillModalOpen, setUtilityBillModalOpen] = useState(false);
+  const [selectedPropertyForBill, setSelectedPropertyForBill] = useState<string>("");
   const [loading, setLoading] = useState(false);
   
   // Mutations
   const addProperty = useMutation(api.properties.addProperty);
-  const addUtility = useMutation(api.utilities.addUtility);
   const addLease = useMutation(api.leases.addLease);
+  const addUtilityBill = useMutation(api.utilityBills.addUtilityBill);
   
   // Get additional data for forms
   const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
@@ -181,11 +183,11 @@ export default function DashboardPage() {
               <span className="text-sm font-medium">New Lease</span>
             </button>
             <button 
-              onClick={() => setUtilityModalOpen(true)}
+              onClick={() => setUtilityBillModalOpen(true)}
               className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
             >
               <Receipt className="h-6 w-6 text-primary" />
-              <span className="text-sm font-medium">Add Utility</span>
+              <span className="text-sm font-medium">Add Bill</span>
             </button>
             <button 
               onClick={() => setDocumentModalOpen(true)}
@@ -196,6 +198,11 @@ export default function DashboardPage() {
             </button>
           </div>
         </Card>
+      </section>
+
+      {/* Outstanding Balances */}
+      <section className="mb-6 sm:mb-8">
+        <OutstandingBalances userId={user.id} />
       </section>
 
       {/* Charts Grid */}
@@ -456,31 +463,6 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
-      {/* Add Utility Modal */}
-      <Dialog open={utilityModalOpen} onOpenChange={setUtilityModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add Utility</DialogTitle>
-          </DialogHeader>
-          <UtilityForm
-            properties={properties || []}
-            onSubmit={async (data) => {
-              setLoading(true);
-              try {
-                await addUtility({ ...data, userId: user.id, propertyId: data.propertyId as any });
-                setUtilityModalOpen(false);
-              } catch (err: any) {
-                console.error("Add utility error:", err);
-                const errorMessage = err.data?.message || err.message || "Unknown error";
-                alert("Failed to add utility: " + errorMessage);
-              } finally {
-                setLoading(false);
-              }
-            }}
-            loading={loading}
-          />
-        </DialogContent>
-      </Dialog>
 
       {/* Add Lease Modal */}
       <Dialog open={leaseModalOpen} onOpenChange={setLeaseModalOpen}>
@@ -490,6 +472,7 @@ export default function DashboardPage() {
           </DialogHeader>
           <LeaseForm
             properties={properties || []}
+            userId={user.id}
             onSubmit={async (data) => {
               setLoading(true);
               try {
@@ -497,6 +480,7 @@ export default function DashboardPage() {
                   ...data, 
                   userId: user.id,
                   propertyId: data.propertyId as any,
+                  unitId: data.unitId ? data.unitId as any : undefined,
                   status: data.status as "active" | "expired" | "pending"
                 });
                 setLeaseModalOpen(false);
@@ -510,6 +494,89 @@ export default function DashboardPage() {
             }}
             loading={loading}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Utility Bill Modal */}
+      <Dialog open={utilityBillModalOpen} onOpenChange={(open) => {
+        setUtilityBillModalOpen(open);
+        if (!open) setSelectedPropertyForBill("");
+      }}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Add Utility Bill</DialogTitle>
+          </DialogHeader>
+          {properties && properties.length > 0 ? (
+            !selectedPropertyForBill ? (
+              <div className="space-y-4">
+                <p className="text-muted-foreground">
+                  Select a property to add a utility bill for:
+                </p>
+                <div className="grid gap-2">
+                  {properties.map((property) => (
+                    <button
+                      key={property._id}
+                      onClick={() => setSelectedPropertyForBill(property._id)}
+                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors text-left"
+                    >
+                      <div>
+                        <div className="font-medium">{property.name}</div>
+                        <div className="text-sm text-muted-foreground">{property.address}</div>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {property.type}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+                <button 
+                  onClick={() => setUtilityBillModalOpen(false)}
+                  className="w-full px-4 py-2 border border-border rounded hover:bg-muted/50 transition-colors"
+                >
+                  Cancel
+                </button>
+              </div>
+            ) : (
+              <UtilityBillForm
+                propertyId={selectedPropertyForBill as any}
+                propertyName={properties.find(p => p._id === selectedPropertyForBill)?.name || ""}
+                onSubmit={async (data) => {
+                  setLoading(true);
+                  try {
+                    await addUtilityBill({
+                      userId: user.id,
+                      propertyId: selectedPropertyForBill as any,
+                      ...data,
+                    });
+                    setUtilityBillModalOpen(false);
+                    setSelectedPropertyForBill("");
+                  } catch (err: any) {
+                    console.error("Add utility bill error:", err);
+                    const errorMessage = err.data?.message || err.message || "Unknown error";
+                    alert("Failed to add utility bill: " + errorMessage);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                onCancel={() => {
+                  setUtilityBillModalOpen(false);
+                  setSelectedPropertyForBill("");
+                }}
+              />
+            )
+          ) : (
+            <div>
+              <p className="text-muted-foreground mb-4">
+                No properties found. Please add a property first.
+              </p>
+              <button 
+                onClick={() => setUtilityBillModalOpen(false)}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded"
+              >
+                Close
+              </button>
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 

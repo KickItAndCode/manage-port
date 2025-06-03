@@ -21,7 +21,8 @@ src/
 │   ├── dashboard/    # Analytics and overview
 │   ├── properties/   # Property management
 │   ├── leases/       # Lease management
-│   ├── utilities/    # Utility tracking
+│   ├── utility-bills/# Advanced utility bill management
+│   ├── payments/     # Payment tracking and history
 │   └── documents/    # Document storage
 ├── components/       # Reusable React components
 └── lib/              # Utility functions and helpers
@@ -44,20 +45,30 @@ convex/              # Backend API functions and schema
 - **Expiration Alerts**: Visual indicators for leases expiring within 60 days
 - **Mobile-Responsive Tables**: Card view for mobile, table view for desktop
 
-### 3. Utility Tracking
-- **Utility Management**: Track utilities across properties with costs and billing cycles
-- **Provider Information**: Store utility provider details and account information
-- **Cost Analytics**: Monitor utility expenses and trends
-- **Bulk Operations**: Select and delete multiple utilities
+### 3. Advanced Utility Bill Management
+- **Multi-Tenant Bill Splitting**: Automatically split utility bills among tenants based on configurable percentages
+- **Complete Billing Workflow**: From bill entry to tenant charge calculation to payment tracking
+- **Utility Responsibility Settings**: Define percentage splits for each utility type per lease
+- **Outstanding Balance Management**: Track unpaid charges with aging reports and payment collection
+- **Payment Recording**: Detailed payment tracking with partial payment support and multiple payment methods
+- **Payment History**: Comprehensive payment history with filtering and reporting
+- **Real-time Calculations**: Automatic charge distribution and balance updates
 
-### 4. Document Management
+### 4. Payment Management System
+- **Outstanding Balances**: Real-time tracking of unpaid tenant charges with aging indicators
+- **Payment Recording**: Multiple payment methods with reference numbers and notes
+- **Payment History**: Comprehensive tracking with search and filtering capabilities
+- **Tenant Statements**: Detailed payment history and charge breakdowns per tenant
+- **Partial Payments**: Support for partial payments with automatic balance calculations
+
+### 5. Document Management
 - **Document Upload**: Secure file upload with categorization
 - **Document Types**: Lease agreements, property documents, financial records
 - **Document Viewer**: In-app PDF and image viewing
 - **File Organization**: Category-based organization with tagging system
-- **Document Linking**: Associate documents with properties, leases, or utilities
+- **Document Linking**: Associate documents with properties and leases
 
-### 5. Dashboard Analytics
+### 6. Dashboard Analytics
 - **Portfolio Overview**: Key metrics and performance indicators
 - **Financial Charts**: Revenue trends and property performance visualizations
 - **Quick Actions**: Rapid access to common tasks
@@ -136,10 +147,10 @@ convex/              # Backend API functions and schema
 - ✅ UI component library setup
 
 ### Phase 2: Core Features
-- ✅ Property management system
+- ✅ Property management system with multi-unit support
 - ✅ Lease management functionality
 - ✅ Document upload and storage
-- ✅ Utility tracking system
+- ✅ Advanced utility bill management with tenant splitting
 
 ### Phase 3: User Experience
 - ✅ Dashboard with analytics
@@ -147,11 +158,18 @@ convex/              # Backend API functions and schema
 - ✅ Mobile responsiveness
 - ✅ Dark mode implementation
 
-### Phase 4: Polish and Optimization
+### Phase 4: Advanced Features
+- ✅ Payment tracking and recording system
+- ✅ Outstanding balance management
+- ✅ Utility responsibility configuration
+- ✅ Payment history and reporting
+
+### Phase 5: Polish and Optimization
 - ✅ UI/UX improvements
 - ✅ Performance optimizations
 - ✅ Build system fixes
 - ✅ Cross-browser compatibility
+- ✅ Utilities system consolidation and cleanup
 
 ## 🎯 Key Features Highlights
 

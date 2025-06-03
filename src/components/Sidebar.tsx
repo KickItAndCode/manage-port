@@ -1,14 +1,15 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Building, FileText, Settings, Flashlight, Layers } from "lucide-react";
+import { Home, Building, FileText, Settings, Flashlight, Layers, DollarSign } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
   { label: "Properties", href: "/properties", icon: Building },
   { label: "Leases", href: "/leases", icon: Layers },
-  { label: "Utilities", href: "/utilities", icon: Flashlight },
+  { label: "Utility Bills", href: "/utility-bills", icon: Flashlight },
+  { label: "Payments", href: "/payments", icon: DollarSign },
   { label: "Documents", href: "/documents", icon: FileText },
   { label: "Settings", href: "/settings", icon: Settings },
 ];

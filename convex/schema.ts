@@ -16,26 +16,26 @@ export default defineSchema({
     imageUrl: v.optional(v.string()),
     monthlyMortgage: v.optional(v.number()), // Monthly mortgage payment
     monthlyCapEx: v.optional(v.number()), // Capital expenditure reserve (10% of mortgage)
+    propertyType: v.optional(v.union(v.literal("single-family"), v.literal("multi-family"))), // New field
     createdAt: v.string(),
   }),
-  utilities: defineTable({
-    userId: v.string(), // Clerk user ID
-    propertyId: v.id("properties"), // Link to property
-    name: v.string(), // Utility name (e.g., Electricity, Water, Gas, Internet)
-    provider: v.string(), // Utility provider company
-    cost: v.number(), // Monthly cost
-    billingCycle: v.optional(v.string()), // e.g., "monthly", "quarterly"
-    startDate: v.optional(v.string()), // Service start date
-    endDate: v.optional(v.string()), // Service end date (if terminated)
-    notes: v.optional(v.string()), // Additional notes
+  units: defineTable({
+    propertyId: v.id("properties"), // Reference to parent property
+    unitIdentifier: v.string(), // e.g., "Unit A", "Apt 1", "Suite 101"
+    status: v.union(v.literal("available"), v.literal("occupied"), v.literal("maintenance")),
+    bedrooms: v.optional(v.number()), // Optional unit-specific details
+    bathrooms: v.optional(v.number()),
+    squareFeet: v.optional(v.number()),
+    notes: v.optional(v.string()),
     createdAt: v.string(),
     updatedAt: v.optional(v.string()),
   })
     .index("by_property", ["propertyId"])
-    .index("by_user", ["userId"]),
+    .index("by_status", ["status"]),
   leases: defineTable({
     userId: v.string(), // Clerk user ID
     propertyId: v.id("properties"), // Link to property
+    unitId: v.optional(v.id("units")), // Link to specific unit (optional for backward compatibility)
     tenantName: v.string(),
     tenantEmail: v.optional(v.string()),
     tenantPhone: v.optional(v.string()),
@@ -53,7 +53,69 @@ export default defineSchema({
     .index("by_property", ["propertyId"])
     .index("by_user", ["userId"])
     .index("by_status", ["status"])
-    .index("by_tenant", ["tenantName"]),
+    .index("by_tenant", ["tenantName"])
+    .index("by_unit", ["unitId"]),
+  utilityBills: defineTable({
+    userId: v.string(), // Clerk user ID  
+    propertyId: v.id("properties"), // Reference to property
+    utilityType: v.string(), // Electric, Water, Gas, Sewer, Trash, Internet, etc.
+    provider: v.string(), // Utility provider company
+    billMonth: v.string(), // YYYY-MM format
+    totalAmount: v.number(), // Full bill amount
+    dueDate: v.string(), // ISO date string
+    billDate: v.string(), // Date on the bill
+    isPaid: v.boolean(), // Landlord paid to utility company
+    paidDate: v.optional(v.string()),
+    billDocumentId: v.optional(v.id("documents")), // Reference to uploaded bill
+    notes: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_property", ["propertyId"])
+    .index("by_user", ["userId"])
+    .index("by_month", ["billMonth"])
+    .index("by_type", ["utilityType"])
+    .index("by_paid_status", ["isPaid"]),
+  leaseUtilitySettings: defineTable({
+    leaseId: v.id("leases"), // Reference to lease
+    utilityType: v.string(), // Must match utilityBills.utilityType
+    responsibilityPercentage: v.number(), // 0-100
+    notes: v.optional(v.string()), // e.g., "Includes common area usage"
+    createdAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_lease", ["leaseId"])
+    .index("by_utility_type", ["utilityType"]),
+  tenantUtilityCharges: defineTable({
+    leaseId: v.id("leases"), // Reference to lease
+    unitId: v.optional(v.id("units")), // Reference to unit
+    utilityBillId: v.id("utilityBills"), // Reference to utilityBill
+    tenantName: v.string(), // Denormalized for history
+    chargedAmount: v.number(), // Calculated: bill * percentage
+    responsibilityPercentage: v.number(), // Snapshot of percentage used
+    dueDate: v.string(), // Inherited from utilityBill
+    isPaid: v.boolean(), // Tenant paid to landlord
+    paidDate: v.optional(v.string()),
+    notes: v.optional(v.string()),
+    createdAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_lease", ["leaseId"])
+    .index("by_bill", ["utilityBillId"])
+    .index("by_payment_status", ["isPaid"])
+    .index("by_unit", ["unitId"]),
+  utilityPayments: defineTable({
+    chargeId: v.id("tenantUtilityCharges"), // Reference to charge
+    amountPaid: v.number(), // Amount paid in this transaction
+    paymentDate: v.string(), // Date of payment
+    paymentMethod: v.string(), // cash, check, credit_card, etc.
+    referenceNumber: v.optional(v.string()), // Check number, transaction ID, etc.
+    notes: v.optional(v.string()),
+    createdAt: v.string(),
+  })
+    .index("by_charge", ["chargeId"])
+    .index("by_date", ["paymentDate"])
+    .index("by_method", ["paymentMethod"]),
   documents: defineTable({
     userId: v.string(),
     url: v.string(),
@@ -62,7 +124,6 @@ export default defineSchema({
     category: v.optional(v.string()), // financial, legal, maintenance, insurance, tax, other
     propertyId: v.optional(v.id("properties")),
     leaseId: v.optional(v.id("leases")),
-    utilityId: v.optional(v.id("utilities")),
     fileSize: v.optional(v.number()), // in bytes
     mimeType: v.optional(v.string()), // application/pdf, image/jpeg, etc.
     uploadedAt: v.string(),

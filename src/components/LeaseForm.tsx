@@ -1,17 +1,22 @@
 "use client";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { leaseSchema, type LeaseFormData } from "@/lib/validation";
 import { LeaseDocumentUpload } from "@/components/LeaseDocumentUpload";
+import { useQuery } from "convex/react";
+import { api } from "@/../convex/_generated/api";
+import { Id } from "@/../convex/_generated/dataModel";
 
 export interface LeaseFormProps {
   properties: { _id: string; name: string; address?: string }[];
+  userId: string;
   initial?: {
     propertyId: string;
+    unitId?: string;
     tenantName: string;
     tenantEmail?: string;
     tenantPhone?: string;
@@ -26,6 +31,7 @@ export interface LeaseFormProps {
   };
   onSubmit: (data: {
     propertyId: string;
+    unitId?: string;
     tenantName: string;
     tenantEmail?: string;
     tenantPhone?: string;
@@ -44,8 +50,10 @@ export interface LeaseFormProps {
 
 type LeaseFormType = LeaseFormData;
 
-export function LeaseForm({ properties, initial, onSubmit, onCancel, loading }: LeaseFormProps) {
+export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loading }: LeaseFormProps) {
   const [leaseDocumentStorageId, setLeaseDocumentStorageId] = useState<string>("");
+  const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initial?.propertyId || "");
+  const [selectedUnitId, setSelectedUnitId] = useState<string>(initial?.unitId || "");
   
   const {
     register,
@@ -53,6 +61,7 @@ export function LeaseForm({ properties, initial, onSubmit, onCancel, loading }: 
     formState: { errors, isSubmitting },
     reset,
     watch,
+    setValue,
   } = useForm<LeaseFormType>({
     resolver: zodResolver(leaseSchema),
     defaultValues: initial as LeaseFormType || {
@@ -60,6 +69,23 @@ export function LeaseForm({ properties, initial, onSubmit, onCancel, loading }: 
       paymentDay: 1,
     },
   });
+
+  // Query units for selected property
+  const units = useQuery(
+    api.units.getUnitsByProperty,
+    selectedPropertyId && userId
+      ? { propertyId: selectedPropertyId as Id<"properties">, userId }
+      : "skip"
+  );
+
+  // Update selected property when form value changes
+  const watchedPropertyId = watch("propertyId");
+  useEffect(() => {
+    if (watchedPropertyId !== selectedPropertyId) {
+      setSelectedPropertyId(watchedPropertyId);
+      setSelectedUnitId(""); // Reset unit selection when property changes
+    }
+  }, [watchedPropertyId]);
   
   if (!properties || properties.length === 0) {
     return <div className="text-center text-muted-foreground">No properties available. Please add a property first.</div>;
@@ -111,9 +137,10 @@ export function LeaseForm({ properties, initial, onSubmit, onCancel, loading }: 
       <form
         className="space-y-6"
         onSubmit={handleSubmit((data) => {
-          // Include the document storage ID in the submission
+          // Include the document storage ID and unit ID in the submission
           onSubmit({
             ...data,
+            unitId: selectedUnitId || undefined,
             leaseDocumentUrl: leaseDocumentStorageId || data.leaseDocumentUrl,
           });
         })}
@@ -146,6 +173,32 @@ export function LeaseForm({ properties, initial, onSubmit, onCancel, loading }: 
           </select>
           {errors.propertyId && <span className="text-sm text-destructive">{errors.propertyId.message}</span>}
         </div>
+
+        {/* Unit Selection - Only show if property has units */}
+        {units && units.length > 0 && (
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Unit</label>
+            <select
+              className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
+              value={selectedUnitId}
+              onChange={(e) => {
+                setSelectedUnitId(e.target.value);
+                setValue("unitId" as any, e.target.value);
+              }}
+            >
+              <option value="">Select unit (optional)</option>
+              {units.map((unit) => (
+                <option key={unit._id} value={unit._id} disabled={unit.status === "occupied"}>
+                  {unit.unitIdentifier} - {unit.status}
+                  {unit.bedrooms && ` (${unit.bedrooms}BR)`}
+                </option>
+              ))}
+            </select>
+            <p className="text-xs text-muted-foreground mt-1">
+              Select a specific unit for this lease. Units marked as &quot;occupied&quot; already have active leases.
+            </p>
+          </div>
+        )}
 
         <div className="space-y-2">
           <label className="block text-sm font-medium text-foreground dark:text-gray-200">Tenant Name *</label>

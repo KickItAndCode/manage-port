@@ -17,9 +17,9 @@ export const getDashboardMetrics = query({
       .filter((q) => q.eq(q.field("userId"), args.userId))
       .collect();
 
-    // Get all utilities
-    const utilities = await ctx.db
-      .query("utilities")
+    // Get all utility bills
+    const utilityBills = await ctx.db
+      .query("utilityBills")
       .filter((q) => q.eq(q.field("userId"), args.userId))
       .collect();
 
@@ -37,8 +37,11 @@ export const getDashboardMetrics = query({
     // Calculate security deposits held
     const totalSecurityDeposits = activeLeases.reduce((sum, l) => sum + (l.securityDeposit || 0), 0);
     
-    // Calculate total utility costs
-    const totalUtilityCost = utilities.reduce((sum, u) => sum + u.cost, 0);
+    // Calculate total utility costs from recent bills (last 3 months)
+    const threeMonthsAgo = new Date();
+    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+    const recentBills = utilityBills.filter(bill => new Date(bill.billDate) >= threeMonthsAgo);
+    const totalUtilityCost = recentBills.reduce((sum, bill) => sum + bill.totalAmount, 0) / 3; // Average monthly cost
     
     // Calculate total mortgage and CapEx costs
     const totalMonthlyMortgage = properties.reduce((sum, p) => sum + (p.monthlyMortgage || 0), 0);

@@ -101,49 +101,6 @@ export const leaseSchema = z.object({
   path: ["securityDeposit"],
 });
 
-// Utility validation schema
-export const utilitySchema = z.object({
-  propertyId: z.string().min(1, "Property is required"),
-  name: z.string()
-    .min(2, "Utility name must be at least 2 characters")
-    .max(50, "Utility name must be less than 50 characters"),
-  provider: z.string()
-    .min(2, "Provider name must be at least 2 characters")
-    .max(100, "Provider name must be less than 100 characters"),
-  cost: z.coerce.number()
-    .min(0, "Cost must be 0 or greater")
-    .max(10000, "Cost must be less than $10,000"),
-  billingCycle: z.enum(["Monthly", "Quarterly", "Annually", "Other"], {
-    errorMap: () => ({ message: "Please select a valid billing cycle" })
-  }).optional(),
-  startDate: z.string()
-    .optional()
-    .refine((date) => {
-      if (!date) return true;
-      const parsedDate = new Date(date);
-      return !isNaN(parsedDate.getTime());
-    }, "Invalid start date"),
-  endDate: z.string()
-    .optional()
-    .refine((date) => {
-      if (!date) return true;
-      const parsedDate = new Date(date);
-      return !isNaN(parsedDate.getTime());
-    }, "Invalid end date"),
-  notes: z.string()
-    .max(500, "Notes must be less than 500 characters")
-    .optional()
-}).refine((data) => {
-  if (data.startDate && data.endDate) {
-    const start = new Date(data.startDate);
-    const end = new Date(data.endDate);
-    return end > start;
-  }
-  return true;
-}, {
-  message: "End date must be after start date",
-  path: ["endDate"],
-});
 
 // Document validation schema
 export const documentSchema = z.object({
@@ -214,5 +171,4 @@ export const isPastDate = (dateString: string): boolean => {
 // Type exports for TypeScript
 export type PropertyFormData = z.infer<typeof propertySchema>;
 export type LeaseFormData = z.infer<typeof leaseSchema>;
-export type UtilityFormData = z.infer<typeof utilitySchema>;
 export type DocumentFormData = z.infer<typeof documentSchema>;
