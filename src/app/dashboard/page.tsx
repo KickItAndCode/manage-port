@@ -19,7 +19,7 @@ import {
 } from "recharts";
 import { 
   Home, DollarSign, Percent, TrendingUp, 
-  Building2, Receipt, Calendar, Users, ArrowRight 
+  Building2, Receipt, Calendar, Users, ArrowRight, Sparkles 
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -49,6 +49,9 @@ export default function DashboardPage() {
   
   // Get additional data for forms
   const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
+  
+  // Check if user is a first-time user (no properties)
+  const isFirstTimeUser = properties && properties.length === 0;
 
   if (!user || !metrics) {
     return (
@@ -167,11 +170,22 @@ export default function DashboardPage() {
       {/* Quick Actions */}
       <section className="mb-6 sm:mb-8">
         <Card className="p-4 sm:p-6">
-          <h3 className="text-lg font-semibold mb-4 text-foreground">Quick Actions</h3>
+          <div className="flex items-center gap-2 mb-4">
+            <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
+            {isFirstTimeUser && (
+              <div className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full animate-pulse">
+                <Sparkles className="h-3 w-3" />
+                <span>Start here!</span>
+              </div>
+            )}
+          </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button 
               onClick={() => setPropertyModalOpen(true)}
-              className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+              className={cn(
+                "flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30",
+                isFirstTimeUser && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+              )}
             >
               <Building2 className="h-6 w-6 text-primary" />
               <span className="text-sm font-medium">Add Property</span>

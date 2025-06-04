@@ -7,40 +7,40 @@ test.describe('Property Management', () => {
     // Check page title
     await expect(page.locator('h1')).toContainText('Properties');
     
-    // Check for Add Property button
-    await expect(page.locator('text=Add Property')).toBeVisible();
+    // Check for Add Property button - use more specific selector
+    await expect(page.getByRole('button', { name: 'Add Property' }).first()).toBeVisible();
   });
 
   test('should open add property modal', async ({ page }) => {
     await page.goto('/properties');
     
     // Click Add Property button
-    await page.click('text=Add Property');
+    await page.getByRole('button', { name: 'Add Property' }).first().click();
     
-    // Check modal opens
-    await expect(page.locator('text=Add Property')).toBeVisible();
+    // Check modal opens - look for the dialog heading specifically
+    await expect(page.getByRole('heading', { name: 'Add Property' })).toBeVisible();
     
     // Check for form fields
-    await expect(page.locator('[placeholder*="property name"]')).toBeVisible();
-    await expect(page.locator('[placeholder*="address"]')).toBeVisible();
+    await expect(page.locator('[placeholder="Enter property name"]')).toBeVisible();
+    await expect(page.locator('[placeholder="Enter property address"]')).toBeVisible();
   });
 
   test('should validate property form', async ({ page }) => {
     await page.goto('/properties');
     
     // Open add property modal
-    await page.click('text=Add Property');
+    await page.getByRole('button', { name: 'Add Property' }).first().click();
     
     // Try to submit empty form (this might trigger validation)
     // Note: Actual validation behavior depends on your form implementation
     
     // Fill in some basic info to test form interaction
-    await page.fill('[placeholder*="property name"]', 'Test Property');
-    await page.fill('[placeholder*="address"]', '123 Test Street');
+    await page.fill('[placeholder="Enter property name"]', 'Test Property');
+    await page.fill('[placeholder="Enter property address"]', '123 Test Street');
     
     // Check that form accepts input
-    await expect(page.locator('[placeholder*="property name"]')).toHaveValue('Test Property');
-    await expect(page.locator('[placeholder*="address"]')).toHaveValue('123 Test Street');
+    await expect(page.locator('[placeholder="Enter property name"]')).toHaveValue('Test Property');
+    await expect(page.locator('[placeholder="Enter property address"]')).toHaveValue('123 Test Street');
   });
 
   test('should handle property details navigation', async ({ page }) => {

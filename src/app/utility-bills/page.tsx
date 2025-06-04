@@ -483,6 +483,7 @@ export default function UtilityBillsPage() {
             <UtilityBillForm
               propertyId={selectedPropertyData._id as any}
               propertyName={selectedPropertyData.name}
+              defaultMonth={selectedMonth}
               initial={selectedBill}
               onSubmit={async (data) => {
                 try {

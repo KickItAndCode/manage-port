@@ -43,6 +43,58 @@ A modern property management platform for landlords and property managers to eff
 
 5. Open [http://localhost:3000](http://localhost:3000) to view the application
 
+## Testing
+
+This project uses Playwright for end-to-end testing.
+
+### Running Tests
+
+```bash
+# Run all tests
+npm run test
+
+# Run tests with UI (visual test runner)
+npm run test:ui
+
+# Run tests in headed mode (see browser)
+npm run test:headed
+
+# Run basic UI tests (no authentication required)
+npm run test:basic
+
+# Run authentication setup test only
+npm run test:auth-setup
+
+# Run smoke tests for core functionality
+npm run test:smoke
+```
+
+### Browser-Specific Testing
+
+```bash
+# Test on Chrome only
+npm run test -- --project=chromium
+
+# Test on Chrome and Firefox only
+npm run test -- --project="chromium|firefox"
+
+# Test on mobile devices only
+npm run test -- --project="Mobile Chrome|Mobile Safari"
+
+# Test without authentication (faster)
+npm run test:no-auth
+```
+
+### Test Reports
+
+```bash
+# View last test report
+npm run test:report
+
+# Debug failed tests
+npm run test:debug
+```
+
 ## Project Structure
 
 ```

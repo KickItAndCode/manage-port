@@ -24,7 +24,7 @@ test.describe('Navigation', () => {
     // Navigate to Documents
     await page.click('text=Documents');
     await expect(page).toHaveURL('/documents');
-    await expect(page.locator('h1')).toContainText('Documents');
+    await expect(page.locator('h1')).toContainText('Document Management');
 
     // Navigate back to Dashboard
     await page.click('text=Dashboard');

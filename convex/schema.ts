@@ -64,6 +64,7 @@ export default defineSchema({
     totalAmount: v.number(), // Full bill amount
     dueDate: v.string(), // ISO date string
     billDate: v.string(), // Date on the bill
+    billingPeriod: v.optional(v.string()), // monthly, bi-monthly, quarterly, etc.
     isPaid: v.boolean(), // Landlord paid to utility company
     paidDate: v.optional(v.string()),
     billDocumentId: v.optional(v.id("documents")), // Reference to uploaded bill

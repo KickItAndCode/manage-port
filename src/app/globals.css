@@ -152,4 +152,38 @@
   .dark input[type="checkbox"]:checked::before {
     filter: brightness(0) invert(1);
   }
+  
+  /* Animation delays for staggered effects */
+  .delay-1000 {
+    animation-delay: 1s;
+  }
+  
+  .delay-2000 {
+    animation-delay: 2s;
+  }
+  
+  /* Custom scrollbar for dark mode */
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: theme(colors.muted.DEFAULT) transparent;
+  }
+  
+  /* Chrome, Safari, Edge */
+  *::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  *::-webkit-scrollbar-thumb {
+    @apply bg-muted rounded-full;
+  }
+  
+  *::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/30;
+  }
 }

@@ -1,4 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
+import dotenv from 'dotenv';
+import path from 'path';
+
+// Load test environment variables
+dotenv.config({ path: path.resolve(__dirname, '.env.test') });
 
 /**
  * @see https://playwright.dev/docs/test-configuration
@@ -28,6 +33,12 @@ export default defineConfig({
     
     /* Record video only on failures */
     video: 'retain-on-failure',
+    
+    /* Enable dark mode by default */
+    colorScheme: 'dark',
+    
+    /* Set viewport size */
+    viewport: { width: 1280, height: 720 },
   },
 
   /* Configure projects for major browsers */
@@ -36,6 +47,15 @@ export default defineConfig({
     {
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
+    },
+
+    // Basic UI tests without authentication
+    {
+      name: 'basic-ui',
+      testMatch: /basic-ui\.spec\.ts/,
+      use: { 
+        ...devices['Desktop Chrome'],
+      },
     },
 
     {

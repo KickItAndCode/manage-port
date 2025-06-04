@@ -89,7 +89,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
       "789 Hilltop Ave, Seattle, WA 98101",
       "456 Garden Ln, Portland, OR 97209"
     ];
-    const types = ["Single Family", "Apartment", "Condo", "Townhouse", "Multi-Family", "Duplex", "Other"];
+    const types = ["Single Family", "Duplex", "Apartment", "Condo", "Townhouse", "Other"];
     const statuses = ["Available", "Occupied", "Maintenance", "Under Contract"];
     const images = [
       "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80",
@@ -121,12 +121,11 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
   }
 
   const propertyTypes = [
+    "Single Family",
+    "Duplex", 
     "Apartment",
     "Condo",
-    "Single Family",
     "Townhouse",
-    "Multi-Family",
-    "Duplex",
     "Other",
   ];
   const statusOptions = ["Available", "Occupied", "Maintenance", "Under Contract"];

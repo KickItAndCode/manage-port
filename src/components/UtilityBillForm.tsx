@@ -5,12 +5,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Id } from "@/../convex/_generated/dataModel";
-import { DollarSign, AlertCircle } from "lucide-react";
+import { DollarSign, AlertCircle, Settings } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { cn } from "@/lib/utils";
 
 interface UtilityBillFormProps {
   propertyId: Id<"properties">;
   propertyName: string;
+  defaultMonth?: string;
   initial?: {
     _id?: Id<"utilityBills">;
     utilityType: string;
@@ -19,6 +21,7 @@ interface UtilityBillFormProps {
     totalAmount: number;
     dueDate: string;
     billDate: string;
+    billingPeriod?: string;
     notes?: string;
   };
   onSubmit: (data: {
@@ -28,6 +31,7 @@ interface UtilityBillFormProps {
     totalAmount: number;
     dueDate: string;
     billDate: string;
+    billingPeriod?: string;
     notes?: string;
   }) => Promise<void>;
   onCancel?: () => void;
@@ -57,8 +61,17 @@ const COMMON_PROVIDERS: Record<string, string[]> = {
   HOA: ["HOA Management", "Property Management Co"],
 };
 
+const BILLING_PERIODS = [
+  { value: "monthly", label: "Monthly" },
+  { value: "bi-monthly", label: "Bi-Monthly (Every 2 months)" },
+  { value: "quarterly", label: "Quarterly (Every 3 months)" },
+  { value: "semi-annual", label: "Semi-Annual (Every 6 months)" },
+  { value: "annual", label: "Annual (Yearly)" },
+];
+
 export function UtilityBillForm({
   propertyName,
+  defaultMonth,
   initial,
   onSubmit,
   onCancel,
@@ -66,23 +79,31 @@ export function UtilityBillForm({
 }: UtilityBillFormProps) {
   const [utilityType, setUtilityType] = useState(initial?.utilityType || "");
   const [provider, setProvider] = useState(initial?.provider || "");
-  const [billMonth, setBillMonth] = useState(initial?.billMonth || "");
+  const [billMonth, setBillMonth] = useState(initial?.billMonth || defaultMonth || "");
   const [totalAmount, setTotalAmount] = useState(initial?.totalAmount?.toString() || "");
   const [dueDate, setDueDate] = useState(initial?.dueDate || "");
   const [billDate, setBillDate] = useState(initial?.billDate || "");
+  const [billingPeriod, setBillingPeriod] = useState(initial?.billingPeriod || "monthly");
   const [notes, setNotes] = useState(initial?.notes || "");
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [advancedMode, setAdvancedMode] = useState(!!initial);
 
   // Set default dates if not editing
   useState(() => {
     if (!initial) {
       const today = new Date();
-      const currentMonth = today.toISOString().slice(0, 7); // YYYY-MM
-      setBillMonth(currentMonth);
-      setBillDate(today.toISOString().split('T')[0]);
+      
+      // Use defaultMonth if provided, otherwise current month
+      const targetMonth = defaultMonth || today.toISOString().slice(0, 7);
+      setBillMonth(targetMonth);
+      
+      // Set bill date to beginning of the month (simplified default)
+      const [year, month] = targetMonth.split('-');
+      const firstOfMonth = new Date(parseInt(year), parseInt(month) - 1, 1);
+      setBillDate(firstOfMonth.toISOString().split('T')[0]);
       
       // Default due date to 15th of next month
-      const nextMonth = new Date(today.getFullYear(), today.getMonth() + 1, 15);
+      const nextMonth = new Date(parseInt(year), parseInt(month), 15);
       setDueDate(nextMonth.toISOString().split('T')[0]);
     }
   });
@@ -129,6 +150,7 @@ export function UtilityBillForm({
       totalAmount: Number(totalAmount),
       dueDate,
       billDate,
+      billingPeriod,
       notes: notes.trim() || undefined,
     });
   };
@@ -204,9 +226,21 @@ export function UtilityBillForm({
         )}
       </div>
 
-      {/* Bill Month */}
-      <div>
-        <Label htmlFor="billMonth">Bill Month *</Label>
+      {/* Bill Month and Advanced Mode Toggle */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <Label htmlFor="billMonth">Bill Month *</Label>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={() => setAdvancedMode(!advancedMode)}
+            className="text-xs h-7 px-2"
+          >
+            <Settings className="w-3 h-3 mr-1" />
+            {advancedMode ? "Simple" : "Advanced"}
+          </Button>
+        </div>
         <Input
           id="billMonth"
           type="month"
@@ -218,6 +252,27 @@ export function UtilityBillForm({
         {errors.billMonth && (
           <p className="text-sm text-red-500 mt-1">{errors.billMonth}</p>
         )}
+      </div>
+
+      {/* Billing Period */}
+      <div>
+        <Label htmlFor="billingPeriod">Billing Period</Label>
+        <select
+          id="billingPeriod"
+          value={billingPeriod}
+          onChange={(e) => setBillingPeriod(e.target.value)}
+          className="w-full h-10 px-3 rounded-md border bg-background"
+          disabled={loading}
+        >
+          {BILLING_PERIODS.map((period) => (
+            <option key={period.value} value={period.value}>
+              {period.label}
+            </option>
+          ))}
+        </select>
+        <p className="text-xs text-muted-foreground mt-1">
+          How often this utility bill is issued
+        </p>
       </div>
 
       {/* Amount */}
@@ -242,38 +297,51 @@ export function UtilityBillForm({
         )}
       </div>
 
-      {/* Dates */}
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label htmlFor="billDate">Bill Date *</Label>
-          <Input
-            id="billDate"
-            type="date"
-            value={billDate}
-            onChange={(e) => setBillDate(e.target.value)}
-            disabled={loading}
-            className={errors.billDate ? "border-red-500" : ""}
-          />
-          {errors.billDate && (
-            <p className="text-sm text-red-500 mt-1">{errors.billDate}</p>
-          )}
-        </div>
+      {/* Dates - Only show in advanced mode */}
+      {advancedMode && (
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="billDate">Bill Date *</Label>
+            <Input
+              id="billDate"
+              type="date"
+              value={billDate}
+              onChange={(e) => setBillDate(e.target.value)}
+              disabled={loading}
+              className={errors.billDate ? "border-red-500" : ""}
+            />
+            {errors.billDate && (
+              <p className="text-sm text-red-500 mt-1">{errors.billDate}</p>
+            )}
+          </div>
 
-        <div>
-          <Label htmlFor="dueDate">Due Date *</Label>
-          <Input
-            id="dueDate"
-            type="date"
-            value={dueDate}
-            onChange={(e) => setDueDate(e.target.value)}
-            disabled={loading}
-            className={errors.dueDate ? "border-red-500" : ""}
-          />
-          {errors.dueDate && (
-            <p className="text-sm text-red-500 mt-1">{errors.dueDate}</p>
-          )}
+          <div>
+            <Label htmlFor="dueDate">Due Date *</Label>
+            <Input
+              id="dueDate"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              disabled={loading}
+              className={errors.dueDate ? "border-red-500" : ""}
+            />
+            {errors.dueDate && (
+              <p className="text-sm text-red-500 mt-1">{errors.dueDate}</p>
+            )}
+          </div>
         </div>
-      </div>
+      )}
+
+      {!advancedMode && (
+        <div className="text-sm text-muted-foreground bg-muted/30 rounded-lg p-3">
+          <p className="font-medium mb-1">Default Settings:</p>
+          <ul className="space-y-1">
+            <li>• Bill Date: 1st of {billMonth ? new Date(billMonth + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 'selected month'}</li>
+            <li>• Due Date: 15th of following month</li>
+          </ul>
+          <p className="text-xs mt-2">Use "Advanced" mode to customize these dates</p>
+        </div>
+      )}
 
       {/* Notes */}
       <div>
