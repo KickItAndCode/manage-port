@@ -12,6 +12,7 @@ import { LeaseForm } from "@/components/LeaseForm";
 import { DocumentUploadForm } from "@/components/DocumentUploadForm";
 import { UtilityBillForm } from "@/components/UtilityBillForm";
 import { OutstandingBalances } from "@/components/OutstandingBalances";
+import { UtilityAnalytics } from "@/components/UtilityAnalytics";
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
@@ -365,6 +366,11 @@ export default function DashboardPage() {
             </div>
           </Card>
         </div>
+      </section>
+
+      {/* Utility Analytics */}
+      <section className="mb-6 sm:mb-8">
+        <UtilityAnalytics userId={user.id} />
       </section>
 
       {/* Recent Properties */}
