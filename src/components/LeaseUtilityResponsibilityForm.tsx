@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
 import { 
   Zap, 
   Droplets, 
@@ -195,23 +196,44 @@ export function LeaseUtilityResponsibilityForm({
   };
 
   const handleSave = async () => {
-    if (!validate()) return;
+    if (!validate()) {
+      toast.error("Please fix validation errors before saving");
+      return;
+    }
     
     setLoading(true);
     try {
       // Only save utilities with percentage > 0
       const utilitiesToSave = settings.filter(s => s.responsibilityPercentage > 0);
       
-      await setLeaseUtilities({
+      console.log("Saving utilities:", utilitiesToSave);
+      console.log("All settings:", settings);
+      console.log("LeaseId:", leaseId);
+      console.log("UserId:", userId);
+      
+      const result = await setLeaseUtilities({
         leaseId,
         utilities: utilitiesToSave,
         userId,
       });
       
+      console.log("Save result:", result);
+      
+      // Show success message
+      if (utilitiesToSave.length === 0) {
+        toast.success("All utility responsibilities cleared for this tenant.");
+      } else {
+        toast.success("Utility settings saved successfully!", {
+          description: `${utilitiesToSave.length} utilities configured for ${tenantName}.`,
+        });
+      }
+      
       onSave?.();
     } catch (error: any) {
       console.error("Failed to save utilities:", error);
-      alert(error.message || "Failed to save utility settings");
+      toast.error("Failed to save utility settings", {
+        description: error.message || "Please try again or contact support if the issue persists.",
+      });
     } finally {
       setLoading(false);
     }

@@ -15,7 +15,7 @@ test.describe('Authentication Debug', () => {
     await page.waitForTimeout(2000);
     
     // Take screenshot for debugging
-    await page.screenshot({ path: 'debug-signin-full.png', fullPage: true });
+    await page.screenshot({ path: 'playwright/screenshots/debug-signin-full.png', fullPage: true });
     console.log('📸 Screenshot saved: debug-signin-full.png');
     
     // Log the page title and URL

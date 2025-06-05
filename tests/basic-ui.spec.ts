@@ -23,7 +23,7 @@ test.describe('Basic UI Tests (No Auth Required)', () => {
     console.log('🌙 Dark mode detected:', isDarkMode);
     
     // Take screenshot for visual verification
-    await page.screenshot({ path: 'sign-in-dark-mode.png', fullPage: true });
+    await page.screenshot({ path: 'playwright/screenshots/sign-in-dark-mode.png', fullPage: true });
     console.log('📸 Screenshot saved: sign-in-dark-mode.png');
     
     // Wait for Clerk elements to appear (without strict requirements)

@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 import { 
   DollarSign, 
   CreditCard, 
@@ -100,7 +101,9 @@ export function PaymentRecordForm({
       });
     } catch (error: any) {
       console.error("Payment recording error:", error);
-      alert(error.message || "Failed to record payment");
+      toast.error("Failed to record payment", {
+        description: error.message || "Please check your information and try again.",
+      });
     } finally {
       setLoading(false);
     }

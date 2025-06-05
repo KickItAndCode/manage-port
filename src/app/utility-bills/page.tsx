@@ -411,28 +411,35 @@ export default function UtilityBillsPage() {
                                       <Users className="w-4 h-4 mr-2" />
                                       View Charges
                                     </Button>
-                                    {!bill.isPaid && (
-                                      <Button
-                                        size="sm"
-                                        variant="outline"
-                                        onClick={async (e) => {
-                                          e.stopPropagation();
-                                          try {
-                                            await updateBill({
-                                              id: bill._id,
-                                              userId: user.id,
-                                              isPaid: true,
-                                              paidDate: new Date().toISOString().split('T')[0],
-                                            });
-                                          } catch (error: any) {
-                                            alert(error.message || "Failed to mark as paid");
-                                          }
-                                        }}
-                                      >
-                                        <CheckCircle className="w-4 h-4 mr-2" />
-                                        Mark Paid
-                                      </Button>
-                                    )}
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        try {
+                                          await updateBill({
+                                            id: bill._id,
+                                            userId: user.id,
+                                            isPaid: !bill.isPaid,
+                                            paidDate: !bill.isPaid ? new Date().toISOString().split('T')[0] : undefined,
+                                          });
+                                        } catch (error: any) {
+                                          alert(error.message || "Failed to update payment status");
+                                        }
+                                      }}
+                                    >
+                                      {bill.isPaid ? (
+                                        <>
+                                          <XCircle className="w-4 h-4 mr-2" />
+                                          Mark Unpaid
+                                        </>
+                                      ) : (
+                                        <>
+                                          <CheckCircle className="w-4 h-4 mr-2" />
+                                          Mark Paid
+                                        </>
+                                      )}
+                                    </Button>
                                     <Button
                                       size="sm"
                                       variant="outline"
@@ -577,6 +584,7 @@ export default function UtilityBillsPage() {
                 propertyId={viewingBill.propertyId}
                 utilityType={viewingBill.utilityType}
                 totalAmount={viewingBill.totalAmount}
+                billId={viewingBill._id}
                 userId={user.id}
               />
               

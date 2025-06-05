@@ -17,7 +17,7 @@ test.describe('Smoke Tests', () => {
     });
     
     // Debug screenshot after page load
-    await page.screenshot({ path: 'debug-landing-page-loaded.png', fullPage: true });
+    await page.screenshot({ path: 'playwright/screenshots/debug-landing-page-loaded.png', fullPage: true });
     console.log('📸 Debug screenshot saved: debug-landing-page-loaded.png');
     
     // Check if the page loads
@@ -31,7 +31,7 @@ test.describe('Smoke Tests', () => {
     console.log('🔐 Authentication status:', isAuthenticated);
     
     // Debug screenshot before checking links
-    await page.screenshot({ path: 'debug-after-auth-check.png', fullPage: true });
+    await page.screenshot({ path: 'playwright/screenshots/debug-after-auth-check.png', fullPage: true });
     console.log('📸 Debug screenshot saved: debug-after-auth-check.png');
     
     if (isAuthenticated) {
@@ -57,16 +57,23 @@ test.describe('Smoke Tests', () => {
   });
 
   test('should navigate to sign-in page', async ({ page }) => {
+    // First clear any existing auth state to ensure clean test
+    await page.goto('/sign-out');
+    await page.waitForTimeout(2000);
+    
     await page.goto('/sign-in');
+    await page.waitForTimeout(2000);
     
     // Check if user gets redirected to dashboard (if already authenticated) or stays on sign-in
     const currentUrl = page.url();
     
     if (currentUrl.includes('/dashboard')) {
+      console.log('🔄 User was redirected to dashboard - already authenticated');
       // If redirected to dashboard, user is already authenticated
       await expect(page).toHaveURL('/dashboard');
       await expect(page.locator('h1')).toContainText('Dashboard');
     } else {
+      console.log('📝 User on sign-in page - checking for Clerk elements');
       // If on sign-in page, check for Clerk elements
       await expect(page).toHaveURL('/sign-in');
       
@@ -78,7 +85,9 @@ test.describe('Smoke Tests', () => {
         const emailInput = page.locator('input[type="email"]').or(page.locator('input[name="identifier"]'));
         const clerkComponent = page.locator('[data-clerk-element], .cl-component');
         await expect(emailInput.or(clerkComponent).first()).toBeVisible({ timeout: 10000 });
+        console.log('✅ Clerk sign-in form loaded successfully');
       } catch (e) {
+        console.log('⚠️ Clerk form not fully loaded, but page is accessible');
         // If Clerk isn't fully loaded, just verify we're on the right page
         await expect(page).toHaveURL('/sign-in');
       }

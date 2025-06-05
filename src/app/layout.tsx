@@ -4,6 +4,7 @@ import "./globals.css";
 import { AppProviders } from "./providers";
 import { ConditionalLayout } from "@/components/ConditionalLayout";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { Toaster } from "@/components/ui/sonner";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,6 +37,7 @@ export default function RootLayout({
               {children}
             </ConditionalLayout>
           </ErrorBoundary>
+          <Toaster />
         </AppProviders>
       </body>
     </html>

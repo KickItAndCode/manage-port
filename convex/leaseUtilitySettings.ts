@@ -1,19 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
-
-// Common utility types
-export const UTILITY_TYPES = [
-  "Electric",
-  "Water",
-  "Gas",
-  "Sewer",
-  "Trash",
-  "Internet",
-  "Cable",
-  "HOA",
-  "Other"
-] as const;
+import { UTILITY_TYPES } from "../src/lib/constants";
 
 // Helper to verify lease ownership
 async function verifyLeaseOwnership(
@@ -47,6 +35,43 @@ export const setLeaseUtilities = mutation({
     for (const utility of args.utilities) {
       if (utility.responsibilityPercentage < 0 || utility.responsibilityPercentage > 100) {
         throw new Error(`Invalid percentage for ${utility.utilityType}: must be between 0 and 100`);
+      }
+    }
+
+    // Get the lease to validate property-wide allocations
+    const lease = await ctx.db.get(args.leaseId);
+    if (!lease) {
+      throw new Error("Lease not found");
+    }
+
+    // Get all active leases for this property
+    const activeLeases = await ctx.db
+      .query("leases")
+      .withIndex("by_property", (q) => q.eq("propertyId", lease.propertyId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    // For each utility type, validate that total percentages across all leases don't exceed 100%
+    for (const utility of args.utilities) {
+      let totalPercentage = utility.responsibilityPercentage;
+      
+      // Add percentages from other active leases
+      for (const otherLease of activeLeases) {
+        if (otherLease._id === args.leaseId) continue; // Skip current lease
+        
+        const otherSettings = await ctx.db
+          .query("leaseUtilitySettings")
+          .withIndex("by_lease", (q) => q.eq("leaseId", otherLease._id))
+          .filter((q) => q.eq(q.field("utilityType"), utility.utilityType))
+          .first();
+          
+        if (otherSettings) {
+          totalPercentage += otherSettings.responsibilityPercentage;
+        }
+      }
+      
+      if (totalPercentage > 100) {
+        throw new Error(`Total allocation for ${utility.utilityType} would be ${totalPercentage}%, which exceeds 100%. Please adjust the percentages.`);
       }
     }
 
@@ -421,5 +446,93 @@ export const setUtilityResponsibilities = mutation({
     }
 
     return { success: true };
+  },
+});
+
+// Set utility responsibilities for all leases in a property atomically
+export const setPropertyUtilityAllocations = mutation({
+  args: {
+    propertyId: v.id("properties"),
+    allocations: v.array(v.object({
+      leaseId: v.id("leases"),
+      percentage: v.number(),
+    })),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Verify property ownership
+    const property = await ctx.db.get(args.propertyId);
+    if (!property || property.userId !== args.userId) {
+      throw new Error("You do not have permission to modify this property");
+    }
+
+    // Validate all allocations and calculate total
+    let totalPercentage = 0;
+    for (const allocation of args.allocations) {
+      if (allocation.percentage < 0 || allocation.percentage > 100) {
+        throw new Error(`Invalid percentage: must be between 0 and 100`);
+      }
+      
+      // Verify lease ownership and that it belongs to this property
+      const lease = await ctx.db.get(allocation.leaseId);
+      if (!lease || lease.userId !== args.userId || lease.propertyId !== args.propertyId) {
+        throw new Error("Invalid lease for this property");
+      }
+      
+      totalPercentage += allocation.percentage;
+    }
+
+    // Allow under-allocation but not over-allocation
+    if (totalPercentage > 100) {
+      throw new Error(`Total allocation is ${totalPercentage}%, which exceeds 100%. Please adjust the percentages.`);
+    }
+
+    // Get active leases for the property to verify all are accounted for
+    const activeLeases = await ctx.db
+      .query("leases")
+      .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    // Verify all active leases are included in allocations
+    const allocationLeaseIds = new Set(args.allocations.map(a => a.leaseId));
+    for (const lease of activeLeases) {
+      if (!allocationLeaseIds.has(lease._id)) {
+        throw new Error(`Missing allocation for lease: ${lease.tenantName}`);
+      }
+    }
+
+    // Delete all existing settings for these leases
+    for (const allocation of args.allocations) {
+      const existingSettings = await ctx.db
+        .query("leaseUtilitySettings")
+        .withIndex("by_lease", (q) => q.eq("leaseId", allocation.leaseId))
+        .collect();
+
+      for (const setting of existingSettings) {
+        await ctx.db.delete(setting._id);
+      }
+    }
+
+    // Create new settings for all utility types and all leases
+    const createdIds = [];
+    for (const allocation of args.allocations) {
+      for (const utilityType of UTILITY_TYPES) {
+        const id = await ctx.db.insert("leaseUtilitySettings", {
+          leaseId: allocation.leaseId,
+          utilityType,
+          responsibilityPercentage: allocation.percentage,
+          createdAt: new Date().toISOString(),
+        });
+        createdIds.push(id);
+      }
+    }
+
+    return {
+      success: true,
+      totalPercentage,
+      ownerPercentage: 100 - totalPercentage,
+      createdSettings: createdIds.length,
+    };
   },
 });

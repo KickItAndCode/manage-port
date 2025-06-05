@@ -49,4 +49,13 @@ next-env.d.ts
 
 # Puppeteer screenshots
 property-flow-screenshots/
-*.png
+
+# Playwright screenshots
+playwright/screenshots/
+
+# Test results from scraping scripts
+test-results-*.json
+test-results-*.txt
+test-results.json
+test-results.txt
+test-results-screenshot.png

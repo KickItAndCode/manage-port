@@ -13,6 +13,7 @@ import { DocumentUploadForm } from "@/components/DocumentUploadForm";
 import { UtilityBillForm } from "@/components/UtilityBillForm";
 import { OutstandingBalances } from "@/components/OutstandingBalances";
 import { UtilityAnalytics } from "@/components/UtilityAnalytics";
+import { UtilityResponsibilityModal } from "@/components/UtilityResponsibilityModal";
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
@@ -39,6 +40,7 @@ export default function DashboardPage() {
   const [leaseModalOpen, setLeaseModalOpen] = useState(false);
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
   const [utilityBillModalOpen, setUtilityBillModalOpen] = useState(false);
+  const [utilityResponsibilityModalOpen, setUtilityResponsibilityModalOpen] = useState(false);
   const [selectedPropertyForBill, setSelectedPropertyForBill] = useState<string>("");
   const [loading, setLoading] = useState(false);
   
@@ -50,8 +52,8 @@ export default function DashboardPage() {
   // Get additional data for forms
   const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
   
-  // Check if user is a first-time user (no properties)
-  const isFirstTimeUser = properties && properties.length === 0;
+  // Check if user has no properties
+  const hasNoProperties = properties && properties.length === 0;
 
   if (!user || !metrics) {
     return (
@@ -140,51 +142,53 @@ export default function DashboardPage() {
           </div>
         </header>
 
-      {/* Stat Cards */}
-      <section className="mb-6 sm:mb-8" aria-labelledby="stats-heading">
-        <h2 id="stats-heading" className="sr-only">Portfolio Statistics</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {statCards.map((stat, index) => (
-            <Card key={index} className={`p-4 sm:p-6 hover:shadow-xl transition-all duration-300 border-l-4 ${stat.borderColor} group cursor-pointer`}>
-              <div className="flex items-center justify-between">
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.title}</p>
-                  <p className="text-xl sm:text-2xl font-bold mt-1 break-words group-hover:scale-105 transition-transform" aria-label={`${stat.title}: ${stat.value}`}>
-                    {stat.value}
-                  </p>
-                  <div className="flex items-center gap-1 mt-2">
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${stat.bgColor} ${stat.color} font-medium`}>
-                      {stat.trend}
-                    </span>
+      {/* Stat Cards - only show if user has properties */}
+      {!hasNoProperties && (
+        <section className="mb-6 sm:mb-8" aria-labelledby="stats-heading">
+          <h2 id="stats-heading" className="sr-only">Portfolio Statistics</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {statCards.map((stat, index) => (
+              <Card key={index} className={`p-4 sm:p-6 hover:shadow-xl transition-all duration-300 border-l-4 ${stat.borderColor} group cursor-pointer`}>
+                <div className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.title}</p>
+                    <p className="text-xl sm:text-2xl font-bold mt-1 break-words group-hover:scale-105 transition-transform" aria-label={`${stat.title}: ${stat.value}`}>
+                      {stat.value}
+                    </p>
+                    <div className="flex items-center gap-1 mt-2">
+                      <span className={`text-xs px-2 py-0.5 rounded-full ${stat.bgColor} ${stat.color} font-medium`}>
+                        {stat.trend}
+                      </span>
+                    </div>
+                  </div>
+                  <div className={`p-3 rounded-xl ${stat.bgColor} flex-shrink-0 ml-2 group-hover:scale-110 transition-transform`} aria-hidden="true">
+                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
                   </div>
                 </div>
-                <div className={`p-3 rounded-xl ${stat.bgColor} flex-shrink-0 ml-2 group-hover:scale-110 transition-transform`} aria-hidden="true">
-                  <stat.icon className={`h-6 w-6 ${stat.color}`} />
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      </section>
+              </Card>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Quick Actions */}
       <section className="mb-6 sm:mb-8">
         <Card className="p-4 sm:p-6">
           <div className="flex items-center gap-2 mb-4">
             <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
-            {isFirstTimeUser && (
+            {hasNoProperties && (
               <div className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full animate-pulse">
                 <Sparkles className="h-3 w-3" />
                 <span>Start here!</span>
               </div>
             )}
           </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
             <button 
               onClick={() => setPropertyModalOpen(true)}
               className={cn(
                 "flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30",
-                isFirstTimeUser && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                hasNoProperties && "ring-2 ring-primary ring-offset-2 ring-offset-background"
               )}
             >
               <Building2 className="h-6 w-6 text-primary" />
@@ -205,6 +209,14 @@ export default function DashboardPage() {
               <span className="text-sm font-medium">Add Bill</span>
             </button>
             <button 
+              onClick={() => setUtilityResponsibilityModalOpen(true)}
+              className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+              disabled={!properties || properties.length === 0}
+            >
+              <Percent className="h-6 w-6 text-primary" />
+              <span className="text-sm font-medium">Utility Split</span>
+            </button>
+            <button 
               onClick={() => setDocumentModalOpen(true)}
               className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
             >
@@ -215,247 +227,252 @@ export default function DashboardPage() {
         </Card>
       </section>
 
-      {/* Outstanding Balances */}
-      <section className="mb-6 sm:mb-8">
-        <OutstandingBalances userId={user.id} />
-      </section>
+      {/* All dashboard content below - only show if user has properties */}
+      {!hasNoProperties && (
+        <>
+          {/* Outstanding Balances */}
+          <section className="mb-6 sm:mb-8">
+            <OutstandingBalances userId={user.id} />
+          </section>
 
-      {/* Charts Grid */}
-      <section className="mb-6 sm:mb-8" aria-labelledby="charts-heading">
-        <h2 id="charts-heading" className="sr-only">Analytics Charts</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          {/* Monthly Revenue Trend */}
-          <Card className="p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" aria-hidden="true" />
-              Monthly Revenue Trend
-            </h3>
-            <div className="h-[250px] sm:h-[300px]" role="img" aria-label="Line chart showing monthly revenue trend over time">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={metrics.monthlyIncome}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="month" 
-                    fontSize={12}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis 
-                    fontSize={12}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <Tooltip 
-                    formatter={(value) => `$${value}`} 
-                    contentStyle={{ 
-                      backgroundColor: 'var(--background)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px'
-                    }}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="income" 
-                    stroke="#10b981" 
-                    strokeWidth={2}
-                    dot={{ fill: '#10b981' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
+          {/* Charts Grid */}
+          <section className="mb-6 sm:mb-8" aria-labelledby="charts-heading">
+            <h2 id="charts-heading" className="sr-only">Analytics Charts</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              {/* Monthly Revenue Trend */}
+              <Card className="p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" aria-hidden="true" />
+                  Monthly Revenue Trend
+                </h3>
+                <div className="h-[250px] sm:h-[300px]" role="img" aria-label="Line chart showing monthly revenue trend over time">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={metrics.monthlyIncome}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="month" 
+                        fontSize={12}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis 
+                        fontSize={12}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <Tooltip 
+                        formatter={(value) => `$${value}`} 
+                        contentStyle={{ 
+                          backgroundColor: 'var(--background)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px'
+                        }}
+                      />
+                      <Line 
+                        type="monotone" 
+                        dataKey="income" 
+                        stroke="#10b981" 
+                        strokeWidth={2}
+                        dot={{ fill: '#10b981' }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+              {/* Properties by Type */}
+              <Card className="p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Home className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" aria-hidden="true" />
+                  Properties by Type
+                </h3>
+                <div className="h-[250px] sm:h-[300px]" role="img" aria-label="Pie chart showing distribution of properties by type">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={typeData}
+                        cx="50%"
+                        cy="50%"
+                        labelLine={false}
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                        outerRadius="80%"
+                        fill="#8884d8"
+                        dataKey="value"
+                      >
+                        {typeData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'var(--background)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px'
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
             </div>
-          </Card>
+          </section>
 
-          {/* Properties by Type */}
-          <Card className="p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
-              <Home className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" aria-hidden="true" />
-              Properties by Type
-            </h3>
-            <div className="h-[250px] sm:h-[300px]" role="img" aria-label="Pie chart showing distribution of properties by type">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={typeData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius="80%"
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {typeData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+          {/* Additional Charts */}
+          <section className="mb-6 sm:mb-8" aria-labelledby="additional-charts-heading">
+            <h2 id="additional-charts-heading" className="sr-only">Additional Analytics</h2>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              {/* Properties by Status */}
+              <Card className="p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" aria-hidden="true" />
+                  Properties by Status
+                </h3>
+                <div className="h-[250px] sm:h-[300px]" role="img" aria-label="Bar chart showing properties grouped by status">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={statusData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="name" 
+                        fontSize={12}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis 
+                        fontSize={12}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <Tooltip 
+                        contentStyle={{ 
+                          backgroundColor: 'var(--background)',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px'
+                        }}
+                      />
+                      <Bar dataKey="value" fill="#8b5cf6" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              </Card>
+
+              {/* Financial Summary */}
+              <Card className="p-4 sm:p-6">
+                <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" aria-hidden="true" />
+                  Financial Summary
+                </h3>
+                <div className="space-y-3 sm:space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-green-50 dark:bg-green-950/20 rounded-lg gap-2 sm:gap-0">
+                    <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Rental Income</span>
+                    <span className="font-semibold text-green-700 dark:text-green-400 text-base sm:text-lg">
+                      ${metrics.totalMonthlyRent.toLocaleString()}
+                    </span>
+                  </div>
+                  {metrics.totalMonthlyMortgage > 0 && (
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg gap-2 sm:gap-0">
+                      <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Mortgage</span>
+                      <span className="font-semibold text-orange-700 dark:text-orange-400 text-base sm:text-lg">
+                        -${metrics.totalMonthlyMortgage.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-red-50 dark:bg-red-950/20 rounded-lg gap-2 sm:gap-0">
+                    <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Utility Costs</span>
+                    <span className="font-semibold text-red-700 dark:text-red-400 text-base sm:text-lg">
+                      -${metrics.totalUtilityCost.toLocaleString()}
+                    </span>
+                  </div>
+                  {metrics.totalMonthlyCapEx > 0 && (
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg gap-2 sm:gap-0">
+                      <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">CapEx Reserve (10%)</span>
+                      <span className="font-semibold text-amber-700 dark:text-amber-400 text-base sm:text-lg">
+                        -${metrics.totalMonthlyCapEx.toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg gap-2 sm:gap-0 border-t-2 border-blue-200 dark:border-blue-800">
+                    <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base font-medium">Net Monthly Income</span>
+                    <span className="font-semibold text-blue-700 dark:text-blue-400 text-base sm:text-lg">
+                      ${(metrics.totalMonthlyRent - metrics.totalUtilityCost - metrics.totalMonthlyMortgage - metrics.totalMonthlyCapEx).toLocaleString()}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </section>
+
+          {/* Utility Analytics */}
+          <section className="mb-6 sm:mb-8">
+            <UtilityAnalytics userId={user.id} />
+          </section>
+
+          {/* Recent Properties */}
+          <section aria-labelledby="recent-properties-heading">
+            <Card className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 id="recent-properties-heading" className="text-base sm:text-lg font-semibold flex items-center gap-2">
+                  <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" aria-hidden="true" />
+                  Recent Properties
+                </h3>
+                <button 
+                  onClick={() => router.push('/properties')}
+                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                >
+                  View all
+                  <ArrowRight className="h-3 w-3" />
+                </button>
+              </div>
+              <div className="overflow-x-auto -mx-2 sm:mx-0">
+                <table className="w-full min-w-[600px] sm:min-w-0" role="table" aria-label="Recent properties overview">
+                  <thead>
+                    <tr className="text-left text-xs sm:text-sm text-muted-foreground">
+                      <th className="pb-3 px-2 sm:px-0" scope="col">Property</th>
+                      <th className="pb-3 px-2 sm:px-0" scope="col">Type</th>
+                      <th className="pb-3 px-2 sm:px-0" scope="col">Status</th>
+                      <th className="pb-3 text-right px-2 sm:px-0" scope="col">Monthly Rent</th>
+                      <th className="pb-3 px-2 sm:px-0" scope="col"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {metrics.recentProperties.map((property) => (
+                      <tr 
+                        key={property.id} 
+                        className={cn(
+                          "border-t group cursor-pointer hover:bg-muted/50 transition-colors"
+                        )}
+                        role="row"
+                        onClick={() => router.push(`/properties/${property.id}`)}
+                      >
+                        <td className="py-3 px-2 sm:px-0" role="cell">
+                          <div>
+                            <p className="font-medium">{property.name}</p>
+                            <p className="text-sm text-muted-foreground">{property.address}</p>
+                          </div>
+                        </td>
+                        <td className="py-3 px-2 sm:px-0" role="cell">
+                          <span className="text-sm">{property.type}</span>
+                        </td>
+                        <td className="py-3 px-2 sm:px-0" role="cell">
+                          <StatusBadge status={property.status as any} />
+                        </td>
+                        <td className="py-3 px-2 sm:px-0 text-right" role="cell">
+                          <span className="font-medium">${property.monthlyRent.toLocaleString()}</span>
+                        </td>
+                        <td className="py-3 px-2 sm:px-0" role="cell">
+                          <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0" />
+                        </td>
+                      </tr>
                     ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'var(--background)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px'
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-        </div>
-      </section>
-
-      {/* Additional Charts */}
-      <section className="mb-6 sm:mb-8" aria-labelledby="additional-charts-heading">
-        <h2 id="additional-charts-heading" className="sr-only">Additional Analytics</h2>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-          {/* Properties by Status */}
-          <Card className="p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
-              <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" aria-hidden="true" />
-              Properties by Status
-            </h3>
-            <div className="h-[250px] sm:h-[300px]" role="img" aria-label="Bar chart showing properties grouped by status">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={statusData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
-                    fontSize={12}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <YAxis 
-                    fontSize={12}
-                    tick={{ fontSize: 12 }}
-                  />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'var(--background)',
-                      border: '1px solid var(--border)',
-                      borderRadius: '6px'
-                    }}
-                  />
-                  <Bar dataKey="value" fill="#8b5cf6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-
-          {/* Financial Summary */}
-          <Card className="p-4 sm:p-6">
-            <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
-              <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" aria-hidden="true" />
-              Financial Summary
-            </h3>
-            <div className="space-y-3 sm:space-y-4">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-green-50 dark:bg-green-950/20 rounded-lg gap-2 sm:gap-0">
-                <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Rental Income</span>
-                <span className="font-semibold text-green-700 dark:text-green-400 text-base sm:text-lg">
-                  ${metrics.totalMonthlyRent.toLocaleString()}
-                </span>
-              </div>
-              {metrics.totalMonthlyMortgage > 0 && (
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg gap-2 sm:gap-0">
-                  <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Mortgage</span>
-                  <span className="font-semibold text-orange-700 dark:text-orange-400 text-base sm:text-lg">
-                    -${metrics.totalMonthlyMortgage.toLocaleString()}
-                  </span>
-                </div>
-              )}
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-red-50 dark:bg-red-950/20 rounded-lg gap-2 sm:gap-0">
-                <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Utility Costs</span>
-                <span className="font-semibold text-red-700 dark:text-red-400 text-base sm:text-lg">
-                  -${metrics.totalUtilityCost.toLocaleString()}
-                </span>
-              </div>
-              {metrics.totalMonthlyCapEx > 0 && (
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg gap-2 sm:gap-0">
-                  <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">CapEx Reserve (10%)</span>
-                  <span className="font-semibold text-amber-700 dark:text-amber-400 text-base sm:text-lg">
-                    -${metrics.totalMonthlyCapEx.toLocaleString()}
-                  </span>
-                </div>
-              )}
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg gap-2 sm:gap-0 border-t-2 border-blue-200 dark:border-blue-800">
-                <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base font-medium">Net Monthly Income</span>
-                <span className="font-semibold text-blue-700 dark:text-blue-400 text-base sm:text-lg">
-                  ${(metrics.totalMonthlyRent - metrics.totalUtilityCost - metrics.totalMonthlyMortgage - metrics.totalMonthlyCapEx).toLocaleString()}
-                </span>
-              </div>
-            </div>
-          </Card>
-        </div>
-      </section>
-
-      {/* Utility Analytics */}
-      <section className="mb-6 sm:mb-8">
-        <UtilityAnalytics userId={user.id} />
-      </section>
-
-      {/* Recent Properties */}
-      <section aria-labelledby="recent-properties-heading">
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 id="recent-properties-heading" className="text-base sm:text-lg font-semibold flex items-center gap-2">
-              <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" aria-hidden="true" />
-              Recent Properties
-            </h3>
-            <button 
-              onClick={() => router.push('/properties')}
-              className="text-sm text-primary hover:underline flex items-center gap-1"
-            >
-              View all
-              <ArrowRight className="h-3 w-3" />
-            </button>
-          </div>
-          <div className="overflow-x-auto -mx-2 sm:mx-0">
-            <table className="w-full min-w-[600px] sm:min-w-0" role="table" aria-label="Recent properties overview">
-              <thead>
-                <tr className="text-left text-xs sm:text-sm text-muted-foreground">
-                  <th className="pb-3 px-2 sm:px-0" scope="col">Property</th>
-                  <th className="pb-3 px-2 sm:px-0" scope="col">Type</th>
-                  <th className="pb-3 px-2 sm:px-0" scope="col">Status</th>
-                  <th className="pb-3 text-right px-2 sm:px-0" scope="col">Monthly Rent</th>
-                  <th className="pb-3 px-2 sm:px-0" scope="col"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {metrics.recentProperties.map((property) => (
-                  <tr 
-                    key={property.id} 
-                    className={cn(
-                      "border-t group cursor-pointer hover:bg-muted/50 transition-colors"
+                    {metrics.recentProperties.length === 0 && (
+                      <tr role="row">
+                        <td colSpan={5} className="py-6 text-center text-muted-foreground text-sm" role="cell">
+                          No properties found. Add your first property to get started.
+                        </td>
+                      </tr>
                     )}
-                    role="row"
-                    onClick={() => router.push(`/properties/${property.id}`)}
-                  >
-                    <td className="py-3 px-2 sm:px-0" role="cell">
-                      <div>
-                        <p className="font-medium">{property.name}</p>
-                        <p className="text-sm text-muted-foreground">{property.address}</p>
-                      </div>
-                    </td>
-                    <td className="py-3 px-2 sm:px-0" role="cell">
-                      <span className="text-sm">{property.type}</span>
-                    </td>
-                    <td className="py-3 px-2 sm:px-0" role="cell">
-                      <StatusBadge status={property.status as any} />
-                    </td>
-                    <td className="py-3 px-2 sm:px-0 text-right" role="cell">
-                      <span className="font-medium">${property.monthlyRent.toLocaleString()}</span>
-                    </td>
-                    <td className="py-3 px-2 sm:px-0" role="cell">
-                      <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0" />
-                    </td>
-                  </tr>
-                ))}
-                {metrics.recentProperties.length === 0 && (
-                  <tr role="row">
-                    <td colSpan={5} className="py-6 text-center text-muted-foreground text-sm" role="cell">
-                      No properties found. Add your first property to get started.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      </section>
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </section>
+        </>
+      )}
       
       {/* Modals */}
       {/* Add Property Modal */}
@@ -607,6 +624,13 @@ export default function DashboardPage() {
         onUploadComplete={() => {
           // Optionally refresh data or show success message
         }}
+      />
+
+      {/* Utility Responsibility Modal */}
+      <UtilityResponsibilityModal
+        open={utilityResponsibilityModalOpen}
+        onOpenChange={setUtilityResponsibilityModalOpen}
+        userId={user.id}
       />
       
       </div>

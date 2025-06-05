@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, Save, Copy, Percent, Plus, Trash2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { toast } from "sonner";
 
 interface LeaseUtilitySettingsProps {
   leaseId: Id<"leases">;
@@ -118,15 +119,32 @@ export function LeaseUtilitySettings({
       // Only submit utilities with percentage > 0
       const utilitiesToSave = settings.filter(s => s.responsibilityPercentage > 0);
       
+      console.log("Saving utilities from LeaseUtilitySettings:", utilitiesToSave);
+      console.log("LeaseId:", leaseId);
+      console.log("UserId:", userId);
+      
       await setLeaseUtilities({
         leaseId,
         utilities: utilitiesToSave,
         userId,
       });
 
+      // Show success message
+      if (utilitiesToSave.length === 0) {
+        toast.success("All utility responsibilities cleared for this lease.");
+      } else {
+        toast.success("Utility settings saved successfully!", {
+          description: `${utilitiesToSave.length} utility setting${utilitiesToSave.length !== 1 ? 's' : ''} configured.`,
+        });
+      }
+
       onSuccess?.();
     } catch (err: any) {
+      console.error("Error saving utilities:", err);
       setError(err.message || "Failed to save utility settings");
+      toast.error("Failed to save utility settings", {
+        description: err.message || "Please try again or contact support if the issue persists.",
+      });
     } finally {
       setLoading(false);
     }
@@ -256,7 +274,7 @@ export function LeaseUtilitySettings({
       <div className="flex justify-end gap-3">
         <Button
           onClick={handleSubmit}
-          disabled={loading || settings.filter(s => s.responsibilityPercentage > 0).length === 0}
+          disabled={loading}
         >
           {loading ? (
             "Saving..."

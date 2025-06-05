@@ -10,6 +10,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
+import { UTILITY_TYPES } from "@/lib/constants";
 import { 
   Percent,
   Users,
@@ -32,10 +34,6 @@ interface LeaseAllocation {
   percentage: number;
 }
 
-const COMMON_UTILITIES = [
-  "Electric", "Water", "Gas", "Sewer", "Trash", "Internet", "Cable"
-];
-
 export function UniversalUtilityAllocation({ 
   propertyId, 
   userId 
@@ -57,7 +55,7 @@ export function UniversalUtilityAllocation({
     userId,
   });
 
-  const saveUtilitySettings = useMutation(api.leaseUtilitySettings.setUtilityResponsibilities);
+  const saveUtilitySettings = useMutation(api.leaseUtilitySettings.setPropertyUtilityAllocations);
 
   // Initialize allocations when data loads
   useEffect(() => {
@@ -66,12 +64,12 @@ export function UniversalUtilityAllocation({
       
       if (activeLeases.length > 0) {
         const newAllocations = activeLeases.map(lease => {
-          // Check if this lease has any utility settings (use Electric as reference)
-          const existingSetting = utilitySettings.find(
-            s => s.leaseId === lease._id && s.utilityType === "Electric"
-          );
-
-          const percentage = existingSetting?.responsibilityPercentage || 0;
+          // Get any existing setting for this lease to determine current percentage
+          // Use the first available utility type rather than assuming "Electric" exists
+          const allSettingsForLease = utilitySettings.filter(s => s.leaseId === lease._id);
+          const referenceSetting = allSettingsForLease.length > 0 ? allSettingsForLease[0] : null;
+          
+          const percentage = referenceSetting?.responsibilityPercentage || 0;
           return {
             leaseId: lease._id,
             tenantName: lease.tenantName,
@@ -123,48 +121,60 @@ export function UniversalUtilityAllocation({
     const equalPercentage = Math.floor(100 / allocations.length);
     const remainder = 100 - (equalPercentage * allocations.length);
 
-    setAllocations(prev =>
-      prev.map((allocation, index) => {
-        const newPercentage = equalPercentage + (index === 0 ? remainder : 0);
-        return {
-          ...allocation,
-          percentage: newPercentage,
-        };
-      })
-    );
+    const newAllocations = allocations.map((allocation, index) => {
+      const newPercentage = equalPercentage + (index === 0 ? remainder : 0);
+      return {
+        ...allocation,
+        percentage: newPercentage,
+      };
+    });
+
+    setAllocations(newAllocations);
 
     // Update input values too
     const newInputValues: Record<string, string> = {};
-    allocations.forEach((allocation, index) => {
-      const newPercentage = equalPercentage + (index === 0 ? remainder : 0);
-      newInputValues[allocation.leaseId] = newPercentage.toString();
+    newAllocations.forEach((allocation) => {
+      newInputValues[allocation.leaseId] = allocation.percentage.toString();
     });
     setInputValues(newInputValues);
   };
 
   const handleSave = async () => {
-    if (!isComplete) {
-      alert("Percentages must add up to exactly 100%");
+    if (isOverAllocated) {
+      toast.error(`Total allocation is ${totalAllocated}%`, {
+        description: "Please adjust the percentages to not exceed 100%.",
+      });
       return;
     }
 
     setSaving(true);
     try {
-      // Save the same percentage for all utility types for each lease
-      for (const allocation of allocations) {
-        for (const utilityType of COMMON_UTILITIES) {
-          await saveUtilitySettings({
-            leaseId: allocation.leaseId,
-            utilityType,
-            responsibilityPercentage: allocation.percentage,
-            userId,
-          });
-        }
+      // Use atomic mutation to save all allocations at once
+      const result = await saveUtilitySettings({
+        propertyId,
+        allocations: allocations.map(allocation => ({
+          leaseId: allocation.leaseId,
+          percentage: allocation.percentage,
+        })),
+        userId,
+      });
+      
+      if (!isComplete) {
+        toast.success("Utility responsibilities saved!", {
+          description: `Total allocation is ${totalAllocated}%. Owner will cover the remaining ${ownerPercentage}%.`,
+        });
+      } else {
+        toast.success("Utility responsibilities saved successfully!", {
+          description: "All utilities are fully allocated to tenants.",
+        });
       }
+      
       setIsEditing(false);
     } catch (error) {
       console.error("Failed to save utility settings:", error);
-      alert("Failed to save utility settings");
+      toast.error("Failed to save utility settings", {
+        description: "Please try again or contact support if the issue persists.",
+      });
     } finally {
       setSaving(false);
     }
@@ -216,16 +226,10 @@ export function UniversalUtilityAllocation({
             Utility Responsibilities
           </CardTitle>
           <div className="flex items-center gap-2">
-            {!isComplete && (
-              <Badge variant="outline" className="text-orange-600 border-orange-600">
-                <AlertTriangle className="w-4 h-4 mr-1" />
-                Incomplete
-              </Badge>
-            )}
-            {isComplete && !isEditing && (
+            {!isEditing && (
               <Badge variant="outline" className="text-green-600 border-green-600">
                 <CheckCircle className="w-4 h-4 mr-1" />
-                Complete
+                {isComplete ? "Complete" : "Configured"}
               </Badge>
             )}
             {!isEditing ? (
@@ -249,7 +253,8 @@ export function UniversalUtilityAllocation({
                 <Button
                   size="sm"
                   onClick={handleSave}
-                  disabled={!isComplete || saving}
+                  disabled={isOverAllocated || saving}
+                  title={isOverAllocated ? `Total allocation is ${totalAllocated}%, cannot exceed 100%` : !isComplete ? `Total allocation is ${totalAllocated}%` : ''}
                 >
                   <Save className="w-4 h-4 mr-1" />
                   {saving ? "Saving..." : "Save"}
@@ -261,43 +266,22 @@ export function UniversalUtilityAllocation({
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Universal allocation notice */}
-        <Alert className={isComplete ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950" : ""}>
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            {isComplete 
-              ? "Universal allocation applies to all utilities (Electric, Water, Gas, Sewer, Trash, Internet, Cable)"
-              : "Set universal allocation percentages that will apply to all utility types"
-            }
+        <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
+          <Percent className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-800 dark:text-blue-200">
+            These percentages apply to all utility types (Electric, Water, Gas, Sewer, Trash, Internet, Cable)
           </AlertDescription>
         </Alert>
 
         {/* Progress Bar */}
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-muted-foreground">Total Allocated</span>
-            <span className={
-              isOverAllocated ? 'text-red-600' :
-              !isComplete ? 'text-orange-600' : 'text-green-600'
-            }>
-              {totalAllocated}%
-            </span>
-          </div>
-          <Progress 
-            value={Math.min(totalAllocated, 100)} 
-            className={`h-3 ${
-              isOverAllocated ? '[&>div]:bg-red-500' :
-              !isComplete ? '[&>div]:bg-orange-500' : '[&>div]:bg-green-500'
-            }`}
-          />
-          {isOverAllocated && (
-            <Alert variant="destructive">
-              <AlertTriangle className="h-4 w-4" />
-              <AlertDescription>
-                Total allocation exceeds 100%. Please adjust the percentages.
-              </AlertDescription>
-            </Alert>
-          )}
-        </div>
+        {isOverAllocated && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>
+              Total allocation exceeds 100%. Please adjust the percentages.
+            </AlertDescription>
+          </Alert>
+        )}
 
         {/* Tenant Allocations */}
         <div className="space-y-3">
@@ -402,24 +386,29 @@ export function UniversalUtilityAllocation({
         )}
 
         {/* Summary */}
-        <div className="bg-muted/50 rounded-lg p-3">
-          <h4 className="font-medium mb-2">Summary</h4>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Active Tenants:</span>
-              <span className="ml-2 font-medium">{activeLeases.length}</span>
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h4 className="font-semibold text-green-800 dark:text-green-200 flex items-center gap-2">
+              <CheckCircle className="w-4 h-4" />
+              Allocation Summary
+            </h4>
+            <div className="text-right">
+              <div className="text-2xl font-bold text-green-600">{totalAllocated}%</div>
+              <div className="text-xs text-muted-foreground">to tenants</div>
             </div>
-            <div>
-              <span className="text-muted-foreground">Utilities Covered:</span>
-              <span className="ml-2 font-medium">{COMMON_UTILITIES.length}</span>
+          </div>
+          <div className="grid grid-cols-3 gap-4 text-sm">
+            <div className="text-center p-2 bg-white/50 dark:bg-black/20 rounded">
+              <div className="font-semibold text-lg">{activeLeases.length}</div>
+              <div className="text-muted-foreground">Active Tenants</div>
             </div>
-            <div>
-              <span className="text-muted-foreground">Total Allocated:</span>
-              <span className="ml-2 font-medium">{totalAllocated}%</span>
+            <div className="text-center p-2 bg-white/50 dark:bg-black/20 rounded">
+              <div className="font-semibold text-lg">{UTILITY_TYPES.length}</div>
+              <div className="text-muted-foreground">Utilities</div>
             </div>
-            <div>
-              <span className="text-muted-foreground">Owner Share:</span>
-              <span className="ml-2 font-medium">{ownerPercentage}%</span>
+            <div className="text-center p-2 bg-white/50 dark:bg-black/20 rounded">
+              <div className="font-semibold text-lg text-blue-600">{ownerPercentage}%</div>
+              <div className="text-muted-foreground">Owner Share</div>
             </div>
           </div>
         </div>

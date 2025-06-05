@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "sonner";
 import { 
   FileText, 
   Download, 
@@ -168,9 +169,14 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
       printWindow.document.write(html);
       printWindow.document.close();
       printWindow.print();
+      toast.success("Statement generated successfully!", {
+        description: "PDF statement opened in new window for printing.",
+      });
     } catch (error) {
       console.error("Failed to generate PDF:", error);
-      alert("Failed to generate PDF statement");
+      toast.error("Failed to generate PDF statement", {
+        description: "Please try again or contact support if the issue persists.",
+      });
     } finally {
       setGenerating(false);
     }

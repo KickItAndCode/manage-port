@@ -155,6 +155,9 @@ export const updateUtilityBill = mutation({
   args: {
     id: v.id("utilityBills"),
     userId: v.string(),
+    utilityType: v.optional(v.string()),
+    provider: v.optional(v.string()),
+    billMonth: v.optional(v.string()),
     totalAmount: v.optional(v.number()),
     dueDate: v.optional(v.string()),
     billDate: v.optional(v.string()),
@@ -225,8 +228,26 @@ export const updateUtilityBill = mutation({
       updatedAt: new Date().toISOString(),
     };
 
+    if (args.utilityType !== undefined) updates.utilityType = args.utilityType;
+    if (args.provider !== undefined) updates.provider = args.provider;
+    
+    // If bill month is updated, auto-calculate bill date and due date
+    if (args.billMonth !== undefined) {
+      updates.billMonth = args.billMonth;
+      
+      // Set bill date to the first day of the month
+      const billDate = new Date(`${args.billMonth}-01`);
+      updates.billDate = billDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Set due date to one week after bill date
+      const dueDate = new Date(billDate);
+      dueDate.setDate(dueDate.getDate() + 7);
+      updates.dueDate = dueDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+    }
+    
     if (args.dueDate !== undefined) updates.dueDate = args.dueDate;
     if (args.billDate !== undefined) updates.billDate = args.billDate;
+    if (args.billingPeriod !== undefined) updates.billingPeriod = args.billingPeriod;
     if (args.isPaid !== undefined) updates.isPaid = args.isPaid;
     if (args.paidDate !== undefined) updates.paidDate = args.paidDate;
     if (args.billDocumentId !== undefined) updates.billDocumentId = args.billDocumentId;

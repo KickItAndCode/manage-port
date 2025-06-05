@@ -31,14 +31,20 @@ export default defineConfig({
     /* Take screenshot only on failures */
     screenshot: 'only-on-failure',
     
-    /* Record video only on failures */
-    video: 'retain-on-failure',
+    /* Record video for all tests */
+    video: 'on',
     
     /* Enable dark mode by default */
     colorScheme: 'dark',
     
     /* Set viewport size */
     viewport: { width: 1280, height: 720 },
+    
+    /* Increase action timeout */
+    actionTimeout: 15000,
+    
+    /* Navigation timeout */
+    navigationTimeout: 30000,
   },
 
   /* Configure projects for major browsers */
@@ -55,6 +61,17 @@ export default defineConfig({
       testMatch: /basic-ui\.spec\.ts/,
       use: { 
         ...devices['Desktop Chrome'],
+      },
+    },
+
+    // Add property test with full authentication flow
+    {
+      name: 'add-property',
+      testMatch: /add-property-improved\.spec\.ts/,
+      use: { 
+        ...devices['Desktop Chrome'],
+        video: 'on',
+        screenshot: 'off', // We're taking manual screenshots
       },
     },
 

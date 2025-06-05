@@ -4,7 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { LeaseUtilityResponsibilityForm } from "@/components/LeaseUtilityResponsibilityForm";
 import { Id } from "@/../convex/_generated/dataModel";
-import { Percent } from "lucide-react";
+import { Percent, X } from "lucide-react";
 
 interface LeaseUtilitySettingsDialogProps {
   open: boolean;
@@ -23,6 +23,8 @@ export function LeaseUtilitySettingsDialog({
   tenantName,
   userId,
 }: LeaseUtilitySettingsDialogProps) {
+  const [saved, setSaved] = useState(false);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -38,10 +40,23 @@ export function LeaseUtilitySettingsDialog({
           tenantName={tenantName}
           userId={userId}
           onSave={() => {
-            // Close dialog after successful save
-            onOpenChange(false);
+            setSaved(true);
+            // Don't auto-close anymore - let user close manually
           }}
         />
+        {saved && (
+          <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+            <p className="text-green-800 font-medium">
+              ✅ Utility settings saved successfully! You can continue editing or close this dialog.
+            </p>
+          </div>
+        )}
+        <div className="flex justify-end pt-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <X className="w-4 h-4 mr-2" />
+            Close
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );

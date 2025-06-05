@@ -21,7 +21,7 @@ setup('authenticate', async ({ page }) => {
     console.log('✅ Clerk loaded successfully');
     
     // Take screenshot for debugging
-    await page.screenshot({ path: 'debug-signin-page.png', fullPage: true });
+    await page.screenshot({ path: 'playwright/screenshots/debug-signin-page.png', fullPage: true });
     console.log('📸 Screenshot saved: debug-signin-page.png');
     
     // Use the email input we already confirmed exists
@@ -74,7 +74,7 @@ setup('authenticate', async ({ page }) => {
     console.error('❌ Authentication failed:', error);
     
     // Take debug screenshot
-    await page.screenshot({ path: 'debug-auth-failed.png', fullPage: true });
+    await page.screenshot({ path: 'playwright/screenshots/debug-auth-failed.png', fullPage: true });
     console.log('📸 Debug screenshot saved: debug-auth-failed.png');
     
     // Log page content for debugging

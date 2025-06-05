@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Id } from "@/../convex/_generated/dataModel";
+import { toast } from "sonner";
 import { 
   DollarSign, 
   Calendar, 
@@ -133,7 +134,7 @@ export function BulkUtilityBillEntry({
     );
 
     if (validBills.length === 0) {
-      alert("Please add at least one valid bill");
+      toast.error("Please add at least one valid bill");
       return;
     }
 
@@ -157,14 +158,26 @@ export function BulkUtilityBillEntry({
         errors: result.errors.map(e => `${e.utilityType}: ${e.error}`),
       });
 
-      // Clear successful bills
+      // Show success/error toasts
       if (result.createdBillIds.length > 0) {
+        toast.success("Bills created successfully!", {
+          description: `${result.createdBillIds.length} bill${result.createdBillIds.length !== 1 ? 's' : ''} created.`,
+        });
         setBills([]);
+      }
+      
+      if (result.errors.length > 0) {
+        toast.error(`${result.errors.length} bill${result.errors.length !== 1 ? 's' : ''} failed to create`, {
+          description: "Check the results below for details.",
+        });
       }
     } catch (error: any) {
       setResults({
         success: 0,
         errors: [error.message || "Failed to save bills"],
+      });
+      toast.error("Failed to save bills", {
+        description: error.message || "Please try again or contact support.",
       });
     } finally {
       setLoading(false);
