@@ -2,7 +2,9 @@
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
+import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
+import { formatErrorForToast } from "@/lib/error-handling";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -116,7 +118,7 @@ export default function UtilityBillsPage() {
         try {
           await deleteBill({ id: bill._id, userId: user!.id });
         } catch (error: any) {
-          alert(error.message || "Failed to delete bill");
+          toast.error(formatErrorForToast(error));
         }
       }
     });
@@ -424,7 +426,7 @@ export default function UtilityBillsPage() {
                                             paidDate: !bill.isPaid ? new Date().toISOString().split('T')[0] : undefined,
                                           });
                                         } catch (error: any) {
-                                          alert(error.message || "Failed to update payment status");
+                                          toast.error(formatErrorForToast(error));
                                         }
                                       }}
                                     >
@@ -486,46 +488,36 @@ export default function UtilityBillsPage() {
           <DialogHeader>
             <DialogTitle>{selectedBill ? "Edit Bill" : "Add Utility Bill"}</DialogTitle>
           </DialogHeader>
-          {selectedPropertyData ? (
-            <UtilityBillForm
-              propertyId={selectedPropertyData._id as any}
-              propertyName={selectedPropertyData.name}
-              defaultMonth={selectedMonth}
-              initial={selectedBill}
-              onSubmit={async (data) => {
-                try {
-                  if (selectedBill) {
-                    await updateBill({
-                      id: selectedBill._id,
-                      userId: user.id,
-                      ...data,
-                    });
-                  } else {
-                    await addBill({
-                      userId: user.id,
-                      propertyId: selectedPropertyData._id as any,
-                      ...data,
-                    });
-                  }
-                  setBillDialogOpen(false);
-                  setSelectedBill(null);
-                } catch (error: any) {
-                  alert(error.message || "Failed to save bill");
+          <UtilityBillForm
+            properties={properties || []}
+            preSelectedPropertyId={selectedProperty}
+            defaultMonth={selectedMonth}
+            initial={selectedBill}
+            onSubmit={async (data) => {
+              try {
+                if (selectedBill) {
+                  await updateBill({
+                    id: selectedBill._id,
+                    userId: user.id,
+                    ...data,
+                  });
+                } else {
+                  await addBill({
+                    userId: user.id,
+                    ...data,
+                  });
                 }
-              }}
-              onCancel={() => {
                 setBillDialogOpen(false);
                 setSelectedBill(null);
-              }}
-            />
-          ) : (
-            <div>
-              <p className="text-muted-foreground mb-4">
-                Please select a property from the filters first.
-              </p>
-              <Button onClick={() => setBillDialogOpen(false)}>Close</Button>
-            </div>
-          )}
+              } catch (error: any) {
+                toast.error(formatErrorForToast(error));
+              }
+            }}
+            onCancel={() => {
+              setBillDialogOpen(false);
+              setSelectedBill(null);
+            }}
+          />
         </DialogContent>
       </Dialog>
 
@@ -597,6 +589,7 @@ export default function UtilityBillsPage() {
       </Dialog>
 
       {confirmDialog}
+      
     </div>
   );
 }

@@ -4,20 +4,11 @@ import { v, ConvexError } from "convex/values";
 // Document type definitions
 export const DOCUMENT_TYPES = {
   LEASE: "lease",
-  UTILITY: "utility", 
+  UTILITY_BILL: "utility_bill", 
   PROPERTY: "property",
   INSURANCE: "insurance",
   TAX: "tax",
   MAINTENANCE: "maintenance",
-  OTHER: "other",
-} as const;
-
-export const DOCUMENT_CATEGORIES = {
-  FINANCIAL: "financial",
-  LEGAL: "legal",
-  MAINTENANCE: "maintenance",
-  INSURANCE: "insurance",
-  TAX: "tax",
   OTHER: "other",
 } as const;
 
@@ -42,9 +33,7 @@ export const getDocuments = query({
     if (args.type) {
       documents = documents.filter(doc => doc.type === args.type);
     }
-    if (args.category) {
-      documents = documents.filter(doc => doc.category === args.category);
-    }
+    // Category filtering removed - using type-based classification
     if (args.propertyId) {
       documents = documents.filter(doc => doc.propertyId === args.propertyId);
     }
@@ -139,12 +128,13 @@ export const getExpiringDocuments = query({
 export const addDocument = mutation({
   args: {
     userId: v.string(),
-    url: v.string(),
+    url: v.string(), // Keep url for backward compatibility, will map to storageId
     name: v.string(),
     type: v.string(),
     category: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
     leaseId: v.optional(v.id("leases")),
+    utilityBillId: v.optional(v.id("utilityBills")),
     fileSize: v.optional(v.number()),
     mimeType: v.optional(v.string()),
     expiryDate: v.optional(v.string()),
@@ -161,15 +151,6 @@ export const addDocument = mutation({
       });
     }
 
-    // Validate category if provided
-    if (args.category && !Object.values(DOCUMENT_CATEGORIES).includes(args.category as any)) {
-      throw new ConvexError({
-        code: "VALIDATION_ERROR",
-        message: "Invalid document category",
-        field: "category"
-      });
-    }
-
     // Validate expiry date if provided
     if (args.expiryDate) {
       const expiry = new Date(args.expiryDate);
@@ -182,10 +163,24 @@ export const addDocument = mutation({
       }
     }
 
-    return await ctx.db.insert("documents", {
-      ...args,
+    // Map url to storageId for new schema compatibility
+    const documentData = {
+      userId: args.userId,
+      storageId: args.url, // Map url to storageId
+      name: args.name,
+      type: args.type,
+      propertyId: args.propertyId,
+      leaseId: args.leaseId,
+      utilityBillId: args.utilityBillId,
+      fileSize: args.fileSize || 0,
+      mimeType: args.mimeType || "application/octet-stream",
+      expiryDate: args.expiryDate,
+      tags: args.tags,
+      notes: args.notes,
       uploadedAt: new Date().toISOString(),
-    });
+    };
+
+    return await ctx.db.insert("documents", documentData);
   },
 });
 
@@ -236,6 +231,21 @@ export const updateDocument = mutation({
   },
 });
 
+// Get documents by lease ID
+export const getDocumentsByLease = query({
+  args: {
+    leaseId: v.id("leases"),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("documents")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("leaseId"), args.leaseId))
+      .collect();
+  },
+});
+
 // Link document to lease by storage ID
 export const linkDocumentToLease = mutation({
   args: {
@@ -244,13 +254,13 @@ export const linkDocumentToLease = mutation({
     userId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Find document by storage ID (stored in url field)
+    // Find document by storage ID (now stored in storageId field)
     const documents = await ctx.db
       .query("documents")
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .collect();
     
-    const document = documents.find(doc => doc.url === args.storageId);
+    const document = documents.find(doc => doc.storageId === args.storageId);
     
     if (!document) {
       throw new ConvexError({
@@ -313,10 +323,7 @@ export const getDocumentStats = query({
       // Count by type
       stats.byType[doc.type] = (stats.byType[doc.type] || 0) + 1;
       
-      // Count by category
-      if (doc.category) {
-        stats.byCategory[doc.category] = (stats.byCategory[doc.category] || 0) + 1;
-      }
+      // Category tracking removed - using type-based classification
       
       // Sum file sizes
       if (doc.fileSize) {
@@ -333,5 +340,203 @@ export const getDocumentStats = query({
     });
 
     return stats;
+  },
+});
+
+// ========== NEW DOCUMENT MANAGEMENT FUNCTIONS ==========
+
+// Create document with new schema
+export const createDocument = mutation({
+  args: {
+    storageId: v.string(),
+    name: v.string(),
+    folderId: v.optional(v.id("documentFolders")),
+    type: v.string(),
+    propertyId: v.optional(v.id("properties")),
+    leaseId: v.optional(v.id("leases")),
+    utilityBillId: v.optional(v.id("utilityBills")),
+    fileSize: v.number(),
+    mimeType: v.string(),
+    expiryDate: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    notes: v.optional(v.string()),
+    thumbnailUrl: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new ConvexError({
+        code: "UNAUTHORIZED",
+        message: "User must be authenticated to upload documents"
+      });
+    }
+
+    // Verify folder exists and belongs to user if folderId is provided
+    if (args.folderId) {
+      const folder = await ctx.db.get(args.folderId);
+      if (!folder) throw new Error("Folder not found");
+      if (folder.userId !== identity.subject) throw new Error("Unauthorized");
+    }
+
+    // Verify property exists and belongs to user if propertyId is provided
+    if (args.propertyId) {
+      const property = await ctx.db.get(args.propertyId);
+      if (!property) throw new Error("Property not found");
+      if (property.userId !== identity.subject) throw new Error("Unauthorized");
+    }
+
+    // Verify lease exists and belongs to user if leaseId is provided
+    if (args.leaseId) {
+      const lease = await ctx.db.get(args.leaseId);
+      if (!lease) throw new Error("Lease not found");
+      if (lease.userId !== identity.subject) throw new Error("Unauthorized");
+    }
+
+    // Verify utility bill exists and belongs to user if utilityBillId is provided
+    if (args.utilityBillId) {
+      const utilityBill = await ctx.db.get(args.utilityBillId);
+      if (!utilityBill) throw new Error("Utility bill not found");
+      if (utilityBill.userId !== identity.subject) throw new Error("Unauthorized");
+    }
+
+    return await ctx.db.insert("documents", {
+      userId: identity.subject,
+      storageId: args.storageId,
+      name: args.name,
+      folderId: args.folderId,
+      type: args.type,
+      propertyId: args.propertyId,
+      leaseId: args.leaseId,
+      utilityBillId: args.utilityBillId,
+      fileSize: args.fileSize,
+      mimeType: args.mimeType,
+      uploadedAt: new Date().toISOString(),
+      expiryDate: args.expiryDate,
+      tags: args.tags,
+      notes: args.notes,
+      thumbnailUrl: args.thumbnailUrl,
+    });
+  },
+});
+
+// Get documents by folder (for tree structure)
+export const getDocumentsByFolder = query({
+  args: {
+    folderId: v.optional(v.id("documentFolders")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_folder", (q) => q.eq("folderId", args.folderId ?? undefined))
+      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .collect();
+
+    return documents.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+  },
+});
+
+// Get documents by utility bill
+export const getDocumentsByUtilityBill = query({
+  args: {
+    utilityBillId: v.id("utilityBills"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    return await ctx.db
+      .query("documents")
+      .withIndex("by_utility_bill", (q) => q.eq("utilityBillId", args.utilityBillId))
+      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .collect();
+  },
+});
+
+// Get documents by property
+export const getDocumentsByProperty = query({
+  args: {
+    propertyId: v.id("properties"),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    return await ctx.db
+      .query("documents")
+      .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .collect();
+  },
+});
+
+// Move document to folder
+export const moveDocument = mutation({
+  args: {
+    id: v.id("documents"),
+    folderId: v.optional(v.id("documentFolders")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Not authenticated");
+
+    const document = await ctx.db.get(args.id);
+    if (!document) throw new Error("Document not found");
+    if (document.userId !== identity.subject) throw new Error("Unauthorized");
+
+    // Verify folder exists and belongs to user if folderId is provided
+    if (args.folderId) {
+      const folder = await ctx.db.get(args.folderId);
+      if (!folder) throw new Error("Folder not found");
+      if (folder.userId !== identity.subject) throw new Error("Unauthorized");
+    }
+
+    await ctx.db.patch(args.id, {
+      folderId: args.folderId,
+      updatedAt: new Date().toISOString(),
+    });
+  },
+});
+
+// Search documents with new schema
+export const searchDocuments = query({
+  args: {
+    searchTerm: v.string(),
+    type: v.optional(v.string()),
+    folderId: v.optional(v.id("documentFolders")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    let query = ctx.db
+      .query("documents")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject));
+
+    // Filter by type if provided
+    if (args.type) {
+      query = query.filter((q) => q.eq(q.field("type"), args.type));
+    }
+
+    // Filter by folder if provided
+    if (args.folderId !== undefined) {
+      query = query.filter((q) => q.eq(q.field("folderId"), args.folderId));
+    }
+
+    const documents = await query.collect();
+
+    // Filter by search term (simple text search)
+    const searchTerm = args.searchTerm.toLowerCase();
+    const filteredDocuments = documents.filter((doc) => {
+      const nameMatch = doc.name.toLowerCase().includes(searchTerm);
+      const notesMatch = doc.notes?.toLowerCase().includes(searchTerm) || false;
+      const tagsMatch = doc.tags?.some(tag => tag.toLowerCase().includes(searchTerm)) || false;
+      
+      return nameMatch || notesMatch || tagsMatch;
+    });
+
+    return filteredDocuments.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
   },
 });

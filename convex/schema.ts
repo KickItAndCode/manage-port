@@ -117,26 +117,45 @@ export default defineSchema({
     .index("by_charge", ["chargeId"])
     .index("by_date", ["paymentDate"])
     .index("by_method", ["paymentMethod"]),
+  documentFolders: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    parentId: v.optional(v.id("documentFolders")), // For nested folders
+    path: v.string(), // Full path for easy breadcrumb navigation
+    color: v.optional(v.string()), // Optional folder color
+    icon: v.optional(v.string()), // Optional folder icon
+    order: v.optional(v.number()), // Display order
+    createdAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_parent", ["parentId"])
+    .index("by_path", ["path"]),
   documents: defineTable({
     userId: v.string(),
-    url: v.string(),
+    storageId: v.string(), // Convex storage ID for the file
     name: v.string(),
-    type: v.string(), // lease, utility, property, insurance, tax, maintenance, other
-    category: v.optional(v.string()), // financial, legal, maintenance, insurance, tax, other
+    folderId: v.optional(v.id("documentFolders")), // Optional folder assignment
+    type: v.string(), // lease, utility_bill, property, insurance, tax, maintenance, other
     propertyId: v.optional(v.id("properties")),
     leaseId: v.optional(v.id("leases")),
-    fileSize: v.optional(v.number()), // in bytes
-    mimeType: v.optional(v.string()), // application/pdf, image/jpeg, etc.
+    utilityBillId: v.optional(v.id("utilityBills")), // Link to utility bill
+    fileSize: v.number(), // in bytes
+    mimeType: v.string(), // application/pdf, image/jpeg, etc.
     uploadedAt: v.string(),
     updatedAt: v.optional(v.string()),
     expiryDate: v.optional(v.string()), // for documents that expire (insurance, licenses)
     tags: v.optional(v.array(v.string())), // searchable tags
     notes: v.optional(v.string()),
+    thumbnailUrl: v.optional(v.string()), // For document previews
   })
     .index("by_user", ["userId"])
+    .index("by_folder", ["folderId"])
     .index("by_property", ["propertyId"])
+    .index("by_lease", ["leaseId"])
+    .index("by_utility_bill", ["utilityBillId"])
     .index("by_type", ["type"])
-    .index("by_category", ["category"]),
+    .index("by_upload_date", ["uploadedAt"]),
   propertyImages: defineTable({
     userId: v.string(),
     propertyId: v.id("properties"),

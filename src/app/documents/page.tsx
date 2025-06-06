@@ -2,8 +2,10 @@
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
+import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
-import { DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/../convex/documents";
+import { formatErrorForToast } from "@/lib/error-handling";
+import { DOCUMENT_TYPES } from "@/../convex/documents";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +27,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { DocumentForm } from "@/components/DocumentForm";
-import { DocumentUploadForm } from "@/components/DocumentUploadForm";
+import DocumentUploadForm from "@/components/DocumentUploadForm";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 // Document type icons
@@ -46,7 +48,7 @@ export default function DocumentsPage() {
   const { user } = useUser();
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState("");
+  // categoryFilter removed - using type-based classification
   const [propertyFilter, setPropertyFilter] = useState("");
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
@@ -54,16 +56,20 @@ export default function DocumentsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
-  // Queries
-  const documents = useQuery(api.documents.getDocuments, 
-    user ? {
-      userId: user.id,
-      search: search || undefined,
+  // Queries - Use new functions that handle auth automatically
+  const documents = useQuery(
+    search ? api.documents.searchDocuments : api.documents.getDocuments, 
+    search ? {
+      searchTerm: search,
       type: typeFilter || undefined,
-      category: categoryFilter || undefined,
+    } : (user ? {
+      userId: user.id,
+      search: undefined,
+      type: typeFilter || undefined,
+      // category removed - using type-based classification
       propertyId: propertyFilter ? propertyFilter as any : undefined,
       tags: selectedTags.length > 0 ? selectedTags : undefined,
-    } : "skip"
+    } : "skip")
   );
   
   const properties = useQuery(api.properties.getProperties, 
@@ -242,19 +248,7 @@ export default function DocumentsPage() {
                 ))}
               </select>
 
-              {/* Category Filter */}
-              <select
-                className="flex-1 px-3 py-2 rounded-md border border-border bg-background"
-                value={categoryFilter}
-                onChange={(e) => setCategoryFilter(e.target.value)}
-              >
-                <option value="">All Categories</option>
-                {Object.entries(DOCUMENT_CATEGORIES).map(([key, value]) => (
-                  <option key={key} value={value}>
-                    {value.charAt(0).toUpperCase() + value.slice(1)}
-                  </option>
-                ))}
-              </select>
+              {/* Category filter removed - using type-based classification */}
 
               {/* Property Filter */}
               {properties && (
@@ -330,7 +324,7 @@ export default function DocumentsPage() {
               <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2">No documents found</h3>
               <p className="text-muted-foreground mb-4">
-                {search || typeFilter || categoryFilter ? 
+                {search || typeFilter ? 
                   "Try adjusting your filters" : 
                   "Upload your first document to get started"
                 }
@@ -435,7 +429,7 @@ export default function DocumentsPage() {
                   
                   <div className="flex gap-2 mt-auto pt-4">
                     <DocumentViewer
-                      storageId={doc.url}
+                      storageId={doc.storageId || doc.url}
                       fileName={doc.name}
                       className="flex-1"
                     />
@@ -453,8 +447,7 @@ export default function DocumentsPage() {
                               await deleteDocument({ id: doc._id, userId: user.id });
                             } catch (err: any) {
                               console.error("Delete document error:", err);
-                              const errorMessage = err.data?.message || err.message || "Unknown error";
-                              alert("Failed to delete document: " + errorMessage);
+                              toast.error(formatErrorForToast(err));
                             }
                           }
                         });
@@ -515,7 +508,7 @@ export default function DocumentsPage() {
                       <td className="p-2 sm:p-4">
                         <div className="flex gap-2">
                           <DocumentViewer
-                            storageId={doc.url}
+                            storageId={doc.storageId || doc.url}
                             fileName={doc.name}
                           >
                             <Button size="sm" variant="ghost">
@@ -543,8 +536,7 @@ export default function DocumentsPage() {
                                     await deleteDocument({ id: doc._id, userId: user.id });
                                   } catch (err: any) {
                                     console.error("Delete document error:", err);
-                                    const errorMessage = err.data?.message || err.message || "Unknown error";
-                                    alert("Failed to delete document: " + errorMessage);
+                                    toast.error(formatErrorForToast(err));
                                   }
                                 }
                               });

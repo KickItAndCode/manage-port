@@ -51,7 +51,12 @@ export interface LeaseFormProps {
 type LeaseFormType = LeaseFormData;
 
 export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loading }: LeaseFormProps) {
-  const [leaseDocumentStorageId, setLeaseDocumentStorageId] = useState<string>("");
+  const [leaseDocumentData, setLeaseDocumentData] = useState<{
+    storageId: string;
+    name: string;
+    size: number;
+    mimeType: string;
+  } | null>(null);
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initial?.propertyId || "");
   const [selectedUnitId, setSelectedUnitId] = useState<string>(initial?.unitId || "");
   
@@ -129,7 +134,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
     });
     
     // Reset document upload state
-    setLeaseDocumentStorageId("");
+    setLeaseDocumentData(null);
   }
 
   return (
@@ -141,7 +146,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
           onSubmit({
             ...data,
             unitId: selectedUnitId || undefined,
-            leaseDocumentUrl: leaseDocumentStorageId || data.leaseDocumentUrl,
+            leaseDocumentUrl: leaseDocumentData?.storageId || data.leaseDocumentUrl,
           });
         })}
       >
@@ -313,8 +318,8 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
 
         <LeaseDocumentUpload
           propertyId={watch("propertyId")}
-          onUploadComplete={(storageId) => {
-            setLeaseDocumentStorageId(storageId);
+          onUploadComplete={(fileData) => {
+            setLeaseDocumentData(fileData.storageId ? fileData : null);
           }}
           onUploadError={(error) => {
             console.error("Document upload error:", error);

@@ -45,13 +45,79 @@ export class ApplicationError extends Error implements AppError {
   }
 }
 
+// Extract user-friendly message from Convex error
+const extractConvexErrorMessage = (error: any): string => {
+  let errorMessage = error.message || error.data?.message || "An unexpected error occurred";
+  
+  // Clean up Convex server error format
+  if (errorMessage.includes("Server Error\nUncaught Error:")) {
+    errorMessage = errorMessage.split("Server Error\nUncaught Error:")[1]?.trim() || errorMessage;
+  }
+  if (errorMessage.includes("Uncaught Error:")) {
+    errorMessage = errorMessage.split("Uncaught Error:")[1]?.trim() || errorMessage;
+  }
+  
+  // Handle specific common errors with user-friendly messages
+  if (errorMessage.includes("already exists")) {
+    if (errorMessage.includes("Electric bill") || errorMessage.includes("utility bill")) {
+      const match = errorMessage.match(/A (.+) bill for (.+) already exists/);
+      if (match) {
+        const [, utilityType, month] = match;
+        const monthName = new Date(month + '-01').toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+        return `A ${utilityType.toLowerCase()} bill for ${monthName} already exists. Please edit the existing bill or choose a different month.`;
+      }
+    }
+    if (errorMessage.includes("Property")) {
+      return "A property with this name already exists. Please choose a different name.";
+    }
+    if (errorMessage.includes("lease")) {
+      return "A lease already exists for this tenant and property. Please check existing leases or edit the current one.";
+    }
+    return "This item already exists. Please check for duplicates or choose different details.";
+  }
+  
+  if (errorMessage.includes("not found")) {
+    if (errorMessage.includes("Property")) {
+      return "The selected property was not found. It may have been deleted by another user.";
+    }
+    if (errorMessage.includes("lease")) {
+      return "The lease was not found. It may have been deleted or modified.";
+    }
+    if (errorMessage.includes("User")) {
+      return "User not found. Please sign in again.";
+    }
+    return "The requested item was not found. It may have been deleted or moved.";
+  }
+  
+  if (errorMessage.includes("unauthorized") || errorMessage.includes("Unauthorized")) {
+    return "You don't have permission to perform this action.";
+  }
+  
+  if (errorMessage.includes("unauthenticated") || errorMessage.includes("Not authenticated")) {
+    return "Please sign in to continue.";
+  }
+  
+  if (errorMessage.includes("validation") || errorMessage.includes("Invalid")) {
+    return "Please check your input and try again. Some required information may be missing or incorrect.";
+  }
+  
+  if (errorMessage.includes("network") || errorMessage.includes("fetch")) {
+    return "Network error. Please check your connection and try again.";
+  }
+  
+  // Return cleaned up message for other cases
+  return errorMessage;
+};
+
 // Convex error handlers
 export const handleConvexError = (error: any): AppError => {
+  const cleanMessage = extractConvexErrorMessage(error);
+  
   // Handle ConvexError instances
   if (error instanceof ConvexError) {
     return {
       type: ErrorType.SERVER,
-      message: error.data?.message || "A server error occurred",
+      message: cleanMessage,
       details: error.data,
       code: error.data?.code,
       retryable: false
@@ -68,7 +134,7 @@ export const handleConvexError = (error: any): AppError => {
   }
 
   // Handle authentication errors
-  if (error.message?.includes("Unauthenticated") || error.message?.includes("401")) {
+  if (error.message?.includes("Unauthenticated") || error.message?.includes("401") || error.message?.includes("Not authenticated")) {
     return {
       type: ErrorType.AUTHENTICATION,
       message: "Please sign in to continue",
@@ -89,7 +155,16 @@ export const handleConvexError = (error: any): AppError => {
   if (error.message?.includes("not found") || error.message?.includes("404")) {
     return {
       type: ErrorType.NOT_FOUND,
-      message: "The requested resource was not found",
+      message: cleanMessage,
+      retryable: false
+    };
+  }
+
+  // Handle conflict errors (already exists)
+  if (error.message?.includes("already exists")) {
+    return {
+      type: ErrorType.CONFLICT,
+      message: cleanMessage,
       retryable: false
     };
   }
@@ -103,10 +178,10 @@ export const handleConvexError = (error: any): AppError => {
     };
   }
 
-  // Default to unknown error
+  // Default to server error with cleaned message
   return {
-    type: ErrorType.UNKNOWN,
-    message: error.message || "An unexpected error occurred",
+    type: ErrorType.SERVER,
+    message: cleanMessage,
     retryable: false
   };
 };
@@ -267,6 +342,12 @@ export const createToastError = (error: AppError) => {
     variant: "destructive" as const,
     action: isRetryableError(error) ? "Retry" : undefined
   };
+};
+
+// Simple helper to format any error for toast display
+export const formatErrorForToast = (error: any): string => {
+  const appError = handleError(error);
+  return appError.message;
 };
 
 // Async error boundary helper

@@ -974,6 +974,153 @@
       "dependencies": [17],
       "status": "pending",
       "subtasks": []
+    },
+    {
+      "id": 29,
+      "title": "Lease Page UI Enhancements",
+      "description": "Comprehensive enhancements to improve the lease management page user experience and functionality.",
+      "details": "This task encompasses multiple UI/UX improvements for the lease management page, including visual enhancements, interactive features, mobile responsiveness, and advanced functionality. Each subtask represents a specific enhancement that can be implemented independently.",
+      "testStrategy": "Each enhancement will be tested for user experience, performance impact, mobile compatibility, accessibility compliance, and integration with existing features.",
+      "priority": "medium",
+      "dependencies": [9],
+      "status": "pending",
+      "subtasks": [
+        {
+          "id": 1,
+          "title": "Color-Coded Lease Status Cards",
+          "description": "Implement status-based color coding for lease cards with subtle left borders and background gradients.",
+          "details": "Add visual indicators: green for active leases, orange for expiring soon (within 60 days), red for expired leases. Include subtle gradient backgrounds and enhanced hover effects with shadows and scale transforms.",
+          "status": "pending",
+          "priority": "high",
+          "complexity": "low"
+        },
+        {
+          "id": 2,
+          "title": "Animated Status Indicators",
+          "description": "Add animated status icons with visual feedback for lease states.",
+          "details": "Implement pulsing dots for active leases, warning triangles for expiring leases, and appropriate icons for other states. Use CSS animations for smooth visual feedback.",
+          "status": "pending",
+          "priority": "medium",
+          "complexity": "low"
+        },
+        {
+          "id": 3,
+          "title": "Lease Term Progress Bars",
+          "description": "Display progress bars showing lease term completion percentage.",
+          "details": "Calculate and display visual progress bars showing how much of the lease term has elapsed. Include percentage display and color coding based on completion status.",
+          "status": "pending",
+          "priority": "medium",
+          "complexity": "medium"
+        },
+        {
+          "id": 4,
+          "title": "Dashboard-Style Metrics Cards",
+          "description": "Add metric cards at the top showing lease overview statistics.",
+          "details": "Display total active leases, leases expiring soon, total monthly revenue from leases, and occupancy rate. Include trend indicators and quick navigation to relevant sections.",
+          "status": "pending",
+          "priority": "high",
+          "complexity": "medium"
+        },
+        {
+          "id": 5,
+          "title": "Property-Based Lease Grouping",
+          "description": "Group leases by property with collapsible sections.",
+          "details": "Organize leases by property with expandable/collapsible sections. Show property summary information and lease count per property.",
+          "status": "pending",
+          "priority": "medium",
+          "complexity": "medium"
+        },
+        {
+          "id": 6,
+          "title": "Advanced Filtering System",
+          "description": "Implement multi-select filters and saved filter presets.",
+          "details": "Add filters for status, property type, rent range, and lease dates. Include saved filter presets like 'Expiring Soon', 'High Value', and 'Recently Added'.",
+          "status": "pending",
+          "priority": "high",
+          "complexity": "high"
+        },
+        {
+          "id": 7,
+          "title": "Inline Editing for Key Fields",
+          "description": "Enable quick editing of rent amount, end date, and other key fields directly in the lease list.",
+          "details": "Implement click-to-edit functionality for frequently updated fields. Include validation, auto-save, and visual feedback for changes.",
+          "status": "pending",
+          "priority": "high",
+          "complexity": "high"
+        },
+        {
+          "id": 8,
+          "title": "Bulk Operations Toolbar",
+          "description": "Add bulk operations for managing multiple leases simultaneously.",
+          "details": "Implement selection checkboxes, bulk actions toolbar with options like bulk renewal, status changes, and lease notices. Include progress feedback for bulk operations.",
+          "status": "pending",
+          "priority": "medium",
+          "complexity": "high"
+        },
+        {
+          "id": 9,
+          "title": "Mobile Swipe Gestures",
+          "description": "Add swipe gestures for common actions on mobile devices.",
+          "details": "Implement swipe left to edit, swipe right to delete functionality. Include visual feedback and undo options for accidental actions.",
+          "status": "pending",
+          "priority": "medium",
+          "complexity": "medium"
+        },
+        {
+          "id": 10,
+          "title": "Global Search Enhancement",
+          "description": "Implement comprehensive search across all lease data.",
+          "details": "Add global search functionality across tenant names, properties, notes, and lease details. Include search suggestions, autocomplete, and recently viewed leases.",
+          "status": "pending",
+          "priority": "high",
+          "complexity": "medium"
+        },
+        {
+          "id": 11,
+          "title": "Financial Integration Dashboard",
+          "description": "Add financial insights and payment tracking to lease management.",
+          "details": "Display rent payment status indicators, security deposit tracking, lease value comparisons, and revenue projections. Include overdue payment alerts.",
+          "status": "pending",
+          "priority": "high",
+          "complexity": "high"
+        },
+        {
+          "id": 12,
+          "title": "Smart Lease Renewal System",
+          "description": "Implement automated lease renewal suggestions and workflow.",
+          "details": "Add auto-renewal suggestions based on lease performance, renewal reminder cards, and streamlined renewal workflow with template generation.",
+          "status": "pending",
+          "priority": "medium",
+          "complexity": "high"
+        },
+        {
+          "id": 13,
+          "title": "Compact/Expanded View Toggle",
+          "description": "Add view density options for lease display.",
+          "details": "Implement toggle between compact view (more leases visible) and expanded view (more details visible). Include user preference persistence.",
+          "status": "pending",
+          "priority": "low",
+          "complexity": "low"
+        },
+        {
+          "id": 14,
+          "title": "Calendar Integration",
+          "description": "Integrate lease dates with calendar functionality.",
+          "details": "Add calendar view for lease dates, renewal dates, and important milestones. Include calendar export functionality and date-based filtering.",
+          "status": "pending",
+          "priority": "medium",
+          "complexity": "medium"
+        },
+        {
+          "id": 15,
+          "title": "Risk Assessment Indicators",
+          "description": "Add visual indicators for lease-related risks and issues.",
+          "details": "Implement risk indicators for late payments, lease violations, and other red flags. Include risk scoring and mitigation suggestions.",
+          "status": "pending",
+          "priority": "medium",
+          "complexity": "high"
+        }
+      ]
     }
   ]
 }

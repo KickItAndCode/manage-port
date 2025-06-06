@@ -3,7 +3,6 @@ import { useState, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
-import { DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/../convex/documents";
 import { Button } from "@/components/ui/button";
 import { useDropzone } from "react-dropzone";
 import { cn } from "@/lib/utils";
@@ -16,7 +15,12 @@ import {
 
 interface LeaseDocumentUploadProps {
   propertyId?: string;
-  onUploadComplete?: (storageId: string) => void;
+  onUploadComplete?: (fileData: { 
+    storageId: string; 
+    name: string; 
+    size: number; 
+    mimeType: string; 
+  }) => void;
   onUploadError?: (error: string) => void;
   className?: string;
 }
@@ -34,7 +38,6 @@ export function LeaseDocumentUpload({
 
   // Mutations
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
-  const addDocument = useMutation(api.documents.addDocument);
 
   const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (!user) {
@@ -65,21 +68,17 @@ export function LeaseDocumentUpload({
       
       const { storageId } = await result.json();
       
-      // Save document metadata
-      await addDocument({
-        userId: user.id,
-        url: storageId,
-        name: file.name,
-        type: DOCUMENT_TYPES.LEASE,
-        category: DOCUMENT_CATEGORIES.LEGAL,
-        propertyId: propertyId ? propertyId as any : undefined,
-        fileSize: file.size,
-        mimeType: file.type,
-        notes: "Lease document uploaded during lease creation",
-      });
+      // Store file metadata for later document creation
+      // The actual document record will be created when the lease is saved
+      // to avoid duplicate documents
 
       setUploadedFile({ name: file.name, storageId });
-      onUploadComplete?.(storageId);
+      onUploadComplete?.({
+        storageId,
+        name: file.name,
+        size: file.size,
+        mimeType: file.type
+      });
     } catch (error) {
       console.error("Upload error:", error);
       const errorMessage = error instanceof Error ? error.message : "Upload failed";
@@ -88,7 +87,7 @@ export function LeaseDocumentUpload({
     } finally {
       setUploading(false);
     }
-  }, [user, generateUploadUrl, addDocument, propertyId, onUploadComplete, onUploadError]);
+  }, [user, generateUploadUrl, propertyId, onUploadComplete, onUploadError]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -105,7 +104,12 @@ export function LeaseDocumentUpload({
   const clearUpload = () => {
     setUploadedFile(null);
     setError(null);
-    onUploadComplete?.("");
+    onUploadComplete?.({
+      storageId: "",
+      name: "",
+      size: 0,
+      mimeType: ""
+    });
   };
 
 

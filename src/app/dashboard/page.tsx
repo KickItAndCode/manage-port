@@ -2,17 +2,20 @@
 
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
+import { formatErrorForToast } from "@/lib/error-handling";
 import { useUser } from "@clerk/nextjs";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/PropertyForm";
 import { LeaseForm } from "@/components/LeaseForm";
-import { DocumentUploadForm } from "@/components/DocumentUploadForm";
+import DocumentUploadForm from "@/components/DocumentUploadForm";
 import { UtilityBillForm } from "@/components/UtilityBillForm";
 import { OutstandingBalances } from "@/components/OutstandingBalances";
 import { UtilityAnalytics } from "@/components/UtilityAnalytics";
+import { QuickCleanup } from "@/components/QuickCleanup";
 import { UtilityResponsibilityModal } from "@/components/UtilityResponsibilityModal";
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
@@ -141,6 +144,14 @@ export default function DashboardPage() {
             </div>
           </div>
         </header>
+
+        {/* Temporary Cleanup Tool */}
+        <div className="mb-6 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
+          <p className="text-sm text-orange-800 dark:text-orange-200 mb-2">
+            <strong>One-time cleanup:</strong> Remove duplicate lease documents from your account
+          </p>
+          <QuickCleanup />
+        </div>
 
       {/* Stat Cards - only show if user has properties */}
       {!hasNoProperties && (
@@ -489,8 +500,7 @@ export default function DashboardPage() {
                 setPropertyModalOpen(false);
               } catch (err: any) {
                 console.error("Add property error:", err);
-                const errorMessage = err.data?.message || err.message || "Unknown error";
-                alert("Failed to add property: " + errorMessage);
+                toast.error(formatErrorForToast(err));
               } finally {
                 setLoading(false);
               }
@@ -523,8 +533,7 @@ export default function DashboardPage() {
                 setLeaseModalOpen(false);
               } catch (err: any) {
                 console.error("Add lease error:", err);
-                const errorMessage = err.data?.message || err.message || "Unknown error";
-                alert("Failed to add lease: " + errorMessage);
+                toast.error(formatErrorForToast(err));
               } finally {
                 setLoading(false);
               }
@@ -589,8 +598,7 @@ export default function DashboardPage() {
                     setSelectedPropertyForBill("");
                   } catch (err: any) {
                     console.error("Add utility bill error:", err);
-                    const errorMessage = err.data?.message || err.message || "Unknown error";
-                    alert("Failed to add utility bill: " + errorMessage);
+                    toast.error(formatErrorForToast(err));
                   } finally {
                     setLoading(false);
                   }

@@ -4,7 +4,9 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
+import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
+import { formatErrorForToast } from "@/lib/error-handling";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -751,7 +753,7 @@ export default function PropertyDetailsPage() {
                     {documents.map((doc: any) => (
                       <DocumentViewer
                         key={doc._id}
-                        storageId={doc.url}
+                        storageId={doc.storageId || doc.url}
                         fileName={doc.name}
                         className="flex items-center justify-between p-2 rounded-md hover:bg-muted transition-colors cursor-pointer"
                       >
@@ -877,7 +879,7 @@ export default function PropertyDetailsPage() {
                 setEditingUnit(null);
               } catch (err: any) {
                 console.error("Unit operation error:", err);
-                alert(err.message || "Failed to save unit");
+                toast.error(formatErrorForToast(err));
               } finally {
                 setLoading(false);
               }
@@ -910,7 +912,7 @@ export default function PropertyDetailsPage() {
                 setBulkUnitDialogOpen(false);
               } catch (err: any) {
                 console.error("Bulk unit creation error:", err);
-                alert(err.message || "Failed to create units");
+                toast.error(formatErrorForToast(err));
               } finally {
                 setLoading(false);
               }

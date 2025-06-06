@@ -80,7 +80,13 @@ export const leaseSchema = z.object({
     .max(1000, "Notes must be less than 1000 characters")
     .optional(),
   leaseDocumentUrl: z.string()
-    .url("Must be a valid URL")
+    .refine((val) => {
+      if (!val || val === "") return true; // Allow empty strings
+      // Accept either valid URLs or Convex storage IDs (which start with "k" and are long)
+      const isUrl = /^https?:\/\//.test(val);
+      const isStorageId = /^k[a-zA-Z0-9_-]{20,}$/.test(val);
+      return isUrl || isStorageId;
+    }, "Must be a valid URL or storage ID")
     .optional()
     .or(z.literal(""))
 }).refine((data) => {

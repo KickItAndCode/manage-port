@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -252,7 +253,7 @@ export function OutstandingBalances({
                   size="sm"
                   onClick={() => {
                     // TODO: Generate statement for this tenant
-                    alert("Statement generation coming soon!");
+                    toast.info("Statement generation coming soon!");
                   }}
                 >
                   <FileText className="w-3 h-3 mr-1" />
@@ -263,7 +264,7 @@ export function OutstandingBalances({
                   size="sm"
                   onClick={() => {
                     // TODO: Send reminder
-                    alert("Reminder feature coming soon!");
+                    toast.info("Reminder feature coming soon!");
                   }}
                 >
                   <AlertTriangle className="w-3 h-3 mr-1" />

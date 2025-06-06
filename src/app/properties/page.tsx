@@ -2,7 +2,9 @@
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
+import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
+import { formatErrorForToast } from "@/lib/error-handling";
 import { PropertyForm } from "@/components/PropertyForm";
 import { PropertyCard } from "@/components/PropertyCard";
 import { Button } from "@/components/ui/button";
@@ -13,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import DocumentUploadForm from "@/components/DocumentUploadForm";
 
 type PropertySortKey = 'name' | 'type' | 'status' | 'address' | 'bedrooms' | 'bathrooms' | 'squareFeet' | 'monthlyRent' | 'purchaseDate';
 
@@ -28,6 +31,7 @@ export default function PropertiesPage() {
   const [edit, setEdit] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [newPropertyId, setNewPropertyId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -99,8 +103,7 @@ export default function PropertiesPage() {
           setSelected([]);
         } catch (err: any) {
           console.error("Bulk delete error:", err);
-          const errorMessage = err.data?.message || err.message || "Unknown error";
-          alert("Some properties could not be deleted: " + errorMessage);
+          toast.error("Some properties could not be deleted: " + formatErrorForToast(err));
         } finally {
           setLoading(false);
         }
@@ -130,7 +133,8 @@ export default function PropertiesPage() {
                 try {
                   setLoading(true);
                   setError(null);
-                  await addProperty({ ...data, userId: user.id });
+                  const propertyId = await addProperty({ ...data, userId: user.id });
+                  setNewPropertyId(propertyId);
                   setOpen(false);
                 } catch (err: any) {
                   setError(err.data?.message || err.message || "An error occurred");
@@ -254,8 +258,7 @@ export default function PropertiesPage() {
                         await deleteProperty({ id: prop._id as any, userId: user.id });
                       } catch (err: any) {
                         console.error("Delete property error:", err);
-                        const errorMessage = err.data?.message || err.message || "Unknown error";
-                        alert("Failed to delete property: " + errorMessage);
+                        toast.error(formatErrorForToast(err));
                       } finally {
                         setLoading(false);
                       }
@@ -399,8 +402,7 @@ export default function PropertiesPage() {
                                 await deleteProperty({ id: property._id as any, userId: user.id });
                               } catch (err: any) {
                                 console.error("Delete property error:", err);
-                                const errorMessage = err.data?.message || err.message || "Unknown error";
-                                alert("Failed to delete property: " + errorMessage);
+                                toast.error(formatErrorForToast(err));
                               } finally {
                                 setLoading(false);
                               }
@@ -471,6 +473,16 @@ export default function PropertiesPage() {
         </DialogContent>
       </Dialog>
       {confirmDialog}
+      
+      {/* Document Upload for newly created property */}
+      {newPropertyId && (
+        <DocumentUploadForm
+          propertyId={newPropertyId as any}
+          onUploadComplete={() => {
+            setNewPropertyId(null);
+          }}
+        />
+      )}
     </div>
   );
 } 

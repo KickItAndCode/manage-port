@@ -2,7 +2,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
+import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
+import { formatErrorForToast } from "@/lib/error-handling";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -78,16 +80,16 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
   };
 
   const handleDeleteImage = async (imageId: string) => {
-    alert("DELETE FUNCTION CALLED - Image ID: " + imageId);
+    console.log("DELETE FUNCTION CALLED - Image ID: " + imageId);
     
     if (!user) {
-      alert("No user found");
+      toast.error("No user found");
       return;
     }
     
     // Debug: Find and log the full image object
     const imageObj = images?.find(img => img._id === imageId);
-    alert("User ID: " + user.id + "\nImage User ID: " + imageObj?.userId);
+    console.log("User ID: " + user.id + "\nImage User ID: " + imageObj?.userId);
     
     if (confirm("Delete this image? This action cannot be undone.")) {
       try {
@@ -120,7 +122,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
         console.error("Error deleting image - full error object:", error);
         console.error("Error message:", (error as any)?.message);
         console.error("Error data:", (error as any)?.data);
-        alert("Failed to delete image: " + ((error as any)?.message || (error as any)?.data?.message || "Unknown error"));
+        toast.error(formatErrorForToast(error));
       }
     }
   };
@@ -440,7 +442,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                           )}
                           <DropdownMenuItem 
                             onClick={() => {
-                              alert("DROPDOWN DELETE CLICKED - Image ID: " + image._id);
+                              console.log("DROPDOWN DELETE CLICKED - Image ID: " + image._id);
                               handleDeleteImage(image._id);
                             }}
                             variant="destructive"
@@ -556,7 +558,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                           )}
                           <DropdownMenuItem 
                             onClick={() => {
-                              alert("CAROUSEL DELETE CLICKED - Image ID: " + images[selectedImageIndex]._id);
+                              console.log("CAROUSEL DELETE CLICKED - Image ID: " + images[selectedImageIndex]._id);
                               handleDeleteImage(images[selectedImageIndex]._id);
                             }}
                             variant="destructive"

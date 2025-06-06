@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
-import { DOCUMENT_TYPES, DOCUMENT_CATEGORIES } from "@/../convex/documents";
+import { DOCUMENT_TYPES } from "@/../convex/documents";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -148,21 +148,7 @@ export function DocumentForm({ document, open, onOpenChange, onSave }: DocumentF
               </select>
             </div>
 
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Category</label>
-              <select
-                className="w-full px-3 py-2 rounded-md border border-border bg-background"
-                value={formData.category}
-                onChange={(e) => setFormData(prev => ({ ...prev, category: e.target.value }))}
-              >
-                <option value="">Select category</option>
-                {Object.entries(DOCUMENT_CATEGORIES).map(([key, value]) => (
-                  <option key={key} value={value}>
-                    {value.charAt(0).toUpperCase() + value.slice(1)}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* Category removed - using type-based classification */}
           </div>
 
           {/* Property and Lease */}

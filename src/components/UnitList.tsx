@@ -1,7 +1,9 @@
 "use client";
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
+import { formatErrorForToast } from "@/lib/error-handling";
 import { Id } from "@/../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -41,7 +43,7 @@ export function UnitList({ propertyId, userId, onEditUnit, onAddUnit }: UnitList
         try {
           await deleteUnit({ id: unit._id, userId });
         } catch (error: any) {
-          alert(error.message || "Failed to delete unit");
+          toast.error(formatErrorForToast(error));
         } finally {
           setDeletingId(null);
         }

@@ -211,12 +211,17 @@ export const addLease = mutation({
     if (args.leaseDocumentUrl) {
       await ctx.db.insert("documents", {
         userId: args.userId,
-        url: args.leaseDocumentUrl,
-        name: `Lease - ${args.tenantName}`,
+        storageId: args.leaseDocumentUrl,
+        name: `${args.tenantName} - Lease Agreement`,
         type: "lease",
         propertyId: args.propertyId,
         leaseId: lease,
+        fileSize: 0, // Will be updated when we get file info
+        mimeType: "application/pdf", // Default assumption for lease documents
         uploadedAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        notes: "Lease document uploaded during lease creation",
+        tags: ["lease", "legal"],
       });
     }
     
@@ -330,18 +335,20 @@ export const updateLease = mutation({
       
       if (docs.length > 0) {
         await ctx.db.patch(docs[0]._id, {
-          url: args.leaseDocumentUrl,
+          storageId: args.leaseDocumentUrl,
           propertyId: args.propertyId,
-          uploadedAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
         });
       } else {
         await ctx.db.insert("documents", {
           userId: args.userId,
-          url: args.leaseDocumentUrl,
+          storageId: args.leaseDocumentUrl,
           name: `Lease - ${args.tenantName}`,
           type: "lease",
           propertyId: args.propertyId,
           leaseId: args.id,
+          fileSize: 0, // Will be updated when we get file info
+          mimeType: "application/pdf", // Default assumption for lease documents
           uploadedAt: new Date().toISOString(),
         });
       }

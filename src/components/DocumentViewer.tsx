@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 
 interface DocumentViewerProps {
-  storageId: string;
+  storageId: string | undefined;
   fileName: string;
   className?: string;
   children?: React.ReactNode;
@@ -14,6 +14,11 @@ interface DocumentViewerProps {
 
 export function DocumentViewer({ storageId, className, children }: DocumentViewerProps) {
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Early return if no storageId provided or it's empty/invalid
+  if (!storageId || storageId.trim() === '') {
+    return null;
+  }
   
   // Check if storageId is already a full URL (legacy format) or a Convex storage ID
   const isLegacyUrl = storageId.startsWith('http');
