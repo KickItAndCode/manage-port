@@ -30,7 +30,10 @@ import {
   Edit,
   Plus,
   FileUp,
-  UserPlus
+  UserPlus,
+  Archive,
+  Eye,
+  EyeOff
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -58,6 +61,7 @@ export default function PropertyDetailsPage() {
   const [unitDialogOpen, setUnitDialogOpen] = useState(false);
   const [bulkUnitDialogOpen, setBulkUnitDialogOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<any>(null);
+  const [showExpiredLeases, setShowExpiredLeases] = useState(false);
   
   const updateProperty = useMutation(api.properties.updateProperty);
   const addUnit = useMutation(api.units.addUnit);
@@ -124,6 +128,19 @@ export default function PropertyDetailsPage() {
   const getCurrentTenant = () => {
     const activeLeases = getActiveLeases();
     return activeLeases.length > 0 ? activeLeases[0] : null;
+  };
+  
+  const getExpiredLeases = () => {
+    if (!leases) return [];
+    return leases.filter((lease: any) => lease.status === "expired");
+  };
+  
+  const getDisplayedLeases = () => {
+    if (!leases) return [];
+    if (showExpiredLeases) {
+      return leases;
+    }
+    return leases.filter((lease: any) => lease.status !== "expired");
   };
 
   if (!user) {
@@ -481,84 +498,6 @@ export default function PropertyDetailsPage() {
               </Card>
             )}
 
-            {/* Current Tenant */}
-            {currentTenant ? (
-              <Card className="border-l-4 border-l-green-500">
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span className="flex items-center">
-                      <Users className="w-5 h-5 mr-2" />
-                      Current Tenant
-                    </span>
-                    <Button size="sm" variant="ghost" className="gap-2">
-                      <Mail className="h-4 w-4" />
-                      Contact
-                    </Button>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                      <div>
-                        <h3 className="font-semibold text-lg">{currentTenant.tenantName}</h3>
-                        <div className="flex items-center gap-2 mt-1">
-                          {getLeaseStatusBadge(currentTenant.status, currentTenant.endDate)}
-                        </div>
-                      </div>
-                      <div className="text-left sm:text-right">
-                        <div className="font-semibold text-lg">${currentTenant.rent?.toLocaleString()}/mo</div>
-                        <div className="text-sm text-muted-foreground">
-                          {formatDate(currentTenant.startDate)} - {formatDate(currentTenant.endDate)}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
-                      {currentTenant.tenantEmail && (
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Mail className="w-4 h-4 mr-1" />
-                          {currentTenant.tenantEmail}
-                        </div>
-                      )}
-                      {currentTenant.tenantPhone && (
-                        <div className="flex items-center text-sm text-muted-foreground">
-                          <Phone className="w-4 h-4 mr-1" />
-                          {currentTenant.tenantPhone}
-                        </div>
-                      )}
-                    </div>
-                    {currentTenant.securityDeposit && (
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Security Deposit:</span> 
-                        <span className="font-semibold ml-1">${currentTenant.securityDeposit?.toLocaleString()}</span>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card className="border-l-4 border-l-yellow-500">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Users className="w-5 h-5 mr-2" />
-                    No Current Tenant
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-center py-8">
-                    <Users className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-                    <p className="text-muted-foreground mb-4">This property is currently vacant</p>
-                    <Button 
-                      className="gap-2"
-                      onClick={() => router.push(`/leases?propertyId=${propertyId}`)}
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      Add New Lease
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-
             {/* All Leases */}
             <Card>
               <CardHeader>
@@ -566,16 +505,59 @@ export default function PropertyDetailsPage() {
                   <div>
                     <CardTitle className="flex items-center">
                       <FileText className="w-5 h-5 mr-2" />
-                      Lease History
+                      Leases
                     </CardTitle>
                     <CardDescription>
-                      {leases?.length || 0} total lease{(leases?.length || 0) !== 1 ? 's' : ''}
+                      {getActiveLeases().length > 0 && (
+                        <span className="text-green-600 font-medium">{getActiveLeases().length} active</span>
+                      )}
+                      {getActiveLeases().length > 0 && getDisplayedLeases().length > getActiveLeases().length && ' • '}
+                      {getDisplayedLeases().length - getActiveLeases().length > 0 && (
+                        <span>{getDisplayedLeases().length - getActiveLeases().length} other</span>
+                      )}
+                      {getExpiredLeases().length > 0 && !showExpiredLeases && (
+                        <span className="text-muted-foreground"> • {getExpiredLeases().length} hidden</span>
+                      )}
                     </CardDescription>
                   </div>
-                  <Button size="sm" variant="outline" className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    New Lease
-                  </Button>
+                  <div className="flex items-center gap-3">
+                    {/* Expired Leases Toggle */}
+                    {getExpiredLeases().length > 0 && (
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setShowExpiredLeases(!showExpiredLeases)}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                            showExpiredLeases ? 'bg-primary' : 'bg-muted-foreground/30'
+                          }`}
+                          aria-label="Toggle expired leases"
+                        >
+                          <span
+                            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${
+                              showExpiredLeases ? 'translate-x-6' : 'translate-x-1'
+                            }`}
+                          />
+                        </button>
+                        <div className={`flex items-center gap-1 text-xs ${
+                          showExpiredLeases ? 'text-foreground' : 'text-muted-foreground'
+                        }`}>
+                          {showExpiredLeases ? (
+                            <><Eye className="w-3 h-3" /> Show expired</>
+                          ) : (
+                            <><EyeOff className="w-3 h-3" /> Hide expired</>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="gap-2"
+                      onClick={() => router.push(`/leases?propertyId=${propertyId}`)}
+                    >
+                      <Plus className="h-4 w-4" />
+                      New Lease
+                    </Button>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
@@ -585,15 +567,71 @@ export default function PropertyDetailsPage() {
                   <div className="text-center text-muted-foreground py-8">
                     No leases found for this property.
                   </div>
+                ) : getDisplayedLeases().length === 0 ? (
+                  <div className="text-center py-8">
+                    {showExpiredLeases ? (
+                      <div className="space-y-3">
+                        <Users className="h-12 w-12 text-muted-foreground/30 mx-auto" />
+                        <p className="text-muted-foreground">No leases found for this property.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-3">
+                        <div className="relative">
+                          <Users className="h-12 w-12 text-yellow-500/30 mx-auto" />
+                          <div className="absolute -top-1 -right-1 w-4 h-4 bg-yellow-500 rounded-full animate-pulse" />
+                        </div>
+                        <p className="text-muted-foreground font-medium">Property is vacant</p>
+                        <p className="text-sm text-muted-foreground">No active or pending leases</p>
+                        {getExpiredLeases().length > 0 && (
+                          <button
+                            onClick={() => setShowExpiredLeases(true)}
+                            className="text-sm text-primary hover:underline"
+                          >
+                            View {getExpiredLeases().length} past lease{getExpiredLeases().length !== 1 ? 's' : ''}
+                          </button>
+                        )}
+                        <Button 
+                          className="gap-2 mt-4"
+                          onClick={() => router.push(`/leases?propertyId=${propertyId}`)}
+                        >
+                          <UserPlus className="h-4 w-4" />
+                          Add New Lease
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <div className="space-y-4">
-                    {leases.map((lease: any) => (
-                      <div key={lease._id} className="border rounded-lg p-4">
+                    {getDisplayedLeases().map((lease: any, index: number) => (
+                      <div 
+                        key={lease._id} 
+                        className={`border rounded-lg p-4 transition-all duration-300 ${
+                          lease.status === 'active' 
+                            ? 'border-l-4 border-l-green-500 bg-green-50/30 dark:bg-green-950/10' 
+                            : lease.status === 'expired' && showExpiredLeases 
+                            ? 'animate-in fade-in-0 slide-in-from-bottom-2 border-muted-foreground/30 bg-muted/20' 
+                            : ''
+                        }`}
+                        style={{
+                          animationDelay: lease.status === 'expired' ? `${index * 50}ms` : '0ms'
+                        }}>
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0 sm:mb-2">
                           <div>
-                            <h4 className="font-semibold">{lease.tenantName}</h4>
+                            <div className="flex items-center gap-3">
+                              <h4 className="font-semibold">{lease.tenantName}</h4>
+                              {lease.unit && (
+                                <Badge variant="outline" className="text-xs">
+                                  Unit {lease.unit.unitIdentifier}
+                                </Badge>
+                              )}
+                            </div>
                             <div className="flex items-center gap-2 mt-1">
                               {getLeaseStatusBadge(lease.status, lease.endDate)}
+                              {lease.status === 'active' && (
+                                <Badge variant="default" className="bg-green-600 text-xs">
+                                  Current Tenant
+                                </Badge>
+                              )}
                             </div>
                           </div>
                           <div className="text-left sm:text-right">
@@ -631,6 +669,27 @@ export default function PropertyDetailsPage() {
                         {lease.notes && (
                           <div className="mt-2 text-sm text-muted-foreground">
                             <strong>Notes:</strong> {lease.notes}
+                          </div>
+                        )}
+                        {/* Contact buttons for active leases */}
+                        {lease.status === 'active' && (lease.tenantEmail || lease.tenantPhone) && (
+                          <div className="mt-3 pt-3 border-t flex gap-2">
+                            {lease.tenantEmail && (
+                              <Button size="sm" variant="outline" className="gap-2" asChild>
+                                <a href={`mailto:${lease.tenantEmail}`}>
+                                  <Mail className="h-3 w-3" />
+                                  Email
+                                </a>
+                              </Button>
+                            )}
+                            {lease.tenantPhone && (
+                              <Button size="sm" variant="outline" className="gap-2" asChild>
+                                <a href={`tel:${lease.tenantPhone}`}>
+                                  <Phone className="h-3 w-3" />
+                                  Call
+                                </a>
+                              </Button>
+                            )}
                           </div>
                         )}
                       </div>

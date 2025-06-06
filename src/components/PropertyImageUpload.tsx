@@ -17,6 +17,7 @@ import {
   Star,
   Loader2
 } from "lucide-react";
+import { toast } from "sonner";
 
 interface PropertyImageUploadProps {
   propertyId: string;
@@ -103,6 +104,9 @@ export function PropertyImageUpload({
 
     setIsUploading(true);
     
+    let successCount = 0;
+    let errorCount = 0;
+    
     try {
       for (let i = 0; i < uploadingFiles.length; i++) {
         const fileData = uploadingFiles[i];
@@ -147,6 +151,8 @@ export function PropertyImageUpload({
             newFiles[i] = { ...newFiles[i], status: 'success', progress: 100 };
             return newFiles;
           });
+          
+          successCount++;
 
         } catch (error) {
           console.error("Upload error:", error);
@@ -159,17 +165,28 @@ export function PropertyImageUpload({
             };
             return newFiles;
           });
+          
+          errorCount++;
         }
       }
 
-      // Close dialog and refresh after successful uploads
-      const successCount = uploadingFiles.filter(f => f.status === 'success').length;
+      // Check final results
       if (successCount > 0) {
+        // Show success toast
+        if (errorCount === 0) {
+          toast.success(`Successfully uploaded ${successCount} image${successCount !== 1 ? 's' : ''}`);
+        } else {
+          toast.warning(`Uploaded ${successCount} image${successCount !== 1 ? 's' : ''}, ${errorCount} failed`);
+        }
+        
+        // Close dialog and refresh after a short delay to show success status
         setTimeout(() => {
           onOpenChange(false);
           onUploadComplete?.();
           setUploadingFiles([]);
-        }, 1000);
+        }, 1500);
+      } else if (errorCount > 0) {
+        toast.error(`Failed to upload ${errorCount} image${errorCount !== 1 ? 's' : ''}`);
       }
 
     } finally {

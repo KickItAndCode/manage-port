@@ -173,4 +173,32 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_cover", ["propertyId", "isCover"])
     .index("by_order", ["propertyId", "order"]),
+  userSettings: defineTable({
+    userId: v.string(), // Clerk user ID
+    theme: v.optional(v.union(v.literal("light"), v.literal("dark"), v.literal("system"))), // Theme preference
+    dashboardComponents: v.optional(v.object({
+      showMetrics: v.boolean(), // Show stat cards
+      showCharts: v.boolean(), // Show analytics charts
+      showFinancialSummary: v.boolean(), // Show financial summary
+      showOutstandingBalances: v.boolean(), // Show outstanding balances
+      showUtilityAnalytics: v.boolean(), // Show utility analytics
+      showRecentProperties: v.boolean(), // Show recent properties table
+      showQuickActions: v.boolean(), // Show quick action cards
+    })),
+    notificationPreferences: v.optional(v.object({
+      emailNotifications: v.boolean(),
+      pushNotifications: v.boolean(),
+      leaseExpirationAlerts: v.boolean(),
+      paymentReminders: v.boolean(),
+    })),
+    displayPreferences: v.optional(v.object({
+      dateFormat: v.union(v.literal("MM/DD/YYYY"), v.literal("DD/MM/YYYY"), v.literal("YYYY-MM-DD")),
+      currency: v.string(), // USD, EUR, etc.
+      timezone: v.string(), // Timezone identifier
+      language: v.string(), // Language code
+    })),
+    createdAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"]),
 }); 

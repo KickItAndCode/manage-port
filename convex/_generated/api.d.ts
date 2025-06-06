@@ -24,6 +24,7 @@ import type * as propertyImages from "../propertyImages.js";
 import type * as storage from "../storage.js";
 import type * as tenantUtilityCharges from "../tenantUtilityCharges.js";
 import type * as units from "../units.js";
+import type * as userSettings from "../userSettings.js";
 import type * as utilityBills from "../utilityBills.js";
 import type * as utilityPayments from "../utilityPayments.js";
 
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   storage: typeof storage;
   tenantUtilityCharges: typeof tenantUtilityCharges;
   units: typeof units;
+  userSettings: typeof userSettings;
   utilityBills: typeof utilityBills;
   utilityPayments: typeof utilityPayments;
 }>;

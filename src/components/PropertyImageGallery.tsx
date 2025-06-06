@@ -204,6 +204,31 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
     setSelectedImages(new Set());
   };
 
+  const handleBulkDelete = async () => {
+    if (!user || selectedImages.size === 0) return;
+    
+    const selectedCount = selectedImages.size;
+    if (!confirm(`Delete ${selectedCount} image${selectedCount !== 1 ? 's' : ''}? This action cannot be undone.`)) {
+      return;
+    }
+    
+    try {
+      const deletePromises = Array.from(selectedImages).map(imageId => 
+        deletePropertyImage({ userId: user.id, imageId: imageId as any })
+      );
+      
+      await Promise.all(deletePromises);
+      
+      // Clear selection after successful deletion
+      setSelectedImages(new Set());
+      
+      toast.success(`Successfully deleted ${selectedCount} image${selectedCount !== 1 ? 's' : ''}`);
+    } catch (error) {
+      console.error("Error deleting images:", error);
+      toast.error(formatErrorForToast(error));
+    }
+  };
+
   const navigateCarousel = useCallback((direction: 'prev' | 'next') => {
     if (!images) return;
     
@@ -294,39 +319,56 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
   return (
     <div className={cn("space-y-4", className)}>
       {/* Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-muted-foreground">View:</span>
-          <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
-            <Button
-              size="sm"
-              variant={viewMode === "grid" ? "default" : "ghost"}
-              onClick={() => setViewMode("grid")}
-              className="gap-2"
-            >
-              <Grid3X3 className="h-4 w-4" />
-              Grid
-            </Button>
-            <Button
-              size="sm"
-              variant={viewMode === "carousel" ? "default" : "ghost"}
-              onClick={() => setViewMode("carousel")}
-              className="gap-2"
-            >
-              <ImageIcon className="h-4 w-4" />
-              Carousel
-            </Button>
+      <div className="space-y-3">
+        {/* Top Row - View Mode Toggle */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-sm font-medium text-muted-foreground">View:</span>
+            <div className="flex items-center gap-1 p-1 bg-muted rounded-lg">
+              <Button
+                size="sm"
+                variant={viewMode === "grid" ? "default" : "ghost"}
+                onClick={() => setViewMode("grid")}
+                className="gap-2"
+              >
+                <Grid3X3 className="h-4 w-4" />
+                Grid
+              </Button>
+              <Button
+                size="sm"
+                variant={viewMode === "carousel" ? "default" : "ghost"}
+                onClick={() => setViewMode("carousel")}
+                className="gap-2"
+              >
+                <ImageIcon className="h-4 w-4" />
+                Carousel
+              </Button>
+            </div>
           </div>
+
+          <Button 
+            size="sm" 
+            variant="outline" 
+            onClick={selectAllImages}
+            className="gap-2"
+          >
+            <Check className="h-4 w-4" />
+            Select All
+          </Button>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
-          {selectedImages.size > 0 && (
-            <>
+        {/* Bottom Row - Selection Actions (only shown when images are selected) */}
+        {selectedImages.size > 0 && (
+          <div className="flex items-center justify-between gap-4 p-3 bg-muted/30 rounded-lg border">
+            <div className="flex items-center gap-2">
               <div className="flex items-center gap-2 px-3 py-1 bg-primary/10 rounded-lg">
                 <span className="text-sm font-medium text-primary">
                   {selectedImages.size} selected
                 </span>
               </div>
+            </div>
+            
+            <div className="flex items-center gap-2">
               <Button
                 size="sm"
                 variant="outline"
@@ -341,6 +383,15 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                 )}
                 Download
               </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={handleBulkDelete}
+                className="gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
               <Button 
                 size="sm" 
                 variant="outline" 
@@ -350,46 +401,68 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                 <X className="h-4 w-4" />
                 Clear
               </Button>
-            </>
-          )}
-          <Button 
-            size="sm" 
-            variant="outline" 
-            onClick={selectAllImages}
-            className="gap-2"
-          >
-            <Check className="h-4 w-4" />
-            Select All
-          </Button>
-        </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {viewMode === "grid" ? (
         /* Grid View */
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
           {images.map((image, index) => (
-            <Card key={image._id} className="group overflow-hidden">
+            <Card 
+              key={image._id} 
+              className={cn(
+                "group overflow-hidden transition-all duration-300 hover:shadow-xl",
+                selectedImages.has(image._id) 
+                  ? "ring-4 ring-primary ring-offset-2 shadow-2xl scale-[1.02] bg-primary/5" 
+                  : "hover:shadow-lg hover:scale-[1.01]"
+              )}
+            >
               <CardContent className="p-0">
                 <div className="relative">
                   <PropertyImage
                     storageId={image.storageId}
                     alt={image.name}
-                    className="w-full h-52 sm:h-48 md:h-52 object-cover cursor-pointer"
+                    className={cn(
+                      "w-full h-52 sm:h-48 md:h-52 object-cover cursor-pointer transition-all duration-300",
+                      selectedImages.has(image._id) && "brightness-110"
+                    )}
                     onClick={() => {
                       setSelectedImageIndex(index);
                       setFullscreenOpen(true);
                     }}
                   />
                   
-                  {/* Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300">
+                  {/* Selection Overlay */}
+                  {selectedImages.has(image._id) && (
+                    <div className="absolute inset-0 bg-primary/20 border-4 border-primary animate-in fade-in-0 duration-300" />
+                  )}
+                  
+                  {/* Hover Overlay */}
+                  <div className={cn(
+                    "absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 transition-all duration-300",
+                    selectedImages.has(image._id) ? "opacity-90" : "opacity-0 group-hover:opacity-100"
+                  )}>
                     {/* Selection Checkbox */}
                     <div className="absolute top-3 left-3">
-                      <Checkbox
-                        checked={selectedImages.has(image._id)}
-                        onCheckedChange={() => toggleImageSelection(image._id)}
-                        className="bg-white/90 border-2 border-white shadow-lg backdrop-blur-sm"
-                      />
+                      <div className={cn(
+                        "p-1 rounded-lg transition-all duration-200",
+                        selectedImages.has(image._id) 
+                          ? "bg-primary shadow-lg scale-110" 
+                          : "bg-white/90 shadow-lg backdrop-blur-sm"
+                      )}>
+                        <Checkbox
+                          checked={selectedImages.has(image._id)}
+                          onCheckedChange={() => toggleImageSelection(image._id)}
+                          className={cn(
+                            "border-2 transition-all duration-200",
+                            selectedImages.has(image._id)
+                              ? "bg-white border-white text-primary data-[state=checked]:bg-white data-[state=checked]:text-primary"
+                              : "bg-white/90 border-white"
+                          )}
+                        />
+                      </div>
                     </div>
                     
                     {/* Cover Badge */}
@@ -456,12 +529,28 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                   </div>
                 </div>
                 
-                <div className="p-3">
-                  <p className="font-medium text-sm truncate">{image.name}</p>
+                <div className={cn(
+                  "p-3 transition-all duration-300",
+                  selectedImages.has(image._id) 
+                    ? "bg-primary/10 border-t-2 border-primary" 
+                    : "bg-background"
+                )}>
+                  <p className={cn(
+                    "font-medium text-sm truncate transition-colors duration-300",
+                    selectedImages.has(image._id) ? "text-primary" : "text-foreground"
+                  )}>
+                    {image.name}
+                  </p>
                   {image.description && (
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-xs text-muted-foreground truncate mt-1">
                       {image.description}
                     </p>
+                  )}
+                  {selectedImages.has(image._id) && (
+                    <div className="flex items-center gap-1 mt-2">
+                      <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                      <span className="text-xs font-medium text-primary">Selected</span>
+                    </div>
                   )}
                 </div>
               </CardContent>
@@ -484,21 +573,38 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
                   
                   {/* Selection Overlay for Active Image */}
                   <div className={cn(
-                    "absolute inset-0 border-4 transition-all duration-300",
+                    "absolute inset-0 transition-all duration-300",
                     selectedImages.has(images[selectedImageIndex]._id) 
-                      ? "border-primary bg-primary/20" 
+                      ? "border-4 border-primary bg-primary/20 shadow-inner" 
                       : "border-transparent"
                   )} />
+                  
+                  {/* Selected Image Glow Effect */}
+                  {selectedImages.has(images[selectedImageIndex]._id) && (
+                    <div className="absolute -inset-2 bg-primary/30 rounded-lg blur-lg -z-10 animate-pulse" />
+                  )}
                   
                   {/* Main Image Controls */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/60 opacity-0 group-hover:opacity-100 transition-all duration-300">
                     {/* Selection Checkbox */}
                     <div className="absolute top-4 left-4">
-                      <Checkbox
-                        checked={selectedImages.has(images[selectedImageIndex]._id)}
-                        onCheckedChange={() => toggleImageSelection(images[selectedImageIndex]._id)}
-                        className="bg-white/90 border-2 border-white shadow-lg backdrop-blur-sm scale-125"
-                      />
+                      <div className={cn(
+                        "p-2 rounded-lg transition-all duration-200",
+                        selectedImages.has(images[selectedImageIndex]._id) 
+                          ? "bg-primary shadow-xl scale-125" 
+                          : "bg-white/90 shadow-lg backdrop-blur-sm"
+                      )}>
+                        <Checkbox
+                          checked={selectedImages.has(images[selectedImageIndex]._id)}
+                          onCheckedChange={() => toggleImageSelection(images[selectedImageIndex]._id)}
+                          className={cn(
+                            "border-2 transition-all duration-200 scale-125",
+                            selectedImages.has(images[selectedImageIndex]._id)
+                              ? "bg-white border-white text-primary data-[state=checked]:bg-white data-[state=checked]:text-primary"
+                              : "bg-white/90 border-white"
+                          )}
+                        />
+                      </div>
                     </div>
                     
                     {/* Cover Badge */}

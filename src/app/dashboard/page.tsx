@@ -15,7 +15,6 @@ import DocumentUploadForm from "@/components/DocumentUploadForm";
 import { UtilityBillForm } from "@/components/UtilityBillForm";
 import { OutstandingBalances } from "@/components/OutstandingBalances";
 import { UtilityAnalytics } from "@/components/UtilityAnalytics";
-import { QuickCleanup } from "@/components/QuickCleanup";
 import { UtilityResponsibilityModal } from "@/components/UtilityResponsibilityModal";
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
@@ -38,6 +37,11 @@ export default function DashboardPage() {
     userId: user?.id ?? "" 
   });
   
+  // Get user settings for component visibility
+  const userSettings = useQuery(api.userSettings.getUserSettings, 
+    user ? { userId: user.id } : "skip"
+  );
+  
   // Modal states
   const [propertyModalOpen, setPropertyModalOpen] = useState(false);
   const [leaseModalOpen, setLeaseModalOpen] = useState(false);
@@ -58,7 +62,7 @@ export default function DashboardPage() {
   // Check if user has no properties
   const hasNoProperties = properties && properties.length === 0;
 
-  if (!user || !metrics) {
+  if (!user || !metrics || !userSettings) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="space-y-3">
@@ -145,16 +149,9 @@ export default function DashboardPage() {
           </div>
         </header>
 
-        {/* Temporary Cleanup Tool */}
-        <div className="mb-6 p-4 bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-800 rounded-lg">
-          <p className="text-sm text-orange-800 dark:text-orange-200 mb-2">
-            <strong>One-time cleanup:</strong> Remove duplicate lease documents from your account
-          </p>
-          <QuickCleanup />
-        </div>
 
       {/* Stat Cards - only show if user has properties */}
-      {!hasNoProperties && (
+      {!hasNoProperties && userSettings.dashboardComponents.showMetrics && (
         <section className="mb-6 sm:mb-8" aria-labelledby="stats-heading">
           <h2 id="stats-heading" className="sr-only">Portfolio Statistics</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -183,73 +180,78 @@ export default function DashboardPage() {
       )}
 
       {/* Quick Actions */}
-      <section className="mb-6 sm:mb-8">
-        <Card className="p-4 sm:p-6">
-          <div className="flex items-center gap-2 mb-4">
-            <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
-            {hasNoProperties && (
-              <div className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full animate-pulse">
-                <Sparkles className="h-3 w-3" />
-                <span>Start here!</span>
-              </div>
-            )}
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-            <button 
-              onClick={() => setPropertyModalOpen(true)}
-              className={cn(
-                "flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30",
-                hasNoProperties && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+      {userSettings.dashboardComponents.showQuickActions && (
+        <section className="mb-6 sm:mb-8">
+          <Card className="p-4 sm:p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
+              {hasNoProperties && (
+                <div className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full animate-pulse">
+                  <Sparkles className="h-3 w-3" />
+                  <span>Start here!</span>
+                </div>
               )}
-            >
-              <Building2 className="h-6 w-6 text-primary" />
-              <span className="text-sm font-medium">Add Property</span>
-            </button>
-            <button 
-              onClick={() => setLeaseModalOpen(true)}
-              className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
-            >
-              <Users className="h-6 w-6 text-primary" />
-              <span className="text-sm font-medium">New Lease</span>
-            </button>
-            <button 
-              onClick={() => setUtilityBillModalOpen(true)}
-              className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
-            >
-              <Receipt className="h-6 w-6 text-primary" />
-              <span className="text-sm font-medium">Add Bill</span>
-            </button>
-            <button 
-              onClick={() => setUtilityResponsibilityModalOpen(true)}
-              className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
-              disabled={!properties || properties.length === 0}
-            >
-              <Percent className="h-6 w-6 text-primary" />
-              <span className="text-sm font-medium">Utility Split</span>
-            </button>
-            <button 
-              onClick={() => setDocumentModalOpen(true)}
-              className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
-            >
-              <DollarSign className="h-6 w-6 text-primary" />
-              <span className="text-sm font-medium">Upload Docs</span>
-            </button>
-          </div>
-        </Card>
-      </section>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+              <button 
+                onClick={() => setPropertyModalOpen(true)}
+                className={cn(
+                  "flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30",
+                  hasNoProperties && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                )}
+              >
+                <Building2 className="h-6 w-6 text-primary" />
+                <span className="text-sm font-medium">Add Property</span>
+              </button>
+              <button 
+                onClick={() => setLeaseModalOpen(true)}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+              >
+                <Users className="h-6 w-6 text-primary" />
+                <span className="text-sm font-medium">New Lease</span>
+              </button>
+              <button 
+                onClick={() => setUtilityBillModalOpen(true)}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+              >
+                <Receipt className="h-6 w-6 text-primary" />
+                <span className="text-sm font-medium">Add Bill</span>
+              </button>
+              <button 
+                onClick={() => setUtilityResponsibilityModalOpen(true)}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                disabled={!properties || properties.length === 0}
+              >
+                <Percent className="h-6 w-6 text-primary" />
+                <span className="text-sm font-medium">Utility Split</span>
+              </button>
+              <button 
+                onClick={() => setDocumentModalOpen(true)}
+                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+              >
+                <DollarSign className="h-6 w-6 text-primary" />
+                <span className="text-sm font-medium">Upload Docs</span>
+              </button>
+            </div>
+          </Card>
+        </section>
+      )}
 
       {/* All dashboard content below - only show if user has properties */}
       {!hasNoProperties && (
         <>
           {/* Outstanding Balances */}
-          <section className="mb-6 sm:mb-8">
-            <OutstandingBalances userId={user.id} />
-          </section>
+          {userSettings.dashboardComponents.showOutstandingBalances && (
+            <section className="mb-6 sm:mb-8">
+              <OutstandingBalances userId={user.id} />
+            </section>
+          )}
 
           {/* Charts Grid */}
-          <section className="mb-6 sm:mb-8" aria-labelledby="charts-heading">
-            <h2 id="charts-heading" className="sr-only">Analytics Charts</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+          {userSettings.dashboardComponents.showCharts && (
+            <section className="mb-6 sm:mb-8" aria-labelledby="charts-heading">
+              <h2 id="charts-heading" className="sr-only">Analytics Charts</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* Monthly Revenue Trend */}
               <Card className="p-4 sm:p-6">
                 <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
@@ -323,98 +325,108 @@ export default function DashboardPage() {
                   </ResponsiveContainer>
                 </div>
               </Card>
-            </div>
-          </section>
+              </div>
+            </section>
+          )}
 
           {/* Additional Charts */}
-          <section className="mb-6 sm:mb-8" aria-labelledby="additional-charts-heading">
-            <h2 id="additional-charts-heading" className="sr-only">Additional Analytics</h2>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-              {/* Properties by Status */}
-              <Card className="p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" aria-hidden="true" />
-                  Properties by Status
-                </h3>
-                <div className="h-[250px] sm:h-[300px]" role="img" aria-label="Bar chart showing properties grouped by status">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={statusData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="name" 
-                        fontSize={12}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis 
-                        fontSize={12}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'var(--background)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '6px'
-                        }}
-                      />
-                      <Bar dataKey="value" fill="#8b5cf6" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </Card>
+          {(userSettings.dashboardComponents.showCharts || userSettings.dashboardComponents.showFinancialSummary) && (
+            <section className="mb-6 sm:mb-8" aria-labelledby="additional-charts-heading">
+              <h2 id="additional-charts-heading" className="sr-only">Additional Analytics</h2>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                {/* Properties by Status */}
+                {userSettings.dashboardComponents.showCharts && (
+                  <Card className="p-4 sm:p-6">
+                    <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" aria-hidden="true" />
+                      Properties by Status
+                    </h3>
+                    <div className="h-[250px] sm:h-[300px]" role="img" aria-label="Bar chart showing properties grouped by status">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={statusData}>
+                          <CartesianGrid strokeDasharray="3 3" />
+                          <XAxis 
+                            dataKey="name" 
+                            fontSize={12}
+                            tick={{ fontSize: 12 }}
+                          />
+                          <YAxis 
+                            fontSize={12}
+                            tick={{ fontSize: 12 }}
+                          />
+                          <Tooltip 
+                            contentStyle={{ 
+                              backgroundColor: 'var(--background)',
+                              border: '1px solid var(--border)',
+                              borderRadius: '6px'
+                            }}
+                          />
+                          <Bar dataKey="value" fill="#8b5cf6" />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
+                  </Card>
+                )}
 
-              {/* Financial Summary */}
-              <Card className="p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
-                  <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" aria-hidden="true" />
-                  Financial Summary
-                </h3>
-                <div className="space-y-3 sm:space-y-4">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-green-50 dark:bg-green-950/20 rounded-lg gap-2 sm:gap-0">
-                    <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Rental Income</span>
-                    <span className="font-semibold text-green-700 dark:text-green-400 text-base sm:text-lg">
-                      ${metrics.totalMonthlyRent.toLocaleString()}
-                    </span>
-                  </div>
-                  {metrics.totalMonthlyMortgage > 0 && (
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg gap-2 sm:gap-0">
-                      <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Mortgage</span>
-                      <span className="font-semibold text-orange-700 dark:text-orange-400 text-base sm:text-lg">
-                        -${metrics.totalMonthlyMortgage.toLocaleString()}
-                      </span>
+                {/* Financial Summary */}
+                {userSettings.dashboardComponents.showFinancialSummary && (
+                  <Card className="p-4 sm:p-6">
+                    <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+                      <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" aria-hidden="true" />
+                      Financial Summary
+                    </h3>
+                    <div className="space-y-3 sm:space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-green-50 dark:bg-green-950/20 rounded-lg gap-2 sm:gap-0">
+                        <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Rental Income</span>
+                        <span className="font-semibold text-green-700 dark:text-green-400 text-base sm:text-lg">
+                          ${metrics.totalMonthlyRent.toLocaleString()}
+                        </span>
+                      </div>
+                      {metrics.totalMonthlyMortgage > 0 && (
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg gap-2 sm:gap-0">
+                          <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Mortgage</span>
+                          <span className="font-semibold text-orange-700 dark:text-orange-400 text-base sm:text-lg">
+                            -${metrics.totalMonthlyMortgage.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-red-50 dark:bg-red-950/20 rounded-lg gap-2 sm:gap-0">
+                        <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Utility Costs</span>
+                        <span className="font-semibold text-red-700 dark:text-red-400 text-base sm:text-lg">
+                          -${metrics.totalUtilityCost.toLocaleString()}
+                        </span>
+                      </div>
+                      {metrics.totalMonthlyCapEx > 0 && (
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg gap-2 sm:gap-0">
+                          <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">CapEx Reserve (10%)</span>
+                          <span className="font-semibold text-amber-700 dark:text-amber-400 text-base sm:text-lg">
+                            -${metrics.totalMonthlyCapEx.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg gap-2 sm:gap-0 border-t-2 border-blue-200 dark:border-blue-800">
+                        <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base font-medium">Net Monthly Income</span>
+                        <span className="font-semibold text-blue-700 dark:text-blue-400 text-base sm:text-lg">
+                          ${(metrics.totalMonthlyRent - metrics.totalUtilityCost - metrics.totalMonthlyMortgage - metrics.totalMonthlyCapEx).toLocaleString()}
+                        </span>
+                      </div>
                     </div>
-                  )}
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-red-50 dark:bg-red-950/20 rounded-lg gap-2 sm:gap-0">
-                    <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Utility Costs</span>
-                    <span className="font-semibold text-red-700 dark:text-red-400 text-base sm:text-lg">
-                      -${metrics.totalUtilityCost.toLocaleString()}
-                    </span>
-                  </div>
-                  {metrics.totalMonthlyCapEx > 0 && (
-                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg gap-2 sm:gap-0">
-                      <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">CapEx Reserve (10%)</span>
-                      <span className="font-semibold text-amber-700 dark:text-amber-400 text-base sm:text-lg">
-                        -${metrics.totalMonthlyCapEx.toLocaleString()}
-                      </span>
-                    </div>
-                  )}
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg gap-2 sm:gap-0 border-t-2 border-blue-200 dark:border-blue-800">
-                    <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base font-medium">Net Monthly Income</span>
-                    <span className="font-semibold text-blue-700 dark:text-blue-400 text-base sm:text-lg">
-                      ${(metrics.totalMonthlyRent - metrics.totalUtilityCost - metrics.totalMonthlyMortgage - metrics.totalMonthlyCapEx).toLocaleString()}
-                    </span>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </section>
+                  </Card>
+                )}
+              </div>
+            </section>
+          )}
 
           {/* Utility Analytics */}
-          <section className="mb-6 sm:mb-8">
-            <UtilityAnalytics userId={user.id} />
-          </section>
+          {userSettings.dashboardComponents.showUtilityAnalytics && (
+            <section className="mb-6 sm:mb-8">
+              <UtilityAnalytics userId={user.id} />
+            </section>
+          )}
 
           {/* Recent Properties */}
-          <section aria-labelledby="recent-properties-heading">
+          {userSettings.dashboardComponents.showRecentProperties && (
+            <section aria-labelledby="recent-properties-heading">
             <Card className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
                 <h3 id="recent-properties-heading" className="text-base sm:text-lg font-semibold flex items-center gap-2">
@@ -481,7 +493,8 @@ export default function DashboardPage() {
                 </table>
               </div>
             </Card>
-          </section>
+            </section>
+          )}
         </>
       )}
       
