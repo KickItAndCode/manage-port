@@ -602,19 +602,12 @@ export default function PropertyDetailsPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    {getDisplayedLeases().map((lease: any, index: number) => (
+                    {/* Active Leases */}
+                    {getActiveLeases().map((lease: any) => (
                       <div 
                         key={lease._id} 
-                        className={`border rounded-lg p-4 transition-all duration-300 ${
-                          lease.status === 'active' 
-                            ? 'border-l-4 border-l-green-500 bg-green-50/30 dark:bg-green-950/10' 
-                            : lease.status === 'expired' && showExpiredLeases 
-                            ? 'animate-in fade-in-0 slide-in-from-bottom-2 border-muted-foreground/30 bg-muted/20' 
-                            : ''
-                        }`}
-                        style={{
-                          animationDelay: lease.status === 'expired' ? `${index * 50}ms` : '0ms'
-                        }}>
+                        className="border rounded-lg p-4 border-l-4 border-l-green-500 bg-green-50/30 dark:bg-green-950/10"
+                      >
                         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0 sm:mb-2">
                           <div>
                             <div className="flex items-center gap-3">
@@ -627,11 +620,9 @@ export default function PropertyDetailsPage() {
                             </div>
                             <div className="flex items-center gap-2 mt-1">
                               {getLeaseStatusBadge(lease.status, lease.endDate)}
-                              {lease.status === 'active' && (
-                                <Badge variant="default" className="bg-green-600 text-xs">
-                                  Current Tenant
-                                </Badge>
-                              )}
+                              <Badge variant="default" className="bg-green-600 text-xs">
+                                Current Tenant
+                              </Badge>
                             </div>
                           </div>
                           <div className="text-left sm:text-right">
@@ -672,7 +663,7 @@ export default function PropertyDetailsPage() {
                           </div>
                         )}
                         {/* Contact buttons for active leases */}
-                        {lease.status === 'active' && (lease.tenantEmail || lease.tenantPhone) && (
+                        {(lease.tenantEmail || lease.tenantPhone) && (
                           <div className="mt-3 pt-3 border-t flex gap-2">
                             {lease.tenantEmail && (
                               <Button size="sm" variant="outline" className="gap-2" asChild>
@@ -694,6 +685,141 @@ export default function PropertyDetailsPage() {
                         )}
                       </div>
                     ))}
+
+                    {/* Non-Active Leases (pending, etc.) */}
+                    {leases?.filter((lease: any) => lease.status !== "active" && lease.status !== "expired").map((lease: any) => (
+                      <div 
+                        key={lease._id} 
+                        className="border rounded-lg p-4"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0 sm:mb-2">
+                          <div>
+                            <div className="flex items-center gap-3">
+                              <h4 className="font-semibold">{lease.tenantName}</h4>
+                              {lease.unit && (
+                                <Badge variant="outline" className="text-xs">
+                                  Unit {lease.unit.unitIdentifier}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 mt-1">
+                              {getLeaseStatusBadge(lease.status, lease.endDate)}
+                            </div>
+                          </div>
+                          <div className="text-left sm:text-right">
+                            <div className="font-semibold">${lease.rent?.toLocaleString()}/mo</div>
+                            <div className="text-sm text-muted-foreground">
+                              {formatDate(lease.startDate)} - {formatDate(lease.endDate)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm text-muted-foreground">
+                          {lease.tenantEmail && (
+                            <div className="flex items-center">
+                              <Mail className="w-3 h-3 mr-1" />
+                              {lease.tenantEmail}
+                            </div>
+                          )}
+                          {lease.tenantPhone && (
+                            <div className="flex items-center">
+                              <Phone className="w-3 h-3 mr-1" />
+                              {lease.tenantPhone}
+                            </div>
+                          )}
+                          {lease.leaseDocumentUrl && (
+                            <a 
+                              href={lease.leaseDocumentUrl} 
+                              target="_blank" 
+                              rel="noopener noreferrer" 
+                              className="flex items-center text-primary hover:underline"
+                            >
+                              <ExternalLink className="w-3 h-3 mr-1" />
+                              Lease Document
+                            </a>
+                          )}
+                        </div>
+                        {lease.notes && (
+                          <div className="mt-2 text-sm text-muted-foreground">
+                            <strong>Notes:</strong> {lease.notes}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+
+                    {/* Expired Leases Section */}
+                    {showExpiredLeases && getExpiredLeases().length > 0 && (
+                      <div className="mt-6 pt-6 border-t border-muted-foreground/20">
+                        <div className="flex items-center gap-2 mb-4">
+                          <Archive className="w-4 h-4 text-muted-foreground" />
+                          <h4 className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
+                            Past Tenants ({getExpiredLeases().length})
+                          </h4>
+                        </div>
+                        <div className="space-y-3">
+                          {getExpiredLeases().map((lease: any, index: number) => (
+                            <div 
+                              key={lease._id} 
+                              className="border rounded-lg p-4 border-muted-foreground/30 bg-muted/20 animate-in fade-in-0 slide-in-from-bottom-2"
+                              style={{
+                                animationDelay: `${index * 50}ms`
+                              }}
+                            >
+                              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 sm:gap-0 sm:mb-2">
+                                <div>
+                                  <div className="flex items-center gap-3">
+                                    <h4 className="font-semibold">{lease.tenantName}</h4>
+                                    {lease.unit && (
+                                      <Badge variant="outline" className="text-xs">
+                                        Unit {lease.unit.unitIdentifier}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <div className="flex items-center gap-2 mt-1">
+                                    {getLeaseStatusBadge(lease.status, lease.endDate)}
+                                  </div>
+                                </div>
+                                <div className="text-left sm:text-right">
+                                  <div className="font-semibold">${lease.rent?.toLocaleString()}/mo</div>
+                                  <div className="text-sm text-muted-foreground">
+                                    {formatDate(lease.startDate)} - {formatDate(lease.endDate)}
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 text-sm text-muted-foreground">
+                                {lease.tenantEmail && (
+                                  <div className="flex items-center">
+                                    <Mail className="w-3 h-3 mr-1" />
+                                    {lease.tenantEmail}
+                                  </div>
+                                )}
+                                {lease.tenantPhone && (
+                                  <div className="flex items-center">
+                                    <Phone className="w-3 h-3 mr-1" />
+                                    {lease.tenantPhone}
+                                  </div>
+                                )}
+                                {lease.leaseDocumentUrl && (
+                                  <a 
+                                    href={lease.leaseDocumentUrl} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer" 
+                                    className="flex items-center text-primary hover:underline"
+                                  >
+                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                    Lease Document
+                                  </a>
+                                )}
+                              </div>
+                              {lease.notes && (
+                                <div className="mt-2 text-sm text-muted-foreground">
+                                  <strong>Notes:</strong> {lease.notes}
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </CardContent>

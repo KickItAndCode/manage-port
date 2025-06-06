@@ -21,7 +21,10 @@ import {
   AlertCircle,
   Folder,
   Clock,
-  X
+  X,
+  Eye,
+  Settings,
+  MoreHorizontal
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -29,6 +32,13 @@ import { DocumentViewer } from "@/components/DocumentViewer";
 import { DocumentForm } from "@/components/DocumentForm";
 import DocumentUploadForm from "@/components/DocumentUploadForm";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 // Document type icons
 const typeIcons: Record<string, any> = {
@@ -53,7 +63,7 @@ export default function DocumentsPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<any>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
   // Queries - Use new functions that handle auth automatically
@@ -86,8 +96,59 @@ export default function DocumentsPage() {
 
   // Mutations
   const deleteDocument = useMutation(api.documents.deleteDocument);
+  const bulkDeleteDocuments = useMutation(api.documents.bulkDeleteDocuments);
 
 
+
+  // Selection functions
+  const toggleSelectDocument = (docId: string) => {
+    const newSelected = new Set(selectedDocuments);
+    if (newSelected.has(docId)) {
+      newSelected.delete(docId);
+    } else {
+      newSelected.add(docId);
+    }
+    setSelectedDocuments(newSelected);
+  };
+
+  const selectAllDocuments = () => {
+    if (!documents) return;
+    const allDocIds = new Set(documents.map((doc: any) => doc._id));
+    setSelectedDocuments(allDocIds);
+  };
+
+  const clearSelection = () => {
+    setSelectedDocuments(new Set());
+  };
+
+  const handleBulkDelete = async () => {
+    if (!user || selectedDocuments.size === 0) return;
+    
+    const selectedCount = selectedDocuments.size;
+    const confirmed = await confirm({
+      title: "Delete Documents",
+      description: `Delete ${selectedCount} document${selectedCount !== 1 ? 's' : ''}? This action cannot be undone.`,
+      variant: "destructive",
+    });
+
+    if (confirmed) {
+      try {
+        const result = await bulkDeleteDocuments({
+          documentIds: Array.from(selectedDocuments) as any,
+          userId: user.id,
+        });
+        
+        toast.success(`Successfully deleted ${result.success} document${result.success !== 1 ? 's' : ''}`, {
+          description: result.failed > 0 ? `${result.failed} document${result.failed !== 1 ? 's' : ''} could not be deleted` : undefined
+        });
+        
+        clearSelection();
+      } catch (err: any) {
+        console.error("Bulk delete error:", err);
+        toast.error(formatErrorForToast(err));
+      }
+    }
+  };
 
   const formatFileSize = (bytes?: number) => {
     if (!bytes) return "Unknown size";
@@ -267,25 +328,6 @@ export default function DocumentsPage() {
               )}
             </div>
 
-            {/* View Toggle */}
-            <div className="flex gap-1 border rounded-md p-1">
-              <Button
-                size="sm"
-                variant={viewMode === "grid" ? "default" : "ghost"}
-                onClick={() => setViewMode("grid")}
-                className="px-2"
-              >
-                Grid
-              </Button>
-              <Button
-                size="sm"
-                variant={viewMode === "list" ? "default" : "ghost"}
-                onClick={() => setViewMode("list")}
-                className="px-2"
-              >
-                List
-              </Button>
-            </div>
           </div>
 
           {/* Selected Tags */}
@@ -312,7 +354,54 @@ export default function DocumentsPage() {
         </CardContent>
       </Card>
 
-      {/* Documents Grid/List */}
+      {/* Floating Bulk Actions Toolbar */}
+      {selectedDocuments.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-2">
+          <Card className="shadow-lg border-primary/20 bg-card/95 backdrop-blur-sm">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
+                  <span className="text-sm font-medium">
+                    {selectedDocuments.size} document{selectedDocuments.size !== 1 ? 's' : ''} selected
+                  </span>
+                </div>
+                
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={selectAllDocuments}
+                    disabled={documents && selectedDocuments.size === documents.length}
+                  >
+                    Select All ({documents?.length || 0})
+                  </Button>
+                  
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={clearSelection}
+                  >
+                    Clear Selection
+                  </Button>
+                  
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={handleBulkDelete}
+                    className="gap-2"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Documents List */}
       {documents === undefined ? (
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
@@ -336,152 +425,63 @@ export default function DocumentsPage() {
             </div>
           </CardContent>
         </Card>
-      ) : viewMode === "grid" ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {documents.map((doc: any) => {
-            const Icon = typeIcons[doc.type] || FileText;
-            const property = properties?.find((p: any) => p._id === doc.propertyId);
-            
-            return (
-              <Card key={doc._id} className="group hover:shadow-lg transition-shadow h-full flex flex-col">
-                <CardContent className="p-4 flex flex-col h-full">
-                  <div className="flex items-start justify-between mb-3">
-                    <div className={cn(
-                      "p-3 rounded-lg",
-                      doc.type === "lease" && "bg-blue-100 dark:bg-blue-900/20",
-                      doc.type === "insurance" && "bg-green-100 dark:bg-green-900/20",
-                      doc.type === "tax" && "bg-purple-100 dark:bg-purple-900/20",
-                      doc.type === "maintenance" && "bg-orange-100 dark:bg-orange-900/20",
-                      (!doc.type || doc.type === "other") && "bg-gray-100 dark:bg-gray-900/20"
-                    )}>
-                      <Icon className="h-6 w-6" />
-                    </div>
-                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingDoc(doc)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <h3 className="font-medium mb-1 truncate">{doc.name}</h3>
-                  
-                  {property && (
-                    <p className="text-sm text-muted-foreground mb-2">
-                      {property.name}
-                    </p>
-                  )}
-                  
-                  <div className="flex-1 space-y-2">
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Type</span>
-                      <Badge variant="outline" className="text-xs">
-                        {doc.type}
-                      </Badge>
-                    </div>
-                    
-                    {doc.category && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Category</span>
-                        <Badge variant="secondary" className="text-xs">
-                          {doc.category}
-                        </Badge>
-                      </div>
-                    )}
-                    
-                    {doc.expiryDate && (
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-muted-foreground">Expires</span>
-                        <span className="text-xs">
-                          {format(new Date(doc.expiryDate), "MMM d, yyyy")}
-                        </span>
-                      </div>
-                    )}
-                    
-                    <div className="flex items-center justify-between text-sm">
-                      <span className="text-muted-foreground">Size</span>
-                      <span className="text-xs">{doc.fileSize ? formatFileSize(doc.fileSize) : "N/A"}</span>
-                    </div>
-                  </div>
-                  
-                  {doc.tags && doc.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-3">
-                      {doc.tags.map((tag: string) => (
-                        <Badge
-                          key={tag}
-                          variant="outline"
-                          className="text-xs cursor-pointer"
-                          onClick={() => {
-                            if (!selectedTags.includes(tag)) {
-                              setSelectedTags([...selectedTags, tag]);
-                            }
-                          }}
-                        >
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-                  
-                  <div className="flex gap-2 mt-auto pt-4">
-                    <DocumentViewer
-                      storageId={doc.storageId || doc.url}
-                      fileName={doc.name}
-                      className="flex-1"
-                    />
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
-                      onClick={() => {
-                        confirm({
-                          title: "Delete Document",
-                          description: `Delete "${doc.name}"? This action cannot be undone.`,
-                          variant: "destructive",
-                          onConfirm: async () => {
-                            try {
-                              await deleteDocument({ id: doc._id, userId: user.id });
-                            } catch (err: any) {
-                              console.error("Delete document error:", err);
-                              toast.error(formatErrorForToast(err));
-                            }
-                          }
-                        });
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            );
-          })}
-        </div>
       ) : (
-        // List View
         <Card>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[600px]">
               <thead>
                 <tr className="border-b">
+                  <th className="text-left p-2 sm:p-4 w-12">
+                    <div className="w-5 h-5 rounded border-2 border-input bg-background flex items-center justify-center">
+                      <input
+                        type="checkbox"
+                        checked={documents && selectedDocuments.size === documents.length && documents.length > 0}
+                        onChange={() => {
+                          if (selectedDocuments.size === documents?.length) {
+                            clearSelection();
+                          } else {
+                            selectAllDocuments();
+                          }
+                        }}
+                        className="w-3 h-3 rounded-sm border-0 bg-transparent"
+                      />
+                    </div>
+                  </th>
                   <th className="text-left p-2 sm:p-4">Name</th>
                   <th className="text-left p-2 sm:p-4">Type</th>
                   <th className="text-left p-2 sm:p-4">Property</th>
                   <th className="text-left p-2 sm:p-4">Size</th>
                   <th className="text-left p-2 sm:p-4">Uploaded</th>
-                  <th className="text-left p-2 sm:p-4">Actions</th>
+                  <th className="text-center p-2 sm:p-4 w-16">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {documents.map((doc: any) => {
                   const property = properties?.find((p: any) => p._id === doc.propertyId);
+                  const isSelected = selectedDocuments.has(doc._id);
                   
                   return (
-                    <tr key={doc._id} className="border-b hover:bg-muted/50">
+                    <tr 
+                      key={doc._id} 
+                      className={cn(
+                        "border-b hover:bg-muted/30 cursor-pointer transition-colors",
+                        isSelected && "bg-muted/20 border-l-4 border-l-primary"
+                      )}
+                      onClick={() => toggleSelectDocument(doc._id)}
+                    >
+                      <td className="p-2 sm:p-4">
+                        <div className="w-5 h-5 rounded border-2 border-input bg-background flex items-center justify-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleSelectDocument(doc._id);
+                            }}
+                            className="w-3 h-3 rounded-sm border-0 bg-transparent"
+                          />
+                        </div>
+                      </td>
                       <td className="p-2 sm:p-4">
                         <div className="flex items-center gap-3">
                           <FileText className="h-4 w-4 text-muted-foreground" />
@@ -506,44 +506,64 @@ export default function DocumentsPage() {
                         {format(new Date(doc.uploadedAt), "MMM d, yyyy")}
                       </td>
                       <td className="p-2 sm:p-4">
-                        <div className="flex gap-2">
-                          <DocumentViewer
-                            storageId={doc.storageId || doc.url}
-                            fileName={doc.name}
-                          >
-                            <Button size="sm" variant="ghost">
-                              <Download className="h-4 w-4" />
-                            </Button>
-                          </DocumentViewer>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setEditingDoc(doc)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="text-destructive hover:text-destructive hover:bg-destructive/10 transition-colors"
-                            onClick={() => {
-                              confirm({
-                                title: "Delete Document",
-                                description: `Delete "${doc.name}"? This action cannot be undone.`,
-                                variant: "destructive",
-                                onConfirm: async () => {
-                                  try {
-                                    await deleteDocument({ id: doc._id, userId: user.id });
-                                  } catch (err: any) {
-                                    console.error("Delete document error:", err);
-                                    toast.error(formatErrorForToast(err));
-                                  }
-                                }
-                              });
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                        <div className="flex justify-center" onClick={(e) => e.stopPropagation()}>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                <MoreHorizontal className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DocumentViewer
+                                storageId={doc.storageId || doc.url}
+                                fileName={doc.name}
+                                mimeType={doc.mimeType}
+                                actionType="view"
+                              >
+                                <DropdownMenuItem>
+                                  <Eye className="h-4 w-4 mr-2" />
+                                  View
+                                </DropdownMenuItem>
+                              </DocumentViewer>
+                              <DocumentViewer
+                                storageId={doc.storageId || doc.url}
+                                fileName={doc.name}
+                                mimeType={doc.mimeType}
+                                actionType="download"
+                              >
+                                <DropdownMenuItem>
+                                  <Download className="h-4 w-4 mr-2" />
+                                  Download
+                                </DropdownMenuItem>
+                              </DocumentViewer>
+                              <DropdownMenuItem onClick={() => setEditingDoc(doc)}>
+                                <Edit className="h-4 w-4 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem 
+                                className="text-destructive focus:text-destructive"
+                                onClick={() => {
+                                  confirm({
+                                    title: "Delete Document",
+                                    description: `Delete "${doc.name}"? This action cannot be undone.`,
+                                    variant: "destructive",
+                                    onConfirm: async () => {
+                                      try {
+                                        await deleteDocument({ id: doc._id, userId: user.id });
+                                      } catch (err: any) {
+                                        console.error("Delete document error:", err);
+                                        toast.error(formatErrorForToast(err));
+                                      }
+                                    }
+                                  });
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4 mr-2" />
+                                Delete
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       </td>
                     </tr>

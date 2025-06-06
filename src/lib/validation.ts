@@ -71,11 +71,6 @@ export const leaseSchema = z.object({
   status: z.enum(["active", "expired", "pending"], {
     errorMap: () => ({ message: "Please select a valid lease status" })
   }),
-  paymentDay: z.coerce.number()
-    .min(1, "Payment day must be between 1 and 31")
-    .max(31, "Payment day must be between 1 and 31")
-    .int("Payment day must be a whole number")
-    .optional(),
   notes: z.string()
     .max(1000, "Notes must be less than 1000 characters")
     .optional(),

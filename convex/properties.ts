@@ -216,6 +216,149 @@ export const addProperty = mutation({
   },
 });
 
+// Enhanced property creation with units and utility setup
+export const createPropertyWithUnits = mutation({
+  args: {
+    // Basic property info
+    name: v.string(),
+    address: v.string(),
+    type: v.string(),
+    status: v.string(),
+    bedrooms: v.number(),
+    bathrooms: v.number(),
+    squareFeet: v.number(),
+    monthlyRent: v.number(),
+    purchaseDate: v.string(),
+    imageUrl: v.optional(v.string()),
+    monthlyMortgage: v.optional(v.number()),
+    monthlyCapEx: v.optional(v.number()),
+    userId: v.string(),
+    
+    // Property type and units
+    propertyType: v.union(v.literal("single-family"), v.literal("multi-family")),
+    units: v.optional(v.array(v.object({
+      identifier: v.string(),
+      displayName: v.string(),
+      customName: v.boolean(),
+    }))),
+    
+    // Utility setup
+    setupUtilities: v.optional(v.boolean()),
+    utilityPreset: v.optional(v.union(v.literal("owner-pays"), v.literal("tenant-pays"), v.literal("custom"))),
+    customSplit: v.optional(v.array(v.object({
+      unitId: v.string(),
+      unitName: v.string(),
+      percentage: v.number(),
+    }))),
+  },
+  handler: async (ctx, args) => {
+    // Check rate limit
+    checkRateLimit(args.userId, "addProperty");
+    
+    // Validate basic property data
+    validatePropertyData(args);
+
+    // Check if property name already exists for this user
+    const existingProperty = await ctx.db
+      .query("properties")
+      .filter((q) => 
+        q.and(
+          q.eq(q.field("userId"), args.userId),
+          q.eq(q.field("name"), args.name)
+        )
+      )
+      .first();
+
+    if (existingProperty) {
+      throw new ConvexError({
+        code: "DUPLICATE_ERROR",
+        message: "A property with this name already exists",
+        field: "name"
+      });
+    }
+
+    try {
+      // Create the property
+      const propertyId = await ctx.db.insert("properties", {
+        userId: args.userId,
+        name: args.name,
+        address: args.address,
+        type: args.type,
+        status: args.status,
+        bedrooms: args.bedrooms,
+        bathrooms: args.bathrooms,
+        squareFeet: args.squareFeet,
+        monthlyRent: args.monthlyRent,
+        purchaseDate: args.purchaseDate,
+        imageUrl: args.imageUrl,
+        monthlyMortgage: args.monthlyMortgage,
+        monthlyCapEx: args.monthlyCapEx,
+        propertyType: args.propertyType,
+        defaultUnitCreated: true, // Mark as having units from creation
+        createdAt: new Date().toISOString(),
+      });
+
+      // Create units
+      const units = args.units || [{
+        identifier: "Main",
+        displayName: "Main Unit",
+        customName: false,
+      }];
+
+      const createdUnits = [];
+      for (const unit of units) {
+        const unitId = await ctx.db.insert("units", {
+          propertyId,
+          unitIdentifier: unit.identifier,
+          displayName: unit.displayName,
+          status: "available",
+          isDefault: unit.identifier === "Main" && args.propertyType === "single-family",
+          createdAt: new Date().toISOString(),
+        });
+        
+        createdUnits.push({
+          id: unitId,
+          identifier: unit.identifier,
+          displayName: unit.displayName,
+        });
+      }
+
+      // Set up utility responsibilities if requested
+      if (args.setupUtilities && args.customSplit) {
+        const UTILITY_TYPES = ["Electric", "Water", "Gas", "Sewer", "Trash", "Internet"];
+        
+        for (const utilityType of UTILITY_TYPES) {
+          for (const unitSplit of args.customSplit) {
+            const unit = createdUnits.find(u => u.identifier === unitSplit.unitId);
+            if (unit && unitSplit.percentage > 0) {
+              await ctx.db.insert("unitUtilityResponsibilities", {
+                propertyId,
+                unitId: unit.id,
+                utilityType,
+                responsibilityPercentage: unitSplit.percentage,
+                notes: `Set during property creation - ${args.utilityPreset || 'custom'} preset`,
+                createdAt: new Date().toISOString(),
+              });
+            }
+          }
+        }
+      }
+
+      return {
+        propertyId,
+        unitsCreated: createdUnits.length,
+        utilitiesConfigured: args.setupUtilities,
+        message: `Property created successfully with ${createdUnits.length} unit${createdUnits.length !== 1 ? 's' : ''}`,
+      };
+    } catch (error) {
+      throw new ConvexError({
+        code: "DATABASE_ERROR",
+        message: "Failed to create property with units"
+      });
+    }
+  },
+});
+
 // Get all properties for the signed-in user
 export const getProperties = query({
   args: { userId: v.string() },
@@ -412,61 +555,125 @@ export const deleteProperty = mutation({
       });
     }
 
-    // Check for units
-    const units = await ctx.db
-      .query("units")
-      .withIndex("by_property", (q) => q.eq("propertyId", args.id))
-      .collect();
-
-    if (units.length > 0) {
-      throw new ConvexError({
-        code: "CONFLICT",
-        message: "Cannot delete property with units. Please delete all units first."
-      });
-    }
-
-    // Check for active leases
-    const activeLeases = await ctx.db
-      .query("leases")
-      .filter((q) => 
-        q.and(
-          q.eq(q.field("propertyId"), args.id),
-          q.eq(q.field("status"), "active")
-        )
-      )
-      .collect();
-
-    if (activeLeases.length > 0) {
-      throw new ConvexError({
-        code: "CONFLICT",
-        message: "Cannot delete property with active leases"
-      });
-    }
-
     try {
+      // Delete all associated data in correct order to maintain referential integrity
+      
+      // 1. Delete all leases (including documents associated with leases)
+      const leases = await ctx.db
+        .query("leases")
+        .filter((q) => q.eq(q.field("propertyId"), args.id))
+        .collect();
 
-      // Delete associated documents
+      for (const lease of leases) {
+        // Delete lease documents
+        const leaseDocuments = await ctx.db
+          .query("documents")
+          .filter((q) => q.eq(q.field("leaseId"), lease._id))
+          .collect();
+        
+        for (const doc of leaseDocuments) {
+          if (doc.userId === args.userId) { // Only delete user's documents
+            await ctx.db.delete(doc._id);
+          }
+        }
+        
+        // Delete utility charges for this lease
+        const utilityCharges = await ctx.db
+          .query("tenantUtilityCharges")
+          .filter((q) => q.eq(q.field("leaseId"), lease._id))
+          .collect();
+        
+        for (const charge of utilityCharges) {
+          if (charge.userId === args.userId) { // Only delete user's charges
+            await ctx.db.delete(charge._id);
+          }
+        }
+        
+        // Delete utility payments for this lease  
+        const utilityPayments = await ctx.db
+          .query("utilityPayments")
+          .filter((q) => q.eq(q.field("leaseId"), lease._id))
+          .collect();
+        
+        for (const payment of utilityPayments) {
+          if (payment.userId === args.userId) { // Only delete user's payments
+            await ctx.db.delete(payment._id);
+          }
+        }
+        
+        // Delete the lease itself
+        if (lease.userId === args.userId) { // Only delete user's leases
+          await ctx.db.delete(lease._id);
+        }
+      }
+
+      // 2. Delete property images
+      const propertyImages = await ctx.db
+        .query("propertyImages")
+        .filter((q) => q.eq(q.field("propertyId"), args.id))
+        .collect();
+      
+      for (const image of propertyImages) {
+        if (image.userId === args.userId) { // Only delete user's images
+          await ctx.db.delete(image._id);
+        }
+      }
+
+      // 3. Delete property documents
       const documents = await ctx.db
         .query("documents")
         .filter((q) => q.eq(q.field("propertyId"), args.id))
         .collect();
       
       for (const document of documents) {
-        await ctx.db.delete(document._id);
+        if (document.userId === args.userId) { // Only delete user's documents
+          await ctx.db.delete(document._id);
+        }
       }
 
-      // Delete expired leases
-      const expiredLeases = await ctx.db
-        .query("leases")
+      // 4. Delete utility bills for this property
+      const utilityBills = await ctx.db
+        .query("utilityBills")
         .filter((q) => q.eq(q.field("propertyId"), args.id))
         .collect();
       
-      for (const lease of expiredLeases) {
-        await ctx.db.delete(lease._id);
+      for (const bill of utilityBills) {
+        if (bill.userId === args.userId) { // Only delete user's bills
+          await ctx.db.delete(bill._id);
+        }
       }
 
-      // Finally delete the property
+      // 5. Delete lease utility settings for this property
+      const leaseUtilitySettings = await ctx.db
+        .query("leaseUtilitySettings")
+        .filter((q) => q.eq(q.field("propertyId"), args.id))
+        .collect();
+      
+      for (const setting of leaseUtilitySettings) {
+        if (setting.userId === args.userId) { // Only delete user's settings
+          await ctx.db.delete(setting._id);
+        }
+      }
+
+      // 6. Delete units for this property
+      const units = await ctx.db
+        .query("units")
+        .withIndex("by_property", (q) => q.eq("propertyId", args.id))
+        .collect();
+
+      for (const unit of units) {
+        if (unit.userId === args.userId) { // Only delete user's units
+          await ctx.db.delete(unit._id);
+        }
+      }
+
+      // 7. Finally delete the property itself
       await ctx.db.delete(args.id);
+      
+      return { 
+        success: true, 
+        message: `Property "${property.name}" and all associated data have been deleted successfully.`
+      };
     } catch (error) {
       throw new ConvexError({
         code: "DATABASE_ERROR",

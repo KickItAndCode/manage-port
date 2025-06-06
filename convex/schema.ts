@@ -17,6 +17,7 @@ export default defineSchema({
     monthlyMortgage: v.optional(v.number()), // Monthly mortgage payment
     monthlyCapEx: v.optional(v.number()), // Capital expenditure reserve (10% of mortgage)
     propertyType: v.optional(v.union(v.literal("single-family"), v.literal("multi-family"))), // New field
+    defaultUnitCreated: v.optional(v.boolean()), // Track if we've created a default unit
     createdAt: v.string(),
   }),
   units: defineTable({
@@ -27,6 +28,8 @@ export default defineSchema({
     bathrooms: v.optional(v.number()),
     squareFeet: v.optional(v.number()),
     notes: v.optional(v.string()),
+    displayName: v.optional(v.string()), // Custom unit names like "Garage Unit", "Basement"
+    isDefault: v.optional(v.boolean()), // Identify auto-created units for single-family properties
     createdAt: v.string(),
     updatedAt: v.optional(v.string()),
   })
@@ -44,7 +47,6 @@ export default defineSchema({
     rent: v.number(), // Monthly rent amount
     securityDeposit: v.optional(v.number()), // Security deposit amount
     status: v.union(v.literal("active"), v.literal("expired"), v.literal("pending")), // Lease status
-    paymentDay: v.optional(v.number()), // Day of month rent is due (1-31)
     notes: v.optional(v.string()), // Additional lease notes
     leaseDocumentUrl: v.optional(v.string()),
     createdAt: v.string(),
@@ -87,6 +89,19 @@ export default defineSchema({
   })
     .index("by_lease", ["leaseId"])
     .index("by_utility_type", ["utilityType"]),
+  unitUtilityResponsibilities: defineTable({
+    propertyId: v.id("properties"), // Reference to property
+    unitId: v.id("units"), // Reference to unit
+    utilityType: v.string(), // Must match utilityBills.utilityType
+    responsibilityPercentage: v.number(), // 0-100
+    notes: v.optional(v.string()), // e.g., "Default setting - 100% tenant responsibility"
+    createdAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_property", ["propertyId"])
+    .index("by_unit", ["unitId"])
+    .index("by_utility_type", ["utilityType"])
+    .index("by_property_utility", ["propertyId", "utilityType"]),
   tenantUtilityCharges: defineTable({
     leaseId: v.id("leases"), // Reference to lease
     unitId: v.optional(v.id("units")), // Reference to unit

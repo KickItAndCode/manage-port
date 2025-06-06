@@ -25,7 +25,6 @@ export interface LeaseFormProps {
     rent: number;
     securityDeposit?: number;
     status: string;
-    paymentDay?: number;
     notes?: string;
     leaseDocumentUrl?: string;
   };
@@ -40,7 +39,6 @@ export interface LeaseFormProps {
     rent: number;
     securityDeposit?: number;
     status: string;
-    paymentDay?: number;
     notes?: string;
     leaseDocumentUrl?: string;
   }) => void;
@@ -71,7 +69,6 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
     resolver: zodResolver(leaseSchema),
     defaultValues: initial as LeaseFormType || {
       status: "pending",
-      paymentDay: 1,
     },
   });
 
@@ -301,18 +298,6 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
               {status === "expired" && <Badge variant="destructive">Expired Lease</Badge>}
             </div>
             {errors.status && <span className="text-sm text-destructive">{errors.status.message}</span>}
-          </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Payment Day (1-31)</label>
-            <Input
-              type="number"
-              min={1}
-              max={31}
-              placeholder="1"
-              {...register("paymentDay", { valueAsNumber: true })}
-            />
-            {errors.paymentDay && <span className="text-sm text-destructive">{errors.paymentDay.message}</span>}
-            <p className="text-xs text-muted-foreground mt-1">Day of month rent is due</p>
           </div>
         </div>
 

@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PropertyForm } from "@/components/PropertyForm";
+import { PropertyCreationWizard, type PropertyWizardData } from "@/components/PropertyCreationWizard";
 import { LeaseForm } from "@/components/LeaseForm";
 import DocumentUploadForm from "@/components/DocumentUploadForm";
 import { UtilityBillForm } from "@/components/UtilityBillForm";
@@ -22,7 +23,7 @@ import {
 } from "recharts";
 import { 
   Home, DollarSign, Percent, TrendingUp, 
-  Building2, Receipt, Calendar, Users, ArrowRight, Sparkles 
+  Building2, Receipt, Calendar, Users, ArrowRight, Sparkles, Wand2, Plus 
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,7 @@ export default function DashboardPage() {
   
   // Modal states
   const [propertyModalOpen, setPropertyModalOpen] = useState(false);
+  const [wizardModalOpen, setWizardModalOpen] = useState(false);
   const [leaseModalOpen, setLeaseModalOpen] = useState(false);
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
   const [utilityBillModalOpen, setUtilityBillModalOpen] = useState(false);
@@ -53,6 +55,7 @@ export default function DashboardPage() {
   
   // Mutations
   const addProperty = useMutation(api.properties.addProperty);
+  const createPropertyWithUnits = useMutation(api.properties.createPropertyWithUnits);
   const addLease = useMutation(api.leases.addLease);
   const addUtilityBill = useMutation(api.utilityBills.addUtilityBill);
   
@@ -128,20 +131,20 @@ export default function DashboardPage() {
   }));
 
   return (
-    <main className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8 transition-colors duration-300" role="main">
+    <main className="min-h-screen bg-background text-foreground p-3 sm:p-6 lg:p-8 transition-colors duration-300" role="main">
       <div className="max-w-7xl mx-auto">
-        <header className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
-              <p className="text-muted-foreground mt-1 text-sm sm:text-base">
+        <header className="mb-4 sm:mb-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">Dashboard</h1>
+              <p className="text-muted-foreground mt-1 text-sm leading-relaxed">
                 Welcome back! Here&apos;s an overview of your real estate portfolio.
               </p>
             </div>
-            <div className="flex gap-2">
-              <div className="text-right">
+            <div className="flex justify-between items-center sm:flex-col sm:items-end gap-2">
+              <div className="text-left sm:text-right">
                 <p className="text-xs text-muted-foreground">Portfolio Value</p>
-                <p className="text-lg font-semibold text-green-600 dark:text-green-400">
+                <p className="text-lg sm:text-xl font-semibold text-green-600 dark:text-green-400">
                   ${(metrics.totalMonthlyRent * 12).toLocaleString()}/yr
                 </p>
               </div>
@@ -152,25 +155,25 @@ export default function DashboardPage() {
 
       {/* Stat Cards - only show if user has properties */}
       {!hasNoProperties && userSettings.dashboardComponents.showMetrics && (
-        <section className="mb-6 sm:mb-8" aria-labelledby="stats-heading">
+        <section className="mb-4 sm:mb-8" aria-labelledby="stats-heading">
           <h2 id="stats-heading" className="sr-only">Portfolio Statistics</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
             {statCards.map((stat, index) => (
-              <Card key={index} className={`p-4 sm:p-6 hover:shadow-xl transition-all duration-300 border-l-4 ${stat.borderColor} group cursor-pointer`}>
-                <div className="flex items-center justify-between">
+              <Card key={index} className={`p-3 sm:p-6 hover:shadow-xl transition-all duration-300 border-l-4 ${stat.borderColor} group cursor-pointer`}>
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
                   <div className="min-w-0 flex-1">
-                    <p className="text-xs sm:text-sm text-muted-foreground truncate">{stat.title}</p>
-                    <p className="text-xl sm:text-2xl font-bold mt-1 break-words group-hover:scale-105 transition-transform" aria-label={`${stat.title}: ${stat.value}`}>
+                    <p className="text-xs text-muted-foreground truncate leading-tight">{stat.title}</p>
+                    <p className="text-lg sm:text-2xl font-bold mt-1 break-words group-hover:scale-105 transition-transform" aria-label={`${stat.title}: ${stat.value}`}>
                       {stat.value}
                     </p>
-                    <div className="flex items-center gap-1 mt-2">
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${stat.bgColor} ${stat.color} font-medium`}>
+                    <div className="flex items-center gap-1 mt-1 sm:mt-2">
+                      <span className={`text-xs px-1.5 py-0.5 rounded-full ${stat.bgColor} ${stat.color} font-medium`}>
                         {stat.trend}
                       </span>
                     </div>
                   </div>
-                  <div className={`p-3 rounded-xl ${stat.bgColor} flex-shrink-0 ml-2 group-hover:scale-110 transition-transform`} aria-hidden="true">
-                    <stat.icon className={`h-6 w-6 ${stat.color}`} />
+                  <div className={`p-2 sm:p-3 rounded-xl ${stat.bgColor} flex-shrink-0 self-end sm:self-auto sm:ml-2 group-hover:scale-110 transition-transform`} aria-hidden="true">
+                    <stat.icon className={`h-5 w-5 sm:h-6 sm:w-6 ${stat.color}`} />
                   </div>
                 </div>
               </Card>
@@ -181,10 +184,10 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       {userSettings.dashboardComponents.showQuickActions && (
-        <section className="mb-6 sm:mb-8">
-          <Card className="p-4 sm:p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <h3 className="text-lg font-semibold text-foreground">Quick Actions</h3>
+        <section className="mb-4 sm:mb-8">
+          <Card className="p-3 sm:p-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg font-semibold text-foreground">Quick Actions</h3>
               {hasNoProperties && (
                 <div className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full animate-pulse">
                   <Sparkles className="h-3 w-3" />
@@ -192,45 +195,65 @@ export default function DashboardPage() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
-              <button 
-                onClick={() => setPropertyModalOpen(true)}
-                className={cn(
-                  "flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30",
-                  hasNoProperties && "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                )}
-              >
-                <Building2 className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium">Add Property</span>
-              </button>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+              {hasNoProperties ? (
+                // For new users, show the enhanced wizard prominently
+                <button 
+                  onClick={() => setWizardModalOpen(true)}
+                  className="col-span-2 sm:col-span-1 flex flex-col items-center gap-2 p-3 sm:p-4 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 transition-all border-2 border-primary/30 hover:border-primary/50"
+                >
+                  <Wand2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <span className="text-xs sm:text-sm font-medium text-center">Property Setup</span>
+                  <span className="text-xs text-primary/80">Enhanced</span>
+                </button>
+              ) : (
+                // For existing users, show both options with simple as primary
+                <button 
+                  onClick={() => setPropertyModalOpen(true)}
+                  className="flex flex-col items-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                >
+                  <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <span className="text-xs sm:text-sm font-medium text-center">Quick Add</span>
+                </button>
+              )}
+              
+              {!hasNoProperties && (
+                <button 
+                  onClick={() => setWizardModalOpen(true)}
+                  className="flex flex-col items-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                >
+                  <Wand2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                  <span className="text-xs sm:text-sm font-medium text-center">Enhanced</span>
+                </button>
+              )}
               <button 
                 onClick={() => setLeaseModalOpen(true)}
-                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                className="flex flex-col items-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
               >
-                <Users className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium">New Lease</span>
+                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                <span className="text-xs sm:text-sm font-medium text-center">New Lease</span>
               </button>
               <button 
                 onClick={() => setUtilityBillModalOpen(true)}
-                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                className="flex flex-col items-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
               >
-                <Receipt className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium">Add Bill</span>
+                <Receipt className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                <span className="text-xs sm:text-sm font-medium text-center">Add Bill</span>
               </button>
               <button 
                 onClick={() => setUtilityResponsibilityModalOpen(true)}
-                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                className="flex flex-col items-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
                 disabled={!properties || properties.length === 0}
               >
-                <Percent className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium">Utility Split</span>
+                <Percent className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                <span className="text-xs sm:text-sm font-medium text-center">Utility Split</span>
               </button>
               <button 
                 onClick={() => setDocumentModalOpen(true)}
-                className="flex flex-col items-center gap-2 p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                className="flex flex-col items-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
               >
-                <DollarSign className="h-6 w-6 text-primary" />
-                <span className="text-sm font-medium">Upload Docs</span>
+                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                <span className="text-xs sm:text-sm font-medium text-center">Upload Docs</span>
               </button>
             </div>
           </Card>
@@ -242,23 +265,23 @@ export default function DashboardPage() {
         <>
           {/* Outstanding Balances */}
           {userSettings.dashboardComponents.showOutstandingBalances && (
-            <section className="mb-6 sm:mb-8">
+            <section className="mb-4 sm:mb-8">
               <OutstandingBalances userId={user.id} />
             </section>
           )}
 
           {/* Charts Grid */}
           {userSettings.dashboardComponents.showCharts && (
-            <section className="mb-6 sm:mb-8" aria-labelledby="charts-heading">
+            <section className="mb-4 sm:mb-8" aria-labelledby="charts-heading">
               <h2 id="charts-heading" className="sr-only">Analytics Charts</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
               {/* Monthly Revenue Trend */}
-              <Card className="p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+              <Card className="p-3 sm:p-6">
+                <h3 className="text-sm sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
                   <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" aria-hidden="true" />
                   Monthly Revenue Trend
                 </h3>
-                <div className="h-[250px] sm:h-[300px]" role="img" aria-label="Line chart showing monthly revenue trend over time">
+                <div className="h-[200px] sm:h-[300px]" role="img" aria-label="Line chart showing monthly revenue trend over time">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={metrics.monthlyIncome}>
                       <CartesianGrid strokeDasharray="3 3" />
@@ -292,12 +315,12 @@ export default function DashboardPage() {
               </Card>
 
               {/* Properties by Type */}
-              <Card className="p-4 sm:p-6">
-                <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+              <Card className="p-3 sm:p-6">
+                <h3 className="text-sm sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
                   <Home className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" aria-hidden="true" />
                   Properties by Type
                 </h3>
-                <div className="h-[250px] sm:h-[300px]" role="img" aria-label="Pie chart showing distribution of properties by type">
+                <div className="h-[200px] sm:h-[300px]" role="img" aria-label="Pie chart showing distribution of properties by type">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -331,17 +354,17 @@ export default function DashboardPage() {
 
           {/* Additional Charts */}
           {(userSettings.dashboardComponents.showCharts || userSettings.dashboardComponents.showFinancialSummary) && (
-            <section className="mb-6 sm:mb-8" aria-labelledby="additional-charts-heading">
+            <section className="mb-4 sm:mb-8" aria-labelledby="additional-charts-heading">
               <h2 id="additional-charts-heading" className="sr-only">Additional Analytics</h2>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
                 {/* Properties by Status */}
                 {userSettings.dashboardComponents.showCharts && (
-                  <Card className="p-4 sm:p-6">
-                    <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Card className="p-3 sm:p-6">
+                    <h3 className="text-sm sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
                       <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" aria-hidden="true" />
                       Properties by Status
                     </h3>
-                    <div className="h-[250px] sm:h-[300px]" role="img" aria-label="Bar chart showing properties grouped by status">
+                    <div className="h-[200px] sm:h-[300px]" role="img" aria-label="Bar chart showing properties grouped by status">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={statusData}>
                           <CartesianGrid strokeDasharray="3 3" />
@@ -370,43 +393,43 @@ export default function DashboardPage() {
 
                 {/* Financial Summary */}
                 {userSettings.dashboardComponents.showFinancialSummary && (
-                  <Card className="p-4 sm:p-6">
-                    <h3 className="text-base sm:text-lg font-semibold mb-4 flex items-center gap-2">
+                  <Card className="p-3 sm:p-6">
+                    <h3 className="text-sm sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
                       <Receipt className="h-4 w-4 sm:h-5 sm:w-5 text-orange-600" aria-hidden="true" />
                       Financial Summary
                     </h3>
-                    <div className="space-y-3 sm:space-y-4">
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-green-50 dark:bg-green-950/20 rounded-lg gap-2 sm:gap-0">
-                        <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Rental Income</span>
-                        <span className="font-semibold text-green-700 dark:text-green-400 text-base sm:text-lg">
+                    <div className="space-y-2 sm:space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-4 bg-green-50 dark:bg-green-950/20 rounded-lg gap-1 sm:gap-0">
+                        <span className="text-gray-700 dark:text-gray-300 text-xs sm:text-base">Monthly Rental Income</span>
+                        <span className="font-semibold text-green-700 dark:text-green-400 text-sm sm:text-lg">
                           ${metrics.totalMonthlyRent.toLocaleString()}
                         </span>
                       </div>
                       {metrics.totalMonthlyMortgage > 0 && (
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg gap-2 sm:gap-0">
-                          <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Mortgage</span>
-                          <span className="font-semibold text-orange-700 dark:text-orange-400 text-base sm:text-lg">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-4 bg-orange-50 dark:bg-orange-950/20 rounded-lg gap-1 sm:gap-0">
+                          <span className="text-gray-700 dark:text-gray-300 text-xs sm:text-base">Monthly Mortgage</span>
+                          <span className="font-semibold text-orange-700 dark:text-orange-400 text-sm sm:text-lg">
                             -${metrics.totalMonthlyMortgage.toLocaleString()}
                           </span>
                         </div>
                       )}
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-red-50 dark:bg-red-950/20 rounded-lg gap-2 sm:gap-0">
-                        <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">Monthly Utility Costs</span>
-                        <span className="font-semibold text-red-700 dark:text-red-400 text-base sm:text-lg">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-4 bg-red-50 dark:bg-red-950/20 rounded-lg gap-1 sm:gap-0">
+                        <span className="text-gray-700 dark:text-gray-300 text-xs sm:text-base">Monthly Utility Costs</span>
+                        <span className="font-semibold text-red-700 dark:text-red-400 text-sm sm:text-lg">
                           -${metrics.totalUtilityCost.toLocaleString()}
                         </span>
                       </div>
                       {metrics.totalMonthlyCapEx > 0 && (
-                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg gap-2 sm:gap-0">
-                          <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base">CapEx Reserve (10%)</span>
-                          <span className="font-semibold text-amber-700 dark:text-amber-400 text-base sm:text-lg">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-4 bg-amber-50 dark:bg-amber-950/20 rounded-lg gap-1 sm:gap-0">
+                          <span className="text-gray-700 dark:text-gray-300 text-xs sm:text-base">CapEx Reserve (10%)</span>
+                          <span className="font-semibold text-amber-700 dark:text-amber-400 text-sm sm:text-lg">
                             -${metrics.totalMonthlyCapEx.toLocaleString()}
                           </span>
                         </div>
                       )}
-                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-3 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg gap-2 sm:gap-0 border-t-2 border-blue-200 dark:border-blue-800">
-                        <span className="text-gray-700 dark:text-gray-300 text-sm sm:text-base font-medium">Net Monthly Income</span>
-                        <span className="font-semibold text-blue-700 dark:text-blue-400 text-base sm:text-lg">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg gap-1 sm:gap-0 border-t-2 border-blue-200 dark:border-blue-800">
+                        <span className="text-gray-700 dark:text-gray-300 text-xs sm:text-base font-medium">Net Monthly Income</span>
+                        <span className="font-semibold text-blue-700 dark:text-blue-400 text-sm sm:text-lg">
                           ${(metrics.totalMonthlyRent - metrics.totalUtilityCost - metrics.totalMonthlyMortgage - metrics.totalMonthlyCapEx).toLocaleString()}
                         </span>
                       </div>
@@ -427,29 +450,29 @@ export default function DashboardPage() {
           {/* Recent Properties */}
           {userSettings.dashboardComponents.showRecentProperties && (
             <section aria-labelledby="recent-properties-heading">
-            <Card className="p-4 sm:p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 id="recent-properties-heading" className="text-base sm:text-lg font-semibold flex items-center gap-2">
+            <Card className="p-3 sm:p-6">
+              <div className="flex items-center justify-between mb-3 sm:mb-4">
+                <h3 id="recent-properties-heading" className="text-sm sm:text-lg font-semibold flex items-center gap-2">
                   <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" aria-hidden="true" />
                   Recent Properties
                 </h3>
                 <button 
                   onClick={() => router.push('/properties')}
-                  className="text-sm text-primary hover:underline flex items-center gap-1"
+                  className="text-xs sm:text-sm text-primary hover:underline flex items-center gap-1"
                 >
                   View all
                   <ArrowRight className="h-3 w-3" />
                 </button>
               </div>
-              <div className="overflow-x-auto -mx-2 sm:mx-0">
-                <table className="w-full min-w-[600px] sm:min-w-0" role="table" aria-label="Recent properties overview">
+              <div className="overflow-x-auto -mx-1 sm:mx-0">
+                <table className="w-full min-w-[500px] sm:min-w-0" role="table" aria-label="Recent properties overview">
                   <thead>
-                    <tr className="text-left text-xs sm:text-sm text-muted-foreground">
-                      <th className="pb-3 px-2 sm:px-0" scope="col">Property</th>
-                      <th className="pb-3 px-2 sm:px-0" scope="col">Type</th>
-                      <th className="pb-3 px-2 sm:px-0" scope="col">Status</th>
-                      <th className="pb-3 text-right px-2 sm:px-0" scope="col">Monthly Rent</th>
-                      <th className="pb-3 px-2 sm:px-0" scope="col"></th>
+                    <tr className="text-left text-xs text-muted-foreground">
+                      <th className="pb-2 sm:pb-3 px-1 sm:px-0" scope="col">Property</th>
+                      <th className="pb-2 sm:pb-3 px-1 sm:px-0 hidden sm:table-cell" scope="col">Type</th>
+                      <th className="pb-2 sm:pb-3 px-1 sm:px-0 hidden sm:table-cell" scope="col">Status</th>
+                      <th className="pb-2 sm:pb-3 text-right px-1 sm:px-0" scope="col">Rent</th>
+                      <th className="pb-2 sm:pb-3 px-1 sm:px-0" scope="col"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -462,29 +485,36 @@ export default function DashboardPage() {
                         role="row"
                         onClick={() => router.push(`/properties/${property.id}`)}
                       >
-                        <td className="py-3 px-2 sm:px-0" role="cell">
+                        <td className="py-2 sm:py-3 px-1 sm:px-0" role="cell">
                           <div>
-                            <p className="font-medium">{property.name}</p>
-                            <p className="text-sm text-muted-foreground">{property.address}</p>
+                            <p className="font-medium text-sm sm:text-base">{property.name}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">{property.address}</p>
+                            {/* Show type and status on mobile as additional info */}
+                            <div className="flex items-center gap-2 mt-1 sm:hidden">
+                              <span className="text-xs text-muted-foreground">{property.type}</span>
+                              <span className="text-xs">•</span>
+                              <StatusBadge status={property.status as any} variant="compact" />
+                            </div>
                           </div>
                         </td>
-                        <td className="py-3 px-2 sm:px-0" role="cell">
+                        <td className="py-2 sm:py-3 px-1 sm:px-0 hidden sm:table-cell" role="cell">
                           <span className="text-sm">{property.type}</span>
                         </td>
-                        <td className="py-3 px-2 sm:px-0" role="cell">
+                        <td className="py-2 sm:py-3 px-1 sm:px-0 hidden sm:table-cell" role="cell">
                           <StatusBadge status={property.status as any} />
                         </td>
-                        <td className="py-3 px-2 sm:px-0 text-right" role="cell">
-                          <span className="font-medium">${property.monthlyRent.toLocaleString()}</span>
+                        <td className="py-2 sm:py-3 px-1 sm:px-0 text-right" role="cell">
+                          <span className="font-medium text-sm sm:text-base">${property.monthlyRent.toLocaleString()}</span>
+                          <span className="text-xs text-muted-foreground sm:hidden block">/mo</span>
                         </td>
-                        <td className="py-3 px-2 sm:px-0" role="cell">
-                          <ArrowRight className="h-4 w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-2 flex-shrink-0" />
+                        <td className="py-2 sm:py-3 px-1 sm:px-0" role="cell">
+                          <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-1 sm:ml-2 flex-shrink-0" />
                         </td>
                       </tr>
                     ))}
                     {metrics.recentProperties.length === 0 && (
                       <tr role="row">
-                        <td colSpan={5} className="py-6 text-center text-muted-foreground text-sm" role="cell">
+                        <td colSpan={5} className="py-4 sm:py-6 text-center text-muted-foreground text-xs sm:text-sm" role="cell">
                           No properties found. Add your first property to get started.
                         </td>
                       </tr>
@@ -523,6 +553,59 @@ export default function DashboardPage() {
         </DialogContent>
       </Dialog>
 
+      {/* Property Creation Wizard Modal */}
+      <Dialog open={wizardModalOpen} onOpenChange={setWizardModalOpen}>
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl h-[95vh] p-0 overflow-hidden">
+          <PropertyCreationWizard
+            isModal={true}
+            onSubmit={async (data: PropertyWizardData) => {
+              setLoading(true);
+              try {
+                const result = await createPropertyWithUnits({
+                  // Basic property info
+                  userId: user.id,
+                  name: data.name,
+                  address: data.address,
+                  type: data.type,
+                  status: data.status,
+                  bedrooms: data.bedrooms,
+                  bathrooms: data.bathrooms,
+                  squareFeet: data.squareFeet,
+                  monthlyRent: data.monthlyRent,
+                  purchaseDate: data.purchaseDate,
+                  imageUrl: data.imageUrl,
+                  monthlyMortgage: data.monthlyMortgage,
+                  monthlyCapEx: data.monthlyCapEx,
+                  
+                  // Property type and units
+                  propertyType: data.propertyType,
+                  units: data.units,
+                  
+                  // Utility setup
+                  setupUtilities: data.setupUtilities,
+                  utilityPreset: data.utilityPreset,
+                  customSplit: data.customSplit,
+                });
+
+                toast.success(result.message);
+                setWizardModalOpen(false);
+                
+                // Navigate to the new property if on mobile, or just close modal on desktop
+                if (window.innerWidth < 768) {
+                  router.push(`/properties/${result.propertyId}`);
+                }
+              } catch (err: any) {
+                console.error("Create property error:", err);
+                toast.error(formatErrorForToast(err));
+              } finally {
+                setLoading(false);
+              }
+            }}
+            onCancel={() => setWizardModalOpen(false)}
+            loading={loading}
+          />
+        </DialogContent>
+      </Dialog>
 
       {/* Add Lease Modal */}
       <Dialog open={leaseModalOpen} onOpenChange={setLeaseModalOpen}>

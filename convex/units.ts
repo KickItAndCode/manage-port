@@ -81,6 +81,7 @@ export const addUnit = mutation({
 export const updateUnit = mutation({
   args: {
     id: v.id("units"),
+    propertyId: v.optional(v.id("properties")), // Optional since we get it from the existing unit
     unitIdentifier: v.optional(v.string()),
     status: v.optional(v.union(v.literal("available"), v.literal("occupied"), v.literal("maintenance"))),
     bedrooms: v.optional(v.number()),

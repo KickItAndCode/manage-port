@@ -11,13 +11,20 @@ import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
-import { Calendar, FileText, AlertCircle, DollarSign, Archive, Eye, EyeOff } from "lucide-react";
+import { FileText, AlertCircle, DollarSign, Archive, Eye, EyeOff, MoreHorizontal, Edit, Trash2 } from "lucide-react";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 function LeasesPageContent() {
   const { user } = useUser();
@@ -181,12 +188,6 @@ function LeasesPageContent() {
                       <p className="font-medium">${lease.securityDeposit.toLocaleString()}</p>
                     </div>
                   )}
-                  {lease.paymentDay && (
-                    <div>
-                      <span className="text-muted-foreground">Payment:</span>
-                      <p className="font-medium">{lease.paymentDay}{lease.paymentDay === 1 ? "st" : lease.paymentDay === 2 ? "nd" : lease.paymentDay === 3 ? "rd" : "th"}</p>
-                    </div>
-                  )}
                 </div>
                 
                 {(lease.tenantEmail || lease.tenantPhone) && (
@@ -203,62 +204,71 @@ function LeasesPageContent() {
                   </div>
                 )}
                 
-                <div className="flex items-center justify-between pt-2 border-t">
-                  <div className="flex gap-2 flex-wrap">
-                    {/* Show all documents associated with this lease */}
-                    {leaseDocuments.map(doc => (
-                      <DocumentViewer
-                        key={doc._id}
-                        storageId={doc.storageId || doc.url}
-                        fileName={doc.name}
-                      >
-                        <Button size="sm" variant="outline" className="h-8 px-2">
-                          <FileText className="w-3 h-3 mr-1" />
-                          {doc.name}
+                <div className="flex items-center justify-end pt-2 border-t">
+                  <div className="flex justify-center">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 px-3">
+                          <MoreHorizontal className="h-4 w-4 mr-1" />
+                          Actions
                         </Button>
-                      </DocumentViewer>
-                    ))}
-                  </div>
-                  <div className="flex gap-2">
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      onClick={() => {
-                        setEditLease(lease);
-                        setModalOpen(true);
-                      }}
-                      className="h-8 px-2"
-                    >
-                      Edit
-                    </Button>
-                    {/* Utility settings moved to universal allocation in property details */}
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="h-8 px-2 text-destructive hover:text-destructive"
-                      onClick={() => {
-                        confirm({
-                          title: "Delete Lease",
-                          description: "Delete this lease? This will also delete any associated documents.",
-                          variant: "destructive",
-                          onConfirm: async () => {
-                            setLoading(true);
-                            setError(null);
-                            try {
-                              await deleteLease({ id: lease._id as any, userId: user.id });
-                            } catch (err: any) {
-                              const errorMessage = formatErrorForToast(err);
-                              toast.error(errorMessage);
-                              console.error("Delete lease error:", err);
-                            } finally {
-                              setLoading(false);
-                            }
-                          }
-                        });
-                      }}
-                    >
-                      Delete
-                    </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        {/* View Lease Documents */}
+                        {leaseDocuments.length > 0 && (
+                          <>
+                            {leaseDocuments.map(doc => (
+                              <DropdownMenuItem key={doc._id} asChild>
+                                <DocumentViewer
+                                  storageId={doc.storageId || doc.url}
+                                  fileName={doc.name}
+                                >
+                                  <div className="flex items-center w-full cursor-pointer">
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    View {doc.name}
+                                  </div>
+                                </DocumentViewer>
+                              </DropdownMenuItem>
+                            ))}
+                            <DropdownMenuSeparator />
+                          </>
+                        )}
+                        <DropdownMenuItem onClick={() => {
+                          setEditLease(lease);
+                          setModalOpen(true);
+                        }}>
+                          <Edit className="h-4 w-4 mr-2" />
+                          Edit Lease
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem 
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => {
+                            confirm({
+                              title: "Delete Lease",
+                              description: "Delete this lease? This will also delete any associated documents.",
+                              variant: "destructive",
+                              onConfirm: async () => {
+                                setLoading(true);
+                                setError(null);
+                                try {
+                                  await deleteLease({ id: lease._id as any, userId: user.id });
+                                } catch (err: any) {
+                                  const errorMessage = formatErrorForToast(err);
+                                  toast.error(errorMessage);
+                                  console.error("Delete lease error:", err);
+                                } finally {
+                                  setLoading(false);
+                                }
+                              }
+                            });
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Lease
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
               </div>
@@ -283,9 +293,7 @@ function LeasesPageContent() {
               <TableHead>Rent</TableHead>
               <TableHead>Deposit</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead>Payment</TableHead>
-              <TableHead>Info</TableHead>
-              <TableHead>Actions</TableHead>
+              <TableHead className="text-center w-16">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -352,83 +360,69 @@ function LeasesPageContent() {
                   </TableCell>
                   <TableCell>{getStatusBadge(lease.status, lease.endDate)}</TableCell>
                   <TableCell>
-                    {lease.paymentDay ? (
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <Badge variant="outline" className="text-xs">
-                            {lease.paymentDay}{lease.paymentDay === 1 ? "st" : lease.paymentDay === 2 ? "nd" : lease.paymentDay === 3 ? "rd" : "th"}
-                          </Badge>
-                        </TooltipTrigger>
-                        <TooltipContent>Rent due on the {lease.paymentDay}{lease.paymentDay === 1 ? "st" : lease.paymentDay === 2 ? "nd" : lease.paymentDay === 3 ? "rd" : "th"} of each month</TooltipContent>
-                      </Tooltip>
-                    ) : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {/* Show all documents associated with this lease */}
-                      {leaseDocuments.map(doc => (
-                        <Tooltip key={doc._id}>
-                          <TooltipTrigger>
-                            <DocumentViewer
-                              storageId={doc.storageId || doc.url}
-                              fileName={doc.name}
-                            >
-                              <FileText className="w-4 h-4 text-muted-foreground hover:text-primary cursor-pointer" />
-                            </DocumentViewer>
-                          </TooltipTrigger>
-                          <TooltipContent>{doc.name}</TooltipContent>
-                        </Tooltip>
-                      ))}
-                      {lease.notes && (
-                        <Tooltip>
-                          <TooltipTrigger>
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                          </TooltipTrigger>
-                          <TooltipContent className="max-w-xs">{lease.notes}</TooltipContent>
-                        </Tooltip>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        onClick={() => {
-                          setEditLease(lease);
-                          setModalOpen(true);
-                        }}
-                        className="h-8 px-2"
-                      >
-                        Edit
-                      </Button>
-                      <Button 
-                        size="sm" 
-                        variant="ghost" 
-                        className="h-8 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-                        onClick={() => {
-                          confirm({
-                            title: "Delete Lease",
-                            description: "Delete this lease? This will also delete any associated documents.",
-                            variant: "destructive",
-                            onConfirm: async () => {
-                              setLoading(true);
-                              setError(null);
-                              try {
-                                await deleteLease({ id: lease._id as any, userId: user.id });
-                              } catch (err: any) {
-                                const errorMessage = formatErrorForToast(err);
-                                toast.error(errorMessage);
-                                console.error("Delete lease error:", err);
-                              } finally {
-                                setLoading(false);
-                              }
-                            }
-                          });
-                        }}
-                      >
-                        Delete
-                      </Button>
+                    <div className="flex justify-center">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {/* View Lease Documents */}
+                          {leaseDocuments.length > 0 && (
+                            <>
+                              {leaseDocuments.map(doc => (
+                                <DropdownMenuItem key={doc._id} asChild>
+                                  <DocumentViewer
+                                    storageId={doc.storageId || doc.url}
+                                    fileName={doc.name}
+                                  >
+                                    <div className="flex items-center w-full cursor-pointer">
+                                      <FileText className="h-4 w-4 mr-2" />
+                                      View {doc.name}
+                                    </div>
+                                  </DocumentViewer>
+                                </DropdownMenuItem>
+                              ))}
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+                          <DropdownMenuItem onClick={() => {
+                            setEditLease(lease);
+                            setModalOpen(true);
+                          }}>
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Lease
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem 
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                              confirm({
+                                title: "Delete Lease",
+                                description: "Delete this lease? This will also delete any associated documents.",
+                                variant: "destructive",
+                                onConfirm: async () => {
+                                  setLoading(true);
+                                  setError(null);
+                                  try {
+                                    await deleteLease({ id: lease._id as any, userId: user.id });
+                                  } catch (err: any) {
+                                    const errorMessage = formatErrorForToast(err);
+                                    toast.error(errorMessage);
+                                    console.error("Delete lease error:", err);
+                                  } finally {
+                                    setLoading(false);
+                                  }
+                                }
+                              });
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Delete Lease
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -436,7 +430,7 @@ function LeasesPageContent() {
             })}
             {leaseList.length === 0 && (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
                   No {title.toLowerCase()} found.
                 </TableCell>
               </TableRow>

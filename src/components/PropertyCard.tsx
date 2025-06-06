@@ -19,7 +19,8 @@ import {
   Edit,
   Trash2,
   Eye,
-  ImageIcon
+  ImageIcon,
+  Home
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
@@ -66,6 +67,19 @@ export function PropertyCard({
   
   const isLoadingImage = coverImage === undefined;
 
+  // Default property image component
+  const DefaultPropertyImage = ({ className }: { className?: string }) => (
+    <div className={cn(
+      "w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-slate-700 dark:to-slate-800 border border-border/50",
+      className
+    )}>
+      <div className="text-center">
+        <Home className="h-8 w-8 mx-auto mb-2 text-blue-500 dark:text-blue-400" />
+        <div className="text-xs text-muted-foreground font-medium">No Image</div>
+      </div>
+    </div>
+  );
+
   const handleClick = () => {
     router.push(`/properties/${property._id}`);
   };
@@ -87,9 +101,7 @@ export function PropertyCard({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <ImageIcon className="h-5 w-5 text-muted-foreground" />
-                </div>
+                <DefaultPropertyImage />
               )}
             </div>
             
@@ -141,9 +153,7 @@ export function PropertyCard({
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <ImageIcon className="h-6 w-6 text-muted-foreground" />
-                </div>
+                <DefaultPropertyImage />
               )}
               <div className="absolute top-2 right-2">
                 <StatusBadge status={property.status} variant="compact" />
@@ -241,9 +251,7 @@ export function PropertyCard({
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/80">
-              <ImageIcon className="h-12 w-12 text-muted-foreground" />
-            </div>
+            <DefaultPropertyImage />
           )}
           
           {/* Overlay */}

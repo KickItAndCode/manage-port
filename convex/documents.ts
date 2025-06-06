@@ -540,3 +540,31 @@ export const searchDocuments = query({
     return filteredDocuments.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
   },
 });
+
+// Bulk delete documents
+export const bulkDeleteDocuments = mutation({
+  args: {
+    documentIds: v.array(v.id("documents")),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const deletedCount = { success: 0, failed: 0 };
+    
+    for (const docId of args.documentIds) {
+      try {
+        const doc = await ctx.db.get(docId);
+        if (!doc || doc.userId !== args.userId) {
+          deletedCount.failed++;
+          continue;
+        }
+        
+        await ctx.db.delete(docId);
+        deletedCount.success++;
+      } catch (error) {
+        deletedCount.failed++;
+      }
+    }
+    
+    return deletedCount;
+  },
+});
