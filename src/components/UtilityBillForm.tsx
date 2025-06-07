@@ -10,14 +10,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { useDropzone } from "react-dropzone";
 import { useUser } from "@clerk/nextjs";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { DOCUMENT_TYPES } from "@/../convex/documents";
 import { Upload, X, CheckCircle, FileText } from "lucide-react";
 
 interface UtilityBillFormProps {
-  properties: { _id: string; name: string }[];
-  preSelectedPropertyId?: string;
   defaultMonth?: string;
   initial?: {
     _id?: Id<"utilityBills">;
@@ -78,8 +76,6 @@ const BILLING_PERIODS = [
 ];
 
 export function UtilityBillForm({
-  properties,
-  preSelectedPropertyId,
   defaultMonth,
   initial,
   onSubmit,
@@ -87,7 +83,13 @@ export function UtilityBillForm({
   loading,
 }: UtilityBillFormProps) {
   const { user } = useUser();
-  const [propertyId, setPropertyId] = useState(initial?.propertyId || preSelectedPropertyId || "");
+  
+  // Fetch properties directly
+  const properties = useQuery(api.properties.getProperties, 
+    user ? { userId: user.id } : "skip"
+  );
+  
+  const [propertyId, setPropertyId] = useState(initial?.propertyId || "");
   const [utilityType, setUtilityType] = useState(initial?.utilityType || "");
   const [provider, setProvider] = useState(initial?.provider || "");
   const [billMonth, setBillMonth] = useState(initial?.billMonth || defaultMonth || "");
@@ -181,7 +183,6 @@ export function UtilityBillForm({
   };
 
   const suggestedProviders = utilityType ? COMMON_PROVIDERS[utilityType] || [] : [];
-  const selectedProperty = properties.find(p => p._id === propertyId);
   
   // Document upload handler
   const handleDocumentUpload = async (files: File[]) => {
@@ -243,6 +244,16 @@ export function UtilityBillForm({
     setUploadError(null);
   };
 
+  // Show loading state while properties are loading
+  if (!properties) {
+    return (
+      <div className="p-8 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
+        <p className="mt-4 text-muted-foreground">Loading properties...</p>
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Property Selection */}
@@ -256,7 +267,7 @@ export function UtilityBillForm({
           disabled={loading}
         >
           <option value="">Select a property</option>
-          {properties.map((property) => (
+          {properties?.map((property) => (
             <option key={property._id} value={property._id}>
               {property.name}
             </option>

@@ -158,19 +158,48 @@ export function BillSplitPreview({
           ))}
         </div>
 
+        {/* Bill Breakdown Summary */}
         <Card className="p-4 bg-muted/50">
-          <div className="flex items-center justify-between">
-            <div className="space-y-1">
-              <p className="text-sm font-medium">Total Charges</p>
-              <p className="text-xs text-muted-foreground">
-                Split between {charges.length} tenant{charges.length !== 1 ? 's' : ''}
-              </p>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">Bill Breakdown</p>
+              <Badge variant="outline" className="text-xs">
+                {utilityType}
+              </Badge>
             </div>
-            <div className="text-right">
-              <p className="text-2xl font-bold">${totalCharged.toFixed(2)}</p>
-              <p className="text-xs text-muted-foreground">
-                {charges.filter((c: any) => c.isPaid).length} of {charges.length} paid
-              </p>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Bill:</span>
+                  <span className="font-medium">${totalAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tenant Charges:</span>
+                  <span className="font-medium text-blue-600">${totalCharged.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Owner Portion:</span>
+                  <span className="font-medium text-green-600">${(totalAmount - totalCharged).toFixed(2)}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tenant %:</span>
+                  <span className="font-medium">{((totalCharged / totalAmount) * 100).toFixed(1)}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Owner %:</span>
+                  <span className="font-medium">{(((totalAmount - totalCharged) / totalAmount) * 100).toFixed(1)}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Payment Status:</span>
+                  <span className="font-medium">
+                    {charges.filter((c: any) => c.isPaid).length} of {charges.length} paid
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
         </Card>

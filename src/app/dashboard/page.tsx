@@ -50,7 +50,6 @@ export default function DashboardPage() {
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
   const [utilityBillModalOpen, setUtilityBillModalOpen] = useState(false);
   const [utilityResponsibilityModalOpen, setUtilityResponsibilityModalOpen] = useState(false);
-  const [selectedPropertyForBill, setSelectedPropertyForBill] = useState<string>("");
   const [loading, setLoading] = useState(false);
   
   // Mutations
@@ -642,84 +641,31 @@ export default function DashboardPage() {
       </Dialog>
 
       {/* Add Utility Bill Modal */}
-      <Dialog open={utilityBillModalOpen} onOpenChange={(open) => {
-        setUtilityBillModalOpen(open);
-        if (!open) setSelectedPropertyForBill("");
-      }}>
+      <Dialog open={utilityBillModalOpen} onOpenChange={setUtilityBillModalOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Utility Bill</DialogTitle>
           </DialogHeader>
-          {properties && properties.length > 0 ? (
-            !selectedPropertyForBill ? (
-              <div className="space-y-4">
-                <p className="text-muted-foreground">
-                  Select a property to add a utility bill for:
-                </p>
-                <div className="grid gap-2">
-                  {properties.map((property) => (
-                    <button
-                      key={property._id}
-                      onClick={() => setSelectedPropertyForBill(property._id)}
-                      className="flex items-center justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colors text-left"
-                    >
-                      <div>
-                        <div className="font-medium">{property.name}</div>
-                        <div className="text-sm text-muted-foreground">{property.address}</div>
-                      </div>
-                      <div className="text-sm text-muted-foreground">
-                        {property.type}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-                <button 
-                  onClick={() => setUtilityBillModalOpen(false)}
-                  className="w-full px-4 py-2 border border-border rounded hover:bg-muted/50 transition-colors"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <UtilityBillForm
-                propertyId={selectedPropertyForBill as any}
-                propertyName={properties.find(p => p._id === selectedPropertyForBill)?.name || ""}
-                onSubmit={async (data) => {
-                  setLoading(true);
-                  try {
-                    await addUtilityBill({
-                      userId: user.id,
-                      propertyId: selectedPropertyForBill as any,
-                      ...data,
-                    });
-                    setUtilityBillModalOpen(false);
-                    setSelectedPropertyForBill("");
-                  } catch (err: any) {
-                    console.error("Add utility bill error:", err);
-                    toast.error(formatErrorForToast(err));
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                onCancel={() => {
-                  setUtilityBillModalOpen(false);
-                  setSelectedPropertyForBill("");
-                }}
-              />
-            )
-          ) : (
-            <div>
-              <p className="text-muted-foreground mb-4">
-                No properties found. Please add a property first.
-              </p>
-              <button 
-                onClick={() => setUtilityBillModalOpen(false)}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded"
-              >
-                Close
-              </button>
-            </div>
-          )}
+          <UtilityBillForm
+            onSubmit={async (data) => {
+              setLoading(true);
+              try {
+                await addUtilityBill({
+                  userId: user.id,
+                  ...data,
+                  propertyId: data.propertyId as any,
+                });
+                setUtilityBillModalOpen(false);
+              } catch (err: any) {
+                console.error("Add utility bill error:", err);
+                toast.error(formatErrorForToast(err));
+              } finally {
+                setLoading(false);
+              }
+            }}
+            onCancel={() => setUtilityBillModalOpen(false)}
+            loading={loading}
+          />
         </DialogContent>
       </Dialog>
 

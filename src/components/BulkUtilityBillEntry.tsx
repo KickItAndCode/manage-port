@@ -36,7 +36,7 @@ interface BulkBillEntry {
 interface BulkUtilityBillEntryProps {
   propertyId: Id<"properties">;
   propertyName: string;
-  onSubmit: (bills: Array<{
+  onSubmit: (billMonth: string, bills: Array<{
     utilityType: string;
     provider: string;
     totalAmount: number;
@@ -151,7 +151,7 @@ export function BulkUtilityBillEntry({
         notes: bill.notes,
       }));
 
-      const result = await onSubmit(billsData);
+      const result = await onSubmit(billMonth, billsData);
       
       setResults({
         success: result.createdBillIds.length,

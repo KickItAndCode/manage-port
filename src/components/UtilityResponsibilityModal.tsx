@@ -6,11 +6,11 @@ import { Id } from "@/../convex/_generated/dataModel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { UTILITY_TYPES } from "@/lib/constants";
 import { 
@@ -153,6 +153,13 @@ export function UtilityResponsibilityModal({
     setAllocations(newAllocations);
   }, [properties, allLeases, utilitySettings]);
 
+  // Initialize selectedPropertyId with first available property
+  useEffect(() => {
+    if (!selectedPropertyId && propertiesWithActiveLeases.length > 0) {
+      setSelectedPropertyId(propertiesWithActiveLeases[0]._id);
+    }
+  }, [propertiesWithActiveLeases, selectedPropertyId]);
+
   const handlePercentageChange = (propertyId: Id<"properties">, leaseId: Id<"leases">, value: string) => {
     const numValue = parseInt(value) || 0;
     const percentage = Math.max(0, Math.min(100, numValue));
@@ -254,7 +261,6 @@ export function UtilityResponsibilityModal({
   return (
     <Dialog open={open} onOpenChange={(openState) => {
       if (!openState) {
-        setSelectedPropertyId(null);
         setHasChanges(false);
       }
       onOpenChange(openState);
@@ -278,89 +284,41 @@ export function UtilityResponsibilityModal({
                 No properties with leases found. Add leases to your properties to configure utility responsibilities.
               </AlertDescription>
             </Alert>
-          ) : !selectedPropertyId ? (
-            <div className="space-y-4">
-              <div className="text-center py-8">
-                <Building2 className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                <h3 className="text-lg font-semibold mb-2">Select a Property</h3>
-                <p className="text-muted-foreground mb-6">Choose a property to configure utility responsibilities</p>
-              </div>
-              <div className="grid gap-3">
-                {propertiesWithLeases.map(property => {
-                  const activeLeases = allLeases?.filter(
-                    lease => lease.propertyId === property._id && lease.status === "active"
-                  ) || [];
-                  const totalLeases = allLeases?.filter(
-                    lease => lease.propertyId === property._id
-                  ) || [];
-                  const hasActiveLeases = activeLeases.length > 0;
-                  
-                  return (
-                    <button
-                      key={property._id}
-                      onClick={() => setSelectedPropertyId(property._id)}
-                      disabled={!hasActiveLeases}
-                      className={`flex items-center justify-between p-4 border rounded-lg transition-colors text-left group ${
-                        hasActiveLeases 
-                          ? 'hover:bg-muted/50 cursor-pointer' 
-                          : 'opacity-60 cursor-not-allowed bg-muted/20'
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-lg ${hasActiveLeases ? 'bg-blue-50 dark:bg-blue-950' : 'bg-gray-50 dark:bg-gray-950'}`}>
-                          <Building2 className={`w-5 h-5 ${hasActiveLeases ? 'text-blue-600' : 'text-gray-400'}`} />
-                        </div>
-                        <div>
-                          <div className="font-medium">{property.name}</div>
-                          <div className="text-sm text-muted-foreground">{property.address}</div>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium">
-                          {hasActiveLeases ? (
-                            `${activeLeases.length} Active Lease${activeLeases.length !== 1 ? 's' : ''}`
-                          ) : (
-                            `${totalLeases.length} Inactive Lease${totalLeases.length !== 1 ? 's' : ''}`
-                          )}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {hasActiveLeases ? 'Click to configure' : 'No active leases'}
-                        </div>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
           ) : (
             <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <button 
-                  onClick={() => setSelectedPropertyId(null)}
-                  className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors"
-                >
-                  ← Back to properties
-                </button>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="property-select">Property</Label>
+                  <select
+                    id="property-select"
+                    value={selectedPropertyId || ""}
+                    onChange={(e) => setSelectedPropertyId(e.target.value as Id<"properties">)}
+                    className="w-full h-10 px-3 rounded-md border bg-background"
+                  >
+                    <option value="">Select a property</option>
+                    {propertiesWithActiveLeases.map(property => {
+                      const activeLeases = allLeases?.filter(
+                        lease => lease.propertyId === property._id && lease.status === "active"
+                      ) || [];
+                      return (
+                        <option key={property._id} value={property._id}>
+                          {property.name} ({activeLeases.length} active lease{activeLeases.length !== 1 ? 's' : ''})
+                        </option>
+                      );
+                    })}
+                  </select>
+                </div>
               </div>
               
-              <Tabs value={selectedPropertyId} onValueChange={(value) => setSelectedPropertyId(value as Id<"properties">)}>
-                <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${Math.min(propertiesWithActiveLeases.length, 3)}, 1fr)` }}>
-                  {propertiesWithActiveLeases.map(property => (
-                    <TabsTrigger key={property._id} value={property._id} className="flex items-center gap-2">
-                      <Building2 className="w-4 h-4" />
-                      <span className="truncate">{property.name}</span>
-                    </TabsTrigger>
-                  ))}
-                </TabsList>
-
-              {propertiesWithActiveLeases.map(property => {
-                const allocation = allocations[property._id];
-                if (!allocation) return null;
+              {selectedPropertyId && (() => {
+                const allocation = allocations[selectedPropertyId];
+                const property = properties?.find(p => p._id === selectedPropertyId);
+                if (!allocation || !property) return null;
 
                 const ownerPercentage = 100 - allocation.totalAllocated;
 
                 return (
-                  <TabsContent key={property._id} value={property._id} className="space-y-4">
+                  <div className="space-y-4">
                     {/* Property Info */}
                     <Card className="p-4">
                       <div className="flex items-start justify-between">
@@ -403,7 +361,7 @@ export function UtilityResponsibilityModal({
                           key={template.name}
                           variant="outline"
                           size="sm"
-                          onClick={() => applyTemplate(property._id, template)}
+                          onClick={() => applyTemplate(selectedPropertyId, template)}
                           disabled={!!template.maxTenants && allocation.leases.length > template.maxTenants}
                         >
                           {template.name}
@@ -450,7 +408,7 @@ export function UtilityResponsibilityModal({
                               min="0"
                               max="100"
                               value={lease.percentage}
-                              onChange={(e) => handlePercentageChange(property._id, lease.leaseId, e.target.value)}
+                              onChange={(e) => handlePercentageChange(selectedPropertyId, lease.leaseId, e.target.value)}
                               className="w-20 text-right"
                             />
                             <span className="text-sm text-muted-foreground">%</span>
@@ -480,10 +438,9 @@ export function UtilityResponsibilityModal({
                         {ownerPercentage > 0 && ` The owner will be responsible for ${ownerPercentage}% of all utility bills.`}
                       </AlertDescription>
                     </Alert>
-                  </TabsContent>
+                  </div>
                 );
-              })}
-            </Tabs>
+              })()}
             </div>
           )}
         </div>

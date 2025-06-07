@@ -41,9 +41,13 @@ import {
 export default function UtilityBillsPage() {
   const { user } = useUser();
   const [selectedProperty, setSelectedProperty] = useState<string>("");
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
+  const [startMonth, setStartMonth] = useState<string>(() => {
     const today = new Date();
-    return today.toISOString().slice(0, 7);
+    return `${today.getFullYear()}-01`; // January of current year
+  });
+  const [endMonth, setEndMonth] = useState<string>(() => {
+    const today = new Date();
+    return today.toISOString().slice(0, 7); // Current month
   });
   const [billDialogOpen, setBillDialogOpen] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
@@ -58,12 +62,19 @@ export default function UtilityBillsPage() {
     user ? { userId: user.id } : "skip"
   );
   
-  const bills = useQuery(api.utilityBills.getUtilityBills, 
-    user ? { 
+  
+  const bills = useQuery(
+    selectedProperty 
+      ? api.utilityBills.getUtilityBillsByProperty 
+      : api.utilityBills.getUtilityBills, 
+    user ? (selectedProperty ? {
       userId: user.id,
-      propertyId: selectedProperty ? selectedProperty as any : undefined,
-      billMonth: selectedMonth || undefined,
-    } : "skip"
+      propertyId: selectedProperty as any,
+      startMonth: startMonth || undefined,
+      endMonth: endMonth || undefined,
+    } : {
+      userId: user.id,
+    }) : "skip"
   );
 
   const unpaidBills = useQuery(api.utilityBills.getUnpaidBills,
@@ -177,7 +188,7 @@ export default function UtilityBillsPage() {
         {/* Filters */}
         <Card className="mb-6">
           <CardContent className="p-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
                 <Label htmlFor="search">Search</Label>
                 <div className="relative">
@@ -206,12 +217,21 @@ export default function UtilityBillsPage() {
                 </select>
               </div>
               <div>
-                <Label htmlFor="month">Month</Label>
+                <Label htmlFor="startMonth">From Month</Label>
                 <Input
-                  id="month"
+                  id="startMonth"
                   type="month"
-                  value={selectedMonth}
-                  onChange={(e) => setSelectedMonth(e.target.value)}
+                  value={startMonth}
+                  onChange={(e) => setStartMonth(e.target.value)}
+                />
+              </div>
+              <div>
+                <Label htmlFor="endMonth">To Month</Label>
+                <Input
+                  id="endMonth"
+                  type="month"
+                  value={endMonth}
+                  onChange={(e) => setEndMonth(e.target.value)}
                 />
               </div>
               <div className="flex items-end">
@@ -220,11 +240,13 @@ export default function UtilityBillsPage() {
                   onClick={() => {
                     setSearchTerm("");
                     setSelectedProperty("");
-                    setSelectedMonth("");
+                    const today = new Date();
+                    setStartMonth(`${today.getFullYear()}-01`);
+                    setEndMonth(today.toISOString().slice(0, 7));
                   }}
                   className="w-full"
                 >
-                  Clear Filters
+                  Reset Filters
                 </Button>
               </div>
             </div>
@@ -259,10 +281,9 @@ export default function UtilityBillsPage() {
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-muted-foreground">This Month</p>
+                  <p className="text-sm text-muted-foreground">Period Total</p>
                   <p className="text-2xl font-bold">
-                    ${bills?.filter(b => b.billMonth === selectedMonth)
-                      .reduce((sum, b) => sum + b.totalAmount, 0)
+                    ${bills?.reduce((sum, b) => sum + b.totalAmount, 0)
                       .toFixed(2) || "0.00"}
                   </p>
                 </div>
@@ -291,7 +312,7 @@ export default function UtilityBillsPage() {
                 <Receipt className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">No Bills Found</h3>
                 <p className="text-muted-foreground mb-4">
-                  {selectedProperty || selectedMonth 
+                  {selectedProperty || startMonth || endMonth
                     ? "Try adjusting your filters"
                     : "Start by adding your first utility bill"}
                 </p>
@@ -489,9 +510,7 @@ export default function UtilityBillsPage() {
             <DialogTitle>{selectedBill ? "Edit Bill" : "Add Utility Bill"}</DialogTitle>
           </DialogHeader>
           <UtilityBillForm
-            properties={properties || []}
-            preSelectedPropertyId={selectedProperty}
-            defaultMonth={selectedMonth}
+            defaultMonth={endMonth}
             initial={selectedBill}
             onSubmit={async (data) => {
               try {
@@ -500,11 +519,13 @@ export default function UtilityBillsPage() {
                     id: selectedBill._id,
                     userId: user.id,
                     ...data,
+                    propertyId: data.propertyId as any,
                   });
                 } else {
                   await addBill({
                     userId: user.id,
                     ...data,
+                    propertyId: data.propertyId as any,
                   });
                 }
                 setBillDialogOpen(false);
@@ -531,11 +552,11 @@ export default function UtilityBillsPage() {
             <BulkUtilityBillEntry
               propertyId={selectedPropertyData._id as any}
               propertyName={selectedPropertyData.name}
-              onSubmit={async (billsData) => {
+              onSubmit={async (billMonth, billsData) => {
                 const result = await bulkAddBills({
                   userId: user.id,
                   propertyId: selectedPropertyData._id as any,
-                  billMonth: selectedMonth,
+                  billMonth: billMonth,
                   bills: billsData,
                 });
                 if (result.createdBillIds.length > 0) {

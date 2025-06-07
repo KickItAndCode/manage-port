@@ -159,6 +159,7 @@ export const updateUtilityBill = mutation({
   args: {
     id: v.id("utilityBills"),
     userId: v.string(),
+    propertyId: v.optional(v.id("properties")),
     utilityType: v.optional(v.string()),
     provider: v.optional(v.string()),
     billMonth: v.optional(v.string()),
