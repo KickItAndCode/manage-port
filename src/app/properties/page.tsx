@@ -13,12 +13,11 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { ChevronUp, ChevronDown, ImageIcon, Wand2, Plus, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import { ChevronUp, ChevronDown, ImageIcon, Wand2, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { cn } from "@/lib/utils";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import DocumentUploadForm from "@/components/DocumentUploadForm";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -33,17 +32,14 @@ export default function PropertiesPage() {
   const { user } = useUser();
   const router = useRouter();
   const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
-  const addProperty = useMutation(api.properties.addProperty);
-  const createPropertyWithUnits = useMutation(api.properties.createPropertyWithUnits);
   const updateProperty = useMutation(api.properties.updateProperty);
   const deleteProperty = useMutation(api.properties.deleteProperty);
+  const createPropertyWithUnits = useMutation(api.properties.createPropertyWithUnits);
 
-  const [open, setOpen] = useState(false);
-  const [wizardOpen, setWizardOpen] = useState(false);
   const [edit, setEdit] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [newPropertyId, setNewPropertyId] = useState<string | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
@@ -183,15 +179,11 @@ export default function PropertiesPage() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold">Properties</h1>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
-          {/* Enhanced Wizard */}
           <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2 relative">
+              <Button className="gap-2">
                 <Wand2 className="w-4 h-4" />
-                Enhanced Setup
-                <Badge variant="secondary" className="text-xs ml-1">
-                  NEW
-                </Badge>
+                Property Wizard
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] sm:max-w-6xl h-[95vh] p-0 overflow-hidden">
@@ -201,45 +193,6 @@ export default function PropertiesPage() {
                 onCancel={() => setWizardOpen(false)}
                 loading={loading}
               />
-            </DialogContent>
-          </Dialog>
-
-          {/* Simple Form */}
-          <Dialog open={open} onOpenChange={(isOpen) => {
-            setOpen(isOpen);
-            if (isOpen) setError(null);
-          }}>
-            <DialogTrigger asChild>
-              <Button variant="outline" className="gap-2">
-                <Plus className="w-4 h-4" />
-                Quick Add
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-              <DialogHeader>
-                <DialogTitle>Quick Add Property</DialogTitle>
-              </DialogHeader>
-              <PropertyForm
-                onSubmit={async (data) => {
-                  try {
-                    setLoading(true);
-                    setError(null);
-                    const propertyId = await addProperty({ ...data, userId: user.id });
-                    setNewPropertyId(propertyId);
-                    setOpen(false);
-                  } catch (err: any) {
-                    setError(err.data?.message || err.message || "An error occurred");
-                  } finally {
-                    setLoading(false);
-                  }
-                }}
-                loading={loading}
-              />
-              {error && (
-                <div className="mt-4 p-3 bg-destructive/10 text-destructive rounded-lg">
-                  {error}
-                </div>
-              )}
             </DialogContent>
           </Dialog>
         </div>
@@ -451,16 +404,9 @@ export default function PropertiesPage() {
                   "Add your first property to get started"
                 }
               </p>
-              <div className="flex flex-col sm:flex-row gap-3 justify-center max-w-xs mx-auto">
-                <Button variant="outline" onClick={() => setWizardOpen(true)} className="gap-2">
-                  <Wand2 className="w-4 h-4" />
-                  Enhanced Setup
-                </Button>
-                <Button variant="outline" onClick={() => setOpen(true)} className="gap-2">
-                  <Plus className="w-4 h-4" />
-                  Quick Add
-                </Button>
-              </div>
+              <p className="text-muted-foreground">
+                Use the Property Wizard from the dashboard to add your first property.
+              </p>
             </div>
           )}
         </div>
@@ -615,16 +561,9 @@ export default function PropertiesPage() {
                           "Add your first property to get started"
                         }
                       </p>
-                      <div className="flex gap-3">
-                        <Button variant="outline" onClick={() => setWizardOpen(true)} className="gap-2">
-                          <Wand2 className="w-4 h-4" />
-                          Enhanced Setup
-                        </Button>
-                        <Button variant="outline" onClick={() => setOpen(true)} className="gap-2">
-                          <Plus className="w-4 h-4" />
-                          Quick Add
-                        </Button>
-                      </div>
+                      <p className="text-muted-foreground">
+                        Use the Property Wizard from the dashboard to add your first property.
+                      </p>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -669,16 +608,6 @@ export default function PropertiesPage() {
         </DialogContent>
       </Dialog>
       {confirmDialog}
-      
-      {/* Document Upload for newly created property */}
-      {newPropertyId && (
-        <DocumentUploadForm
-          propertyId={newPropertyId as any}
-          onUploadComplete={() => {
-            setNewPropertyId(null);
-          }}
-        />
-      )}
     </div>
   );
 } 

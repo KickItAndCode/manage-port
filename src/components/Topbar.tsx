@@ -1,6 +1,6 @@
 "use client";
 import { UserButton, useUser } from "@clerk/nextjs";
-import { Bell, Sun, Moon } from "lucide-react";
+import { Sun, Moon } from "lucide-react";
 import { GlobalSearch } from "@/components/GlobalSearch";
 import Link from "next/link";
 import { useTheme } from "next-themes";
@@ -30,11 +30,6 @@ export function Topbar() {
             {resolvedTheme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
           </button>
         )}
-        <button className="relative p-2 rounded-full hover:bg-muted/60 text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors duration-200">
-          <Bell size={20} />
-          {/* Notification dot */}
-          <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-        </button>
         {isLoaded && isSignedIn ? (
           <UserButton afterSignOutUrl="/" />
         ) : (

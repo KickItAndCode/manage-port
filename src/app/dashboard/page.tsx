@@ -9,7 +9,6 @@ import { useUser } from "@clerk/nextjs";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { PropertyForm } from "@/components/PropertyForm";
 import { PropertyCreationWizard, type PropertyWizardData } from "@/components/PropertyCreationWizard";
 import { LeaseForm } from "@/components/LeaseForm";
 import DocumentUploadForm from "@/components/DocumentUploadForm";
@@ -23,7 +22,7 @@ import {
 } from "recharts";
 import { 
   Home, DollarSign, Percent, TrendingUp, 
-  Building2, Receipt, Calendar, Users, ArrowRight, Sparkles, Wand2, Plus 
+  Building2, Receipt, Calendar, Users, ArrowRight, Sparkles, Wand2 
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
@@ -44,7 +43,6 @@ export default function DashboardPage() {
   );
   
   // Modal states
-  const [propertyModalOpen, setPropertyModalOpen] = useState(false);
   const [wizardModalOpen, setWizardModalOpen] = useState(false);
   const [leaseModalOpen, setLeaseModalOpen] = useState(false);
   const [documentModalOpen, setDocumentModalOpen] = useState(false);
@@ -53,7 +51,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(false);
   
   // Mutations
-  const addProperty = useMutation(api.properties.addProperty);
   const createPropertyWithUnits = useMutation(api.properties.createPropertyWithUnits);
   const addLease = useMutation(api.leases.addLease);
   const addUtilityBill = useMutation(api.utilityBills.addUtilityBill);
@@ -195,38 +192,28 @@ export default function DashboardPage() {
               )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-              {hasNoProperties ? (
-                // For new users, show the enhanced wizard prominently
-                <button 
-                  onClick={() => setWizardModalOpen(true)}
-                  className="col-span-2 sm:col-span-1 flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 transition-all border-2 border-primary/30 hover:border-primary/50 min-h-[80px] sm:min-h-[100px]"
-                >
-                  <Wand2 className="h-6 w-6 sm:h-6 sm:w-6 text-primary" />
-                  <div className="text-center">
-                    <span className="text-sm sm:text-sm font-medium block">Property Setup</span>
-                    <span className="text-xs text-primary/80">Enhanced</span>
+              <button 
+                onClick={() => setWizardModalOpen(true)}
+                className={`flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg transition-all min-h-[80px] sm:min-h-[100px] relative ${
+                  hasNoProperties 
+                    ? "bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 border-2 border-primary/30 hover:border-primary/50" 
+                    : "bg-background hover:bg-muted/50 border border-border hover:border-primary/30"
+                }`}
+              >
+                {hasNoProperties && (
+                  <div className="absolute -top-2 -right-2 flex items-center gap-1 text-xs bg-primary text-primary-foreground px-2 py-1 rounded-full shadow-sm animate-pulse">
+                    <Sparkles className="h-3 w-3" />
+                    <span>Start here</span>
                   </div>
-                </button>
-              ) : (
-                // For existing users, show both options with simple as primary
-                <button 
-                  onClick={() => setPropertyModalOpen(true)}
-                  className="flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30 min-h-[80px] sm:min-h-[100px]"
-                >
-                  <Plus className="h-6 w-6 sm:h-6 sm:w-6 text-primary" />
-                  <span className="text-sm sm:text-sm font-medium text-center">Quick Add</span>
-                </button>
-              )}
-              
-              {!hasNoProperties && (
-                <button 
-                  onClick={() => setWizardModalOpen(true)}
-                  className="flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30 min-h-[80px] sm:min-h-[100px]"
-                >
-                  <Wand2 className="h-6 w-6 sm:h-6 sm:w-6 text-primary" />
-                  <span className="text-sm sm:text-sm font-medium text-center">Enhanced Setup</span>
-                </button>
-              )}
+                )}
+                <Wand2 className="h-6 w-6 sm:h-6 sm:w-6 text-primary" />
+                <div className="text-center">
+                  <span className="text-sm sm:text-sm font-medium block">Property Wizard</span>
+                  <span className={`text-xs ${hasNoProperties ? "text-primary/80" : "text-muted-foreground"}`}>
+                    Add Properties
+                  </span>
+                </div>
+              </button>
               <button 
                 onClick={() => setLeaseModalOpen(true)}
                 className="flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30 min-h-[80px] sm:min-h-[100px]"
@@ -530,29 +517,6 @@ export default function DashboardPage() {
       )}
       
       {/* Modals */}
-      {/* Add Property Modal */}
-      <Dialog open={propertyModalOpen} onOpenChange={setPropertyModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Add Property</DialogTitle>
-          </DialogHeader>
-          <PropertyForm
-            onSubmit={async (data) => {
-              setLoading(true);
-              try {
-                await addProperty({ ...data, userId: user.id });
-                setPropertyModalOpen(false);
-              } catch (err: any) {
-                console.error("Add property error:", err);
-                toast.error(formatErrorForToast(err));
-              } finally {
-                setLoading(false);
-              }
-            }}
-            loading={loading}
-          />
-        </DialogContent>
-      </Dialog>
 
       {/* Property Creation Wizard Modal */}
       <Dialog open={wizardModalOpen} onOpenChange={setWizardModalOpen}>

@@ -11,9 +11,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UtilityBillForm } from "@/components/UtilityBillForm";
 import { BulkUtilityBillEntry } from "@/components/BulkUtilityBillEntry";
 import { BillSplitPreview } from "@/components/BillSplitPreview";
+import { OutstandingBalances } from "@/components/OutstandingBalances";
+import { PaymentHistory } from "@/components/PaymentHistory";
 import { LoadingContent } from "@/components/LoadingContent";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { 
@@ -35,11 +38,14 @@ import {
   Droplets,
   Flame,
   Wifi,
-  Trash
+  Trash,
+  Clock,
+  History
 } from "lucide-react";
 
 export default function UtilityBillsPage() {
   const { user } = useUser();
+  const [activeTab, setActiveTab] = useState("bills");
   const [selectedProperty, setSelectedProperty] = useState<string>("");
   const [startMonth, setStartMonth] = useState<string>(() => {
     const today = new Date();
@@ -86,7 +92,6 @@ export default function UtilityBillsPage() {
   const updateBill = useMutation(api.utilityBills.updateUtilityBill);
   const deleteBill = useMutation(api.utilityBills.deleteUtilityBill);
   const bulkAddBills = useMutation(api.utilityBills.bulkAddUtilityBills);
-  const markPaid = useMutation(api.utilityPayments.markUtilityPaid);
 
   const getUtilityIcon = (type: string) => {
     switch (type) {
@@ -168,9 +173,9 @@ export default function UtilityBillsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Utility Bills</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Utility Bills & Payments</h1>
             <p className="text-muted-foreground mt-1">
-              Manage monthly utility bills and tenant charges
+              Manage utility bills, track tenant charges, and process payments
             </p>
           </div>
           <div className="flex gap-2">
@@ -253,7 +258,26 @@ export default function UtilityBillsPage() {
           </CardContent>
         </Card>
 
-        {/* Stats Cards */}
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full max-w-md grid-cols-3">
+            <TabsTrigger value="bills" className="flex items-center gap-2">
+              <Receipt className="w-4 h-4" />
+              Bills
+            </TabsTrigger>
+            <TabsTrigger value="outstanding" className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              Outstanding
+            </TabsTrigger>
+            <TabsTrigger value="history" className="flex items-center gap-2">
+              <History className="w-4 h-4" />
+              History
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Bills Overview Tab */}
+          <TabsContent value="bills" className="space-y-6">
+            {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <Card>
             <CardContent className="p-4">
@@ -498,6 +522,21 @@ export default function UtilityBillsPage() {
             </div>
           )}
         </LoadingContent>
+          </TabsContent>
+
+          {/* Outstanding Payments Tab */}
+          <TabsContent value="outstanding" className="space-y-6">
+            <OutstandingBalances 
+              userId={user.id} 
+              propertyId={selectedProperty ? selectedProperty as any : undefined}
+            />
+          </TabsContent>
+
+          {/* Payment History Tab */}
+          <TabsContent value="history" className="space-y-6">
+            <PaymentHistory userId={user.id} />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Add/Edit Bill Dialog */}
