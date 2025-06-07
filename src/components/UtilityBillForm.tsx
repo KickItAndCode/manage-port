@@ -13,7 +13,8 @@ import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { DOCUMENT_TYPES } from "@/../convex/documents";
-import { Upload, X, CheckCircle, FileText } from "lucide-react";
+import { Upload, X, CheckCircle, FileText, Sparkles } from "lucide-react";
+import { toast } from "sonner";
 
 interface UtilityBillFormProps {
   defaultMonth?: string;
@@ -109,6 +110,10 @@ export function UtilityBillForm({
   // Document upload mutations
   const generateUploadUrl = useMutation(api.storage.generateUploadUrl);
   const addDocument = useMutation(api.documents.addDocument);
+  
+  // Seed mutation
+  const seedUtilityBills = useMutation(api.utilityBills.seedUtilityBills);
+  const [seeding, setSeeding] = useState(false);
 
   // Set default dates if not editing
   useState(() => {
@@ -244,6 +249,36 @@ export function UtilityBillForm({
     setUploadError(null);
   };
 
+  const handleSeedData = async () => {
+    console.log("Seed button clicked", { user: !!user, propertyId, seeding });
+    
+    if (!user || !propertyId) {
+      toast.error("Please select a property first");
+      return;
+    }
+
+    setSeeding(true);
+    try {
+      const result = await seedUtilityBills({
+        userId: user.id,
+        propertyId: propertyId as Id<"properties">,
+      });
+      
+      toast.success(result.message);
+      
+      // Close the modal after successful seeding
+      if (onCancel) {
+        onCancel();
+      }
+    } catch (error: any) {
+      toast.error("Failed to generate test data", {
+        description: error.message || "Please try again",
+      });
+    } finally {
+      setSeeding(false);
+    }
+  };
+
   // Show loading state while properties are loading
   if (!properties) {
     return (
@@ -258,7 +293,27 @@ export function UtilityBillForm({
     <form onSubmit={handleSubmit} className="space-y-4">
       {/* Property Selection */}
       <div>
-        <Label htmlFor="propertyId">Property *</Label>
+        <div className="flex items-center justify-between mb-2">
+          <Label htmlFor="propertyId">Property *</Label>
+          {!initial && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleSeedData}
+              disabled={seeding || !propertyId || loading}
+              className={cn(
+                "gap-2 transition-all text-xs",
+                propertyId && !seeding && !loading && "hover:bg-primary/90 hover:text-white hover:border-primary",
+                (!propertyId || loading) && "opacity-50 cursor-not-allowed"
+              )}
+              title={!propertyId ? "Select a property first" : "Generate test data for the selected property"}
+            >
+              <Sparkles className={cn("w-4 h-4", seeding && "animate-spin")} />
+              {seeding ? "Generating..." : "Generate Year's Bills"}
+            </Button>
+          )}
+        </div>
         <select
           id="propertyId"
           value={propertyId}
@@ -275,6 +330,11 @@ export function UtilityBillForm({
         </select>
         {errors.propertyId && (
           <p className="text-sm text-red-500 mt-1">{errors.propertyId}</p>
+        )}
+        {propertyId && !initial && (
+          <p className="text-xs text-muted-foreground mt-1">
+            Tip: Use "Generate Year's Bills" to create test data for {new Date().getFullYear()}
+          </p>
         )}
       </div>
 

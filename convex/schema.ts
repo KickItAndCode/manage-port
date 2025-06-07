@@ -78,7 +78,8 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_month", ["billMonth"])
     .index("by_type", ["utilityType"])
-    .index("by_paid_status", ["isPaid"]),
+    .index("by_paid_status", ["isPaid"])
+    .index("by_property_month", ["propertyId", "billMonth"]),
   leaseUtilitySettings: defineTable({
     leaseId: v.id("leases"), // Reference to lease
     utilityType: v.string(), // Must match utilityBills.utilityType

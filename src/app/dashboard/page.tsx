@@ -591,6 +591,7 @@ export default function DashboardPage() {
                   unitId: data.unitId ? data.unitId as any : undefined,
                   status: data.status as "active" | "expired" | "pending"
                 });
+                toast.success("Lease created successfully!");
                 setLeaseModalOpen(false);
               } catch (err: any) {
                 console.error("Add lease error:", err);

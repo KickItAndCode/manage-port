@@ -263,6 +263,197 @@ export const updateUtilityBill = mutation({
   },
 });
 
+// Seed utility bills for testing/demo purposes
+export const seedUtilityBills = mutation({
+  args: {
+    userId: v.string(),
+    propertyId: v.id("properties"),
+  },
+  handler: async (ctx, args) => {
+    // Verify property ownership
+    const property = await ctx.db.get(args.propertyId);
+    if (!property || property.userId !== args.userId) {
+      throw new Error("Unauthorized: Property not found or doesn't belong to user");
+    }
+
+    // Get active leases for the property
+    const activeLeases = await ctx.db
+      .query("leases")
+      .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .filter(q => q.eq(q.field("status"), "active"))
+      .collect();
+
+    // Get utility settings for all leases
+    const leaseSettings = await Promise.all(
+      activeLeases.map(async (lease) => {
+        const settings = await ctx.db
+          .query("leaseUtilitySettings")
+          .withIndex("by_lease", (q) => q.eq("leaseId", lease._id))
+          .collect();
+        return { lease, settings };
+      })
+    );
+
+    // Utility bill configurations with realistic seasonal variations
+    const utilityConfigs = [
+      {
+        type: "Electric",
+        provider: "City Electric Company",
+        baseAmount: 120,
+        variation: 0.3, // 30% variation
+        seasonal: true, // Higher in summer/winter
+        period: "monthly",
+      },
+      {
+        type: "Water",
+        provider: "Municipal Water Service",
+        baseAmount: 45,
+        variation: 0.2,
+        seasonal: false,
+        period: "monthly",
+      },
+      {
+        type: "Gas",
+        provider: "Natural Gas Co",
+        baseAmount: 80,
+        variation: 0.4,
+        seasonal: true, // Higher in winter
+        period: "monthly",
+      },
+      {
+        type: "Trash",
+        provider: "Waste Management",
+        baseAmount: 35,
+        variation: 0.05,
+        seasonal: false,
+        period: "monthly",
+      },
+      {
+        type: "Sewer",
+        provider: "City Sewer Department",
+        baseAmount: 40,
+        variation: 0.1,
+        seasonal: false,
+        period: "bi-monthly",
+      },
+      {
+        type: "Internet",
+        provider: "Fiber Internet Co",
+        baseAmount: 65,
+        variation: 0,
+        seasonal: false,
+        period: "monthly",
+      },
+    ];
+
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear();
+    const currentMonth = currentDate.getMonth();
+    
+    let createdBills = 0;
+    let createdCharges = 0;
+
+    // Generate bills for each month from January to current month
+    for (let month = 0; month <= currentMonth; month++) {
+      for (const config of utilityConfigs) {
+        // Skip bi-monthly bills on odd months
+        if (config.period === "bi-monthly" && month % 2 !== 0) continue;
+
+        // Check if bill already exists for this month
+        const billMonth = `${currentYear}-${String(month + 1).padStart(2, '0')}`;
+        const existingBill = await ctx.db
+          .query("utilityBills")
+          .withIndex("by_property_month", (q) => 
+            q.eq("propertyId", args.propertyId)
+             .eq("billMonth", billMonth)
+          )
+          .filter(q => q.eq(q.field("utilityType"), config.type))
+          .first();
+
+        if (existingBill) continue;
+
+        // Calculate amount with seasonal variation
+        let amount = config.baseAmount;
+        
+        if (config.seasonal) {
+          if (config.type === "Electric") {
+            // Higher in summer (June-August) and winter (December-February)
+            if ([5, 6, 7].includes(month) || [11, 0, 1].includes(month)) {
+              amount *= 1.3 + Math.random() * 0.2;
+            }
+          } else if (config.type === "Gas") {
+            // Higher in winter months
+            if ([11, 0, 1, 2].includes(month)) {
+              amount *= 1.5 + Math.random() * 0.3;
+            } else if ([5, 6, 7].includes(month)) {
+              amount *= 0.6 + Math.random() * 0.2;
+            }
+          }
+        }
+
+        // Add random variation
+        amount = amount * (1 + (Math.random() - 0.5) * config.variation);
+        amount = Math.round(amount * 100) / 100;
+
+        // Create the bill
+        const billDate = new Date(currentYear, month, 1);
+        const dueDate = new Date(currentYear, month + 1, 15);
+
+        const billId = await ctx.db.insert("utilityBills", {
+          userId: args.userId,
+          propertyId: args.propertyId,
+          utilityType: config.type,
+          provider: config.provider,
+          billMonth,
+          totalAmount: amount,
+          dueDate: dueDate.toISOString().split('T')[0],
+          billDate: billDate.toISOString().split('T')[0],
+          isPaid: month < currentMonth - 1, // Mark older bills as paid
+          paidDate: month < currentMonth - 1 
+            ? new Date(currentYear, month + 1, Math.floor(Math.random() * 10) + 5).toISOString().split('T')[0]
+            : undefined,
+          notes: "Auto-generated for testing",
+          createdAt: new Date().toISOString(),
+        });
+
+        createdBills++;
+
+        // Create tenant charges based on lease utility settings
+        for (const { lease, settings } of leaseSettings) {
+          const utilitySetting = settings.find(s => s.utilityType === config.type);
+          if (utilitySetting && utilitySetting.responsibilityPercentage > 0) {
+            const chargeAmount = Math.round(amount * (utilitySetting.responsibilityPercentage / 100) * 100) / 100;
+            
+            await ctx.db.insert("tenantUtilityCharges", {
+              leaseId: lease._id,
+              utilityBillId: billId,
+              tenantName: lease.tenantName,
+              chargedAmount: chargeAmount,
+              responsibilityPercentage: utilitySetting.responsibilityPercentage,
+              dueDate: dueDate.toISOString().split('T')[0],
+              isPaid: month < currentMonth - 1,
+              paidDate: month < currentMonth - 1 
+                ? new Date(currentYear, month + 1, Math.floor(Math.random() * 10) + 5).toISOString().split('T')[0]
+                : undefined,
+              notes: "Auto-generated for testing",
+              createdAt: new Date().toISOString(),
+            });
+            
+            createdCharges++;
+          }
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: `Created ${createdBills} utility bills with ${createdCharges} tenant charges for ${currentYear} YTD`,
+      createdBills,
+      createdCharges,
+    };
+  },
+});
+
 // Delete a utility bill
 export const deleteUtilityBill = mutation({
   args: {
