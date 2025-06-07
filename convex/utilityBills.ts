@@ -36,7 +36,7 @@ async function calculateTenantCharges(
   }
 
   const charges = [];
-  let totalPercentage = 0;
+  let totalTenantPercentage = 0;
 
   // Calculate charges for each lease based on utility settings
   for (const lease of activeLeases) {
@@ -56,16 +56,20 @@ async function calculateTenantCharges(
         chargedAmount: Math.round(chargedAmount * 100) / 100, // Round to cents
         responsibilityPercentage: setting.responsibilityPercentage,
       });
-      totalPercentage += setting.responsibilityPercentage;
+      totalTenantPercentage += setting.responsibilityPercentage;
     }
   }
 
-  // Validate that percentages sum to 100 if there are charges
-  if (charges.length > 0 && totalPercentage !== 100) {
+  // Validate that tenant percentages don't exceed 100%
+  if (totalTenantPercentage > 100) {
     throw new Error(
-      `Utility percentages for ${bill.utilityType} sum to ${totalPercentage}%, not 100%. Please update lease utility settings before adding bills.`
+      `Utility percentages for ${bill.utilityType} sum to ${totalTenantPercentage}%, which exceeds 100%. Please update lease utility settings before adding bills.`
     );
   }
+
+  // Allow partial tenant responsibility - owner covers the remaining percentage
+  // This is valid: 50% tenant + 50% owner = 100%
+  // No error needed if totalTenantPercentage < 100, as owner covers the difference
 
   return charges;
 }

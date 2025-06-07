@@ -12,6 +12,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { UTILITY_TYPES } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 import { 
   Percent,
   Users,
@@ -49,6 +50,12 @@ export function UniversalUtilityAllocation({
     userId,
   });
 
+  // Get units for property to resolve unit identifiers
+  const units = useQuery(api.units.getUnitsByProperty, {
+    propertyId,
+    userId,
+  });
+
   // Get existing utility settings
   const utilitySettings = useQuery(api.leaseUtilitySettings.getUtilitySettingsByProperty, {
     propertyId,
@@ -59,7 +66,7 @@ export function UniversalUtilityAllocation({
 
   // Initialize allocations when data loads
   useEffect(() => {
-    if (leases && utilitySettings) {
+    if (leases && utilitySettings && units) {
       const activeLeases = leases.filter(l => l.status === "active");
       
       if (activeLeases.length > 0) {
@@ -69,11 +76,20 @@ export function UniversalUtilityAllocation({
           const allSettingsForLease = utilitySettings.filter(s => s.leaseId === lease._id);
           const referenceSetting = allSettingsForLease.length > 0 ? allSettingsForLease[0] : null;
           
+          // Get unit identifier from units data
+          let unitIdentifier: string | undefined;
+          if (lease.unitId) {
+            const unit = units.find(u => u._id === lease.unitId);
+            if (unit) {
+              unitIdentifier = unit.displayName || unit.unitIdentifier;
+            }
+          }
+          
           const percentage = referenceSetting?.responsibilityPercentage || 0;
           return {
             leaseId: lease._id,
             tenantName: lease.tenantName,
-            unitIdentifier: lease.unitId ? `Unit ${lease.unitId}` : undefined,
+            unitIdentifier,
             percentage,
           };
         });
@@ -87,7 +103,7 @@ export function UniversalUtilityAllocation({
         setInputValues(newInputValues);
       }
     }
-  }, [leases, utilitySettings]);
+  }, [leases, utilitySettings, units]);
 
   const activeLeases = leases?.filter(l => l.status === "active") || [];
 
@@ -180,7 +196,7 @@ export function UniversalUtilityAllocation({
     }
   };
 
-  if (!leases || !utilitySettings) {
+  if (!leases || !utilitySettings || !units) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -219,57 +235,115 @@ export function UniversalUtilityAllocation({
 
   return (
     <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Percent className="w-5 h-5" />
+      <CardHeader className="pb-4">
+        <div className="flex flex-col gap-3">
+          <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+            <Percent className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             Utility Responsibilities
           </CardTitle>
-          <div className="flex items-center gap-2">
+          
+          {/* Status and Actions Row */}
+          <div className="flex items-center justify-between gap-3">
             {!isEditing && (
-              <Badge variant="outline" className="text-green-600 border-green-600">
-                <CheckCircle className="w-4 h-4 mr-1" />
+              <Badge 
+                variant="outline" 
+                className={cn(
+                  "text-xs sm:text-sm transition-colors",
+                  isComplete 
+                    ? "text-green-600 border-green-600 bg-green-50 dark:bg-green-950/20" 
+                    : "text-blue-600 border-blue-600 bg-blue-50 dark:bg-blue-950/20"
+                )}
+              >
+                <CheckCircle className="w-3 h-3 mr-1" />
                 {isComplete ? "Complete" : "Configured"}
               </Badge>
             )}
-            {!isEditing ? (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsEditing(true)}
-              >
-                <Edit className="w-4 h-4 mr-1" />
-                Edit
-              </Button>
-            ) : (
-              <div className="flex gap-2">
+            
+            <div className={`flex gap-2 sm:gap-3 ${!isEditing ? 'ml-auto' : 'w-full justify-end'}`}>
+              {!isEditing ? (
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsEditing(false)}
+                  onClick={() => setIsEditing(true)}
+                  className="transition-all hover:scale-105 active:scale-95"
                 >
-                  Cancel
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit
                 </Button>
-                <Button
-                  size="sm"
-                  onClick={handleSave}
-                  disabled={isOverAllocated || saving}
-                  title={isOverAllocated ? `Total allocation is ${totalAllocated}%, cannot exceed 100%` : !isComplete ? `Total allocation is ${totalAllocated}%` : ''}
-                >
-                  <Save className="w-4 h-4 mr-1" />
-                  {saving ? "Saving..." : "Save"}
-                </Button>
-              </div>
-            )}
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(false)}
+                    className="transition-all hover:scale-105 active:scale-95 min-w-[80px]"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={handleSave}
+                    disabled={isOverAllocated || saving}
+                    className={cn(
+                      "transition-all hover:scale-105 active:scale-95 min-w-[80px]",
+                      isOverAllocated 
+                        ? "bg-red-500 hover:bg-red-600" 
+                        : "bg-primary hover:bg-primary/90"
+                    )}
+                    title={isOverAllocated ? `Total allocation is ${totalAllocated}%, cannot exceed 100%` : !isComplete ? `Total allocation is ${totalAllocated}%` : ''}
+                  >
+                    <Save className="w-4 h-4 mr-2" />
+                    {saving ? "Saving..." : "Save"}
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
+
+          {/* Progress Indicator */}
+          {isEditing && (
+            <div className="bg-muted/50 rounded-lg p-3 space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">Total Allocation</span>
+                <span className={cn(
+                  "font-bold",
+                  totalAllocated > 100 ? "text-red-600" :
+                  totalAllocated === 100 ? "text-green-600" : "text-blue-600"
+                )}>
+                  {totalAllocated}%
+                </span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2">
+                <div 
+                  className={cn(
+                    "h-2 rounded-full transition-all duration-300",
+                    totalAllocated > 100 ? "bg-red-500" :
+                    totalAllocated === 100 ? "bg-green-500" : "bg-blue-500"
+                  )}
+                  style={{ width: `${Math.min(totalAllocated, 100)}%` }}
+                />
+              </div>
+              {totalAllocated !== 100 && (
+                <p className={cn(
+                  "text-xs",
+                  totalAllocated > 100 ? "text-red-600" : "text-blue-600"
+                )}>
+                  {totalAllocated > 100 
+                    ? `Over-allocated by ${totalAllocated - 100}%`
+                    : `Owner covers remaining ${100 - totalAllocated}%`
+                  }
+                </p>
+              )}
+            </div>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
         {/* Universal allocation notice */}
         <Alert className="border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950">
-          <Percent className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="text-blue-800 dark:text-blue-200">
-            These percentages apply to all utility types (Electric, Water, Gas, Sewer, Trash, Internet, Cable)
+          <Percent className="h-4 w-4 text-blue-600 flex-shrink-0" />
+          <AlertDescription className="text-blue-800 dark:text-blue-200 text-xs sm:text-sm">
+            Applies to all utility types
           </AlertDescription>
         </Alert>
 
@@ -285,70 +359,86 @@ export function UniversalUtilityAllocation({
 
         {/* Tenant Allocations */}
         <div className="space-y-3">
-          {allocations.map((allocation) => (
+          {allocations.map((allocation, index) => (
             <div 
               key={allocation.leaseId}
-              className="flex items-center justify-between p-4 border rounded-lg bg-card"
+              className={cn(
+                "group relative transition-all duration-200 rounded-lg border overflow-hidden",
+                isEditing 
+                  ? "p-4 bg-gradient-to-r from-white to-gray-50 dark:from-gray-900 dark:to-gray-800 hover:shadow-md border-gray-200 dark:border-gray-700" 
+                  : "p-3 bg-card hover:bg-muted/50 border-gray-200 dark:border-gray-700"
+              )}
+              style={{
+                animationDelay: `${index * 100}ms`
+              }}
             >
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-muted">
-                  <Users className="w-4 h-4 text-muted-foreground" />
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className={cn(
+                    "rounded-lg flex-shrink-0 transition-colors",
+                    isEditing ? "p-3 bg-primary/10" : "p-2 bg-muted"
+                  )}>
+                    <Users className={cn(
+                      "w-4 h-4",
+                      isEditing ? "text-primary" : "text-muted-foreground"
+                    )} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm sm:text-base truncate">{allocation.tenantName}</div>
+                    {allocation.unitIdentifier && (
+                      <Badge variant="secondary" className="text-xs mt-1">
+                        {allocation.unitIdentifier}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <div className="font-medium">{allocation.tenantName}</div>
-                  {allocation.unitIdentifier && (
-                    <Badge variant="secondary" className="text-xs mt-1">
-                      {allocation.unitIdentifier}
-                    </Badge>
+                
+                <div className="flex items-center gap-3 flex-shrink-0">
+                  {isEditing ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="1"
+                        value={inputValues[allocation.leaseId] || '0'}
+                        onChange={(e) => 
+                          handleInputChange(allocation.leaseId, e.target.value)
+                        }
+                        onBlur={(e) => {
+                          const value = e.target.value;
+                          const numValue = parseInt(value, 10);
+                          if (isNaN(numValue) || value === '') {
+                            handleInputChange(allocation.leaseId, '0');
+                          }
+                        }}
+                        className="w-20 sm:w-24 text-right text-sm focus:ring-2 focus:ring-primary/50 transition-all"
+                        placeholder="0"
+                      />
+                      <span className="text-sm text-muted-foreground font-medium">%</span>
+                    </div>
+                  ) : (
+                    <div className="text-lg sm:text-xl font-bold text-primary">
+                      {allocation.percentage}%
+                    </div>
                   )}
                 </div>
-              </div>
-              <div className="flex items-center gap-2">
-                {isEditing ? (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      step="1"
-                      value={inputValues[allocation.leaseId] || '0'}
-                      onChange={(e) => 
-                        handleInputChange(allocation.leaseId, e.target.value)
-                      }
-                      onBlur={(e) => {
-                        // Ensure valid number on blur
-                        const value = e.target.value;
-                        const numValue = parseInt(value, 10);
-                        if (isNaN(numValue) || value === '') {
-                          handleInputChange(allocation.leaseId, '0');
-                        }
-                      }}
-                      className="w-20 text-right"
-                      placeholder="0"
-                    />
-                    <span className="text-sm text-muted-foreground">%</span>
-                  </div>
-                ) : (
-                  <div className="text-lg font-semibold">
-                    {allocation.percentage}%
-                  </div>
-                )}
               </div>
             </div>
           ))}
 
           {/* Owner Responsibility */}
           {ownerPercentage > 0 && (
-            <div className="flex items-center justify-between p-4 border rounded-lg bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900">
-                  <Home className="w-4 h-4 text-blue-600" />
+            <div className="flex items-center justify-between p-3 sm:p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 border-blue-200 dark:border-blue-800 overflow-hidden transition-all duration-200 hover:shadow-md">
+              <div className="flex items-center gap-3 min-w-0 flex-1">
+                <div className="p-2 sm:p-3 rounded-lg bg-blue-200 dark:bg-blue-800 flex-shrink-0">
+                  <Home className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-300" />
                 </div>
-                <div className="font-medium text-blue-700 dark:text-blue-300">
+                <div className="font-semibold text-blue-700 dark:text-blue-300 text-sm sm:text-base truncate">
                   Owner Responsibility
                 </div>
               </div>
-              <div className="text-lg font-semibold text-blue-700 dark:text-blue-300">
+              <div className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400 flex-shrink-0">
                 {ownerPercentage}%
               </div>
             </div>
@@ -357,57 +447,87 @@ export function UniversalUtilityAllocation({
 
         {/* Quick Actions */}
         {isEditing && (
-          <div className="flex gap-2 pt-2 border-t">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleEqualSplit}
-            >
-              Equal Split
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => {
-                setAllocations(prev => 
-                  prev.map(a => ({ ...a, percentage: 0 }))
-                );
-                // Also clear input values
-                const clearedInputs: Record<string, string> = {};
-                allocations.forEach(allocation => {
-                  clearedInputs[allocation.leaseId] = '0';
-                });
-                setInputValues(clearedInputs);
-              }}
-            >
-              Clear All
-            </Button>
+          <div className="bg-muted/30 rounded-lg p-3 border-t">
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex gap-2 flex-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEqualSplit}
+                  className="flex-1 sm:flex-none transition-all hover:scale-105 active:scale-95"
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Equal Split
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setAllocations(prev => 
+                      prev.map(a => ({ ...a, percentage: 0 }))
+                    );
+                    const clearedInputs: Record<string, string> = {};
+                    allocations.forEach(allocation => {
+                      clearedInputs[allocation.leaseId] = '0';
+                    });
+                    setInputValues(clearedInputs);
+                  }}
+                  className="flex-1 sm:flex-none transition-all hover:scale-105 active:scale-95"
+                >
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  Clear All
+                </Button>
+              </div>
+              
+              {/* Quick percentage buttons */}
+              <div className="flex gap-1 sm:gap-2">
+                {[25, 50, 75, 100].map((percent) => (
+                  <Button
+                    key={percent}
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      if (allocations.length === 1) {
+                        const newAllocations = allocations.map(a => ({ ...a, percentage: percent }));
+                        setAllocations(newAllocations);
+                        setInputValues({ [allocations[0].leaseId]: percent.toString() });
+                      }
+                    }}
+                    disabled={allocations.length !== 1}
+                    className="text-xs px-2 py-1 h-auto min-w-[40px] transition-all hover:scale-105 active:scale-95"
+                    title={allocations.length !== 1 ? "Only available with single tenant" : `Set to ${percent}%`}
+                  >
+                    {percent}%
+                  </Button>
+                ))}
+              </div>
+            </div>
           </div>
         )}
 
         {/* Summary */}
-        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 border border-green-200 dark:border-green-800 rounded-lg p-4">
+        <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="font-semibold text-green-800 dark:text-green-200 flex items-center gap-2">
+            <h4 className="font-semibold text-green-800 dark:text-green-200 flex items-center gap-2 text-sm">
               <CheckCircle className="w-4 h-4" />
               Allocation Summary
             </h4>
             <div className="text-right">
-              <div className="text-2xl font-bold text-green-600">{totalAllocated}%</div>
+              <div className="text-xl font-bold text-green-600">{totalAllocated}%</div>
               <div className="text-xs text-muted-foreground">to tenants</div>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="grid grid-cols-3 gap-2 text-xs">
             <div className="text-center p-2 bg-white/50 dark:bg-black/20 rounded">
-              <div className="font-semibold text-lg">{activeLeases.length}</div>
+              <div className="font-semibold text-base">{activeLeases.length}</div>
               <div className="text-muted-foreground">Active Tenants</div>
             </div>
             <div className="text-center p-2 bg-white/50 dark:bg-black/20 rounded">
-              <div className="font-semibold text-lg">{UTILITY_TYPES.length}</div>
+              <div className="font-semibold text-base">{UTILITY_TYPES.length}</div>
               <div className="text-muted-foreground">Utilities</div>
             </div>
             <div className="text-center p-2 bg-white/50 dark:bg-black/20 rounded">
-              <div className="font-semibold text-lg text-blue-600">{ownerPercentage}%</div>
+              <div className="font-semibold text-base text-blue-600">{ownerPercentage}%</div>
               <div className="text-muted-foreground">Owner Share</div>
             </div>
           </div>

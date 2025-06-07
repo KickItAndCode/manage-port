@@ -18,6 +18,7 @@ import {
   CheckCircle,
   Percent
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface UtilityResponsibilityOverviewProps {
   propertyId: Id<"properties">;
@@ -73,8 +74,14 @@ export function UtilityResponsibilityOverview({
     return utility ? utility.color : "text-gray-600";
   };
 
+  // Get units for property to resolve unit identifiers
+  const units = useQuery(api.units.getUnitsByProperty, {
+    propertyId,
+    userId,
+  });
+
   const calculateUtilityBreakdowns = (): UtilityBreakdown[] => {
-    if (!leases || !utilitySettings) return [];
+    if (!leases || !utilitySettings || !units) return [];
 
     const activeLeases = leases.filter(l => l.status === "active");
     const breakdowns: UtilityBreakdown[] = [];
@@ -92,18 +99,33 @@ export function UtilityResponsibilityOverview({
             s => s.leaseId === lease._id && s.utilityType === utilityType
           );
           
-          return setting ? {
+          if (!setting) return null;
+
+          // Get unit identifier from units data
+          let unitIdentifier: string | undefined;
+          if (lease.unitId) {
+            const unit = units.find(u => u._id === lease.unitId);
+            if (unit) {
+              unitIdentifier = unit.displayName || unit.unitIdentifier;
+            }
+          }
+          
+          return {
             leaseId: lease._id,
             tenantName: lease.tenantName,
-            unitIdentifier: lease.unitId ? `Unit ${lease.unitId}` : undefined,
+            unitIdentifier,
             percentage: setting.responsibilityPercentage,
-          } : null;
+          };
         })
         .filter(Boolean) as UtilityBreakdown['assignments'];
 
       const totalAssigned = assignments.reduce((sum, a) => sum + a.percentage, 0);
       const ownerPercentage = Math.max(0, 100 - totalAssigned);
-      const isComplete = totalAssigned === 100;
+      
+      // Updated logic: Allow partial tenant responsibility
+      // 50% tenant + 50% owner = 100% is valid
+      // Only mark as incomplete if totalAssigned > 100 (over-assigned)
+      const isComplete = totalAssigned <= 100;
 
       breakdowns.push({
         utilityType,
@@ -121,7 +143,7 @@ export function UtilityResponsibilityOverview({
   const activeLeases = leases?.filter(l => l.status === "active") || [];
   const incompleteUtilities = breakdowns.filter(b => !b.isComplete);
 
-  if (!leases || !utilitySettings) {
+  if (!leases || !utilitySettings || !units) {
     return (
       <Card>
         <CardContent className="p-6">
@@ -159,35 +181,34 @@ export function UtilityResponsibilityOverview({
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Percent className="w-5 h-5" />
+    <Card className="w-full overflow-hidden">
+      <CardHeader className="pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Percent className="w-4 h-4 sm:w-5 sm:h-5" />
             Utility Responsibilities
           </CardTitle>
           {incompleteUtilities.length > 0 && (
-            <Badge variant="outline" className="text-orange-600 border-orange-600">
-              <AlertTriangle className="w-4 h-4 mr-1" />
+            <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs self-start sm:self-center">
+              <AlertTriangle className="w-3 h-3 mr-1" />
               {incompleteUtilities.length} Incomplete
             </Badge>
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-3 sm:px-6">
         {/* Summary Alert */}
         {incompleteUtilities.length > 0 && (
-          <Alert variant="destructive">
+          <Alert variant="destructive" className="mx-0">
             <AlertTriangle className="h-4 w-4" />
-            <AlertDescription>
-              Some utilities don&apos;t have complete responsibility assignments. 
-              Make sure all percentages add up to 100% for each utility.
+            <AlertDescription className="text-xs sm:text-sm">
+              Over-assigned responsibilities detected. Applies to all utility types.
             </AlertDescription>
           </Alert>
         )}
 
         {/* Utility Breakdowns */}
-        <div className="space-y-4">
+        <div className="space-y-3">
           {breakdowns.map((breakdown) => {
             const Icon = getUtilityIcon(breakdown.utilityType);
             const iconColor = getUtilityColor(breakdown.utilityType);
@@ -195,31 +216,31 @@ export function UtilityResponsibilityOverview({
             return (
               <div
                 key={breakdown.utilityType}
-                className={`border rounded-lg p-4 ${
-                  !breakdown.isComplete ? 'border-orange-200 bg-orange-50' : 'border-gray-200'
+                className={`w-full border rounded-lg p-3 overflow-hidden ${
+                  !breakdown.isComplete ? 'border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/20' : 'border-gray-200 dark:border-gray-700'
                 }`}
               >
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-lg bg-muted ${iconColor}`}>
-                      <Icon className="w-4 h-4" />
+                <div className="flex flex-col gap-3 mb-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <div className={`p-2 rounded-lg bg-muted ${iconColor} flex-shrink-0`}>
+                        <Icon className="w-4 h-4" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-medium text-sm truncate">{breakdown.utilityType}</h3>
+                        <p className="text-xs text-muted-foreground">
+                          {breakdown.assignments.length} tenant{breakdown.assignments.length !== 1 ? 's' : ''} assigned
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="font-medium">{breakdown.utilityType}</h3>
-                      <p className="text-sm text-muted-foreground">
-                        {breakdown.assignments.length} tenant{breakdown.assignments.length !== 1 ? 's' : ''} assigned
-                      </p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-2">
+                    <div className="flex-shrink-0">
                       {breakdown.isComplete ? (
-                        <Badge variant="outline" className="text-green-600 border-green-600">
+                        <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
                           <CheckCircle className="w-3 h-3 mr-1" />
                           Complete
                         </Badge>
                       ) : (
-                        <Badge variant="outline" className="text-orange-600 border-orange-600">
+                        <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
                           <AlertTriangle className="w-3 h-3 mr-1" />
                           {breakdown.totalAssigned}%
                         </Badge>
@@ -229,20 +250,21 @@ export function UtilityResponsibilityOverview({
                 </div>
 
                 {/* Progress Bar */}
-                <div className="mb-3">
+                <div className="mb-3 w-full">
                   <Progress 
                     value={breakdown.totalAssigned} 
-                    className={`h-2 ${
-                      breakdown.totalAssigned > 100 ? 'bg-red-100' : 
-                      breakdown.totalAssigned < 100 ? 'bg-orange-100' : 'bg-green-100'
+                    className={`h-2 w-full ${
+                      breakdown.totalAssigned > 100 ? 'bg-red-100 dark:bg-red-950/20' : 
+                      breakdown.totalAssigned < 100 ? 'bg-orange-100 dark:bg-orange-950/20' : 'bg-green-100 dark:bg-green-950/20'
                     }`}
                   />
                   <div className="flex justify-between text-xs text-muted-foreground mt-1">
                     <span>0%</span>
-                    <span className={
-                      breakdown.totalAssigned > 100 ? 'text-red-600' :
-                      breakdown.totalAssigned < 100 ? 'text-orange-600' : 'text-green-600'
-                    }>
+                    <span className={cn(
+                      "font-medium",
+                      breakdown.totalAssigned > 100 ? 'text-red-600 dark:text-red-400' :
+                      breakdown.totalAssigned < 100 ? 'text-orange-600 dark:text-orange-400' : 'text-green-600 dark:text-green-400'
+                    )}>
                       {breakdown.totalAssigned}% assigned
                     </span>
                     <span>100%</span>
@@ -250,22 +272,22 @@ export function UtilityResponsibilityOverview({
                 </div>
 
                 {/* Tenant Assignments */}
-                <div className="space-y-2">
+                <div className="space-y-2 w-full">
                   {breakdown.assignments.map((assignment) => (
                     <div 
                       key={assignment.leaseId}
-                      className="flex items-center justify-between p-2 bg-muted/50 rounded"
+                      className="flex items-center justify-between gap-2 p-2 bg-muted/50 rounded w-full overflow-hidden"
                     >
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium">{assignment.tenantName}</span>
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <Users className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                        <span className="font-medium text-sm truncate">{assignment.tenantName}</span>
                         {assignment.unitIdentifier && (
-                          <Badge variant="secondary" className="text-xs">
+                          <Badge variant="secondary" className="text-xs flex-shrink-0">
                             {assignment.unitIdentifier}
                           </Badge>
                         )}
                       </div>
-                      <div className="text-sm font-medium">
+                      <div className="text-sm font-medium flex-shrink-0">
                         {assignment.percentage}%
                       </div>
                     </div>
@@ -273,12 +295,12 @@ export function UtilityResponsibilityOverview({
 
                   {/* Owner Responsibility */}
                   {breakdown.ownerPercentage > 0 && (
-                    <div className="flex items-center justify-between p-2 bg-blue-50 rounded border border-blue-200">
-                      <div className="flex items-center gap-2">
-                        <Home className="w-4 h-4 text-blue-600" />
-                        <span className="font-medium text-blue-700">Owner Responsibility</span>
+                    <div className="flex items-center justify-between gap-2 p-2 bg-blue-50 dark:bg-blue-950/20 rounded border border-blue-200 dark:border-blue-800 w-full overflow-hidden">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <Home className="w-4 h-4 text-blue-600 dark:text-blue-400 flex-shrink-0" />
+                        <span className="font-medium text-blue-700 dark:text-blue-300 text-sm truncate">Owner Responsibility</span>
                       </div>
-                      <div className="text-sm font-medium text-blue-700">
+                      <div className="text-sm font-medium text-blue-700 dark:text-blue-300 flex-shrink-0">
                         {breakdown.ownerPercentage}%
                       </div>
                     </div>
@@ -286,12 +308,12 @@ export function UtilityResponsibilityOverview({
 
                   {/* Unassigned Warning */}
                   {breakdown.totalAssigned < 100 && breakdown.ownerPercentage === 0 && (
-                    <div className="flex items-center justify-between p-2 bg-orange-50 rounded border border-orange-200">
-                      <div className="flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-orange-600" />
-                        <span className="font-medium text-orange-700">Unassigned</span>
+                    <div className="flex items-center justify-between gap-2 p-2 bg-orange-50 dark:bg-orange-950/20 rounded border border-orange-200 dark:border-orange-800 w-full overflow-hidden">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        <AlertTriangle className="w-4 h-4 text-orange-600 dark:text-orange-400 flex-shrink-0" />
+                        <span className="font-medium text-orange-700 dark:text-orange-300 text-sm truncate">Unassigned</span>
                       </div>
-                      <div className="text-sm font-medium text-orange-700">
+                      <div className="text-sm font-medium text-orange-700 dark:text-orange-300 flex-shrink-0">
                         {100 - breakdown.totalAssigned}%
                       </div>
                     </div>
@@ -303,24 +325,24 @@ export function UtilityResponsibilityOverview({
         </div>
 
         {/* Summary */}
-        <div className="bg-muted/50 rounded-lg p-3">
-          <h4 className="font-medium mb-2">Summary</h4>
-          <div className="grid grid-cols-2 gap-4 text-sm">
-            <div>
-              <span className="text-muted-foreground">Active Tenants:</span>
-              <span className="ml-2 font-medium">{activeLeases.length}</span>
+        <div className="bg-muted/50 rounded-lg p-3 w-full">
+          <h4 className="font-medium mb-2 text-sm">Summary</h4>
+          <div className="grid grid-cols-2 gap-2 text-xs">
+            <div className="flex flex-col gap-1">
+              <span className="text-muted-foreground">Active Tenants</span>
+              <span className="font-medium">{activeLeases.length}</span>
             </div>
-            <div>
-              <span className="text-muted-foreground">Utilities Configured:</span>
-              <span className="ml-2 font-medium">{breakdowns.length}</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-muted-foreground">Utilities Configured</span>
+              <span className="font-medium">{breakdowns.length}</span>
             </div>
-            <div>
-              <span className="text-muted-foreground">Complete Assignments:</span>
-              <span className="ml-2 font-medium">{breakdowns.length - incompleteUtilities.length}</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-muted-foreground">Complete Assignments</span>
+              <span className="font-medium">{breakdowns.length - incompleteUtilities.length}</span>
             </div>
-            <div>
-              <span className="text-muted-foreground">Needs Attention:</span>
-              <span className="ml-2 font-medium text-orange-600">{incompleteUtilities.length}</span>
+            <div className="flex flex-col gap-1">
+              <span className="text-muted-foreground">Needs Attention</span>
+              <span className="font-medium text-orange-600 dark:text-orange-400">{incompleteUtilities.length}</span>
             </div>
           </div>
         </div>

@@ -141,10 +141,10 @@ export default function DashboardPage() {
                 Welcome back! Here&apos;s an overview of your real estate portfolio.
               </p>
             </div>
-            <div className="flex justify-between items-center sm:flex-col sm:items-end gap-2">
-              <div className="text-left sm:text-right">
-                <p className="text-xs text-muted-foreground">Portfolio Value</p>
-                <p className="text-lg sm:text-xl font-semibold text-green-600 dark:text-green-400">
+            <div className="flex justify-end items-center sm:flex-col sm:items-end gap-2">
+              <div className="text-right">
+                <p className="text-xs sm:text-sm text-muted-foreground">Portfolio Value</p>
+                <p className="text-sm sm:text-xl font-semibold text-green-600 dark:text-green-400">
                   ${(metrics.totalMonthlyRent * 12).toLocaleString()}/yr
                 </p>
               </div>
@@ -200,60 +200,62 @@ export default function DashboardPage() {
                 // For new users, show the enhanced wizard prominently
                 <button 
                   onClick={() => setWizardModalOpen(true)}
-                  className="col-span-2 sm:col-span-1 flex flex-col items-center gap-2 p-3 sm:p-4 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 transition-all border-2 border-primary/30 hover:border-primary/50"
+                  className="col-span-2 sm:col-span-1 flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg bg-gradient-to-br from-primary/10 to-primary/5 hover:from-primary/20 hover:to-primary/10 transition-all border-2 border-primary/30 hover:border-primary/50 min-h-[80px] sm:min-h-[100px]"
                 >
-                  <Wand2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                  <span className="text-xs sm:text-sm font-medium text-center">Property Setup</span>
-                  <span className="text-xs text-primary/80">Enhanced</span>
+                  <Wand2 className="h-6 w-6 sm:h-6 sm:w-6 text-primary" />
+                  <div className="text-center">
+                    <span className="text-sm sm:text-sm font-medium block">Property Setup</span>
+                    <span className="text-xs text-primary/80">Enhanced</span>
+                  </div>
                 </button>
               ) : (
                 // For existing users, show both options with simple as primary
                 <button 
                   onClick={() => setPropertyModalOpen(true)}
-                  className="flex flex-col items-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                  className="flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30 min-h-[80px] sm:min-h-[100px]"
                 >
-                  <Plus className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                  <span className="text-xs sm:text-sm font-medium text-center">Quick Add</span>
+                  <Plus className="h-6 w-6 sm:h-6 sm:w-6 text-primary" />
+                  <span className="text-sm sm:text-sm font-medium text-center">Quick Add</span>
                 </button>
               )}
               
               {!hasNoProperties && (
                 <button 
                   onClick={() => setWizardModalOpen(true)}
-                  className="flex flex-col items-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                  className="flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30 min-h-[80px] sm:min-h-[100px]"
                 >
-                  <Wand2 className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                  <span className="text-xs sm:text-sm font-medium text-center">Enhanced</span>
+                  <Wand2 className="h-6 w-6 sm:h-6 sm:w-6 text-primary" />
+                  <span className="text-sm sm:text-sm font-medium text-center">Enhanced Setup</span>
                 </button>
               )}
               <button 
                 onClick={() => setLeaseModalOpen(true)}
-                className="flex flex-col items-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                className="flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30 min-h-[80px] sm:min-h-[100px]"
               >
-                <Users className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                <span className="text-xs sm:text-sm font-medium text-center">New Lease</span>
+                <Users className="h-6 w-6 sm:h-6 sm:w-6 text-primary" />
+                <span className="text-sm sm:text-sm font-medium text-center">New Lease</span>
               </button>
               <button 
                 onClick={() => setUtilityBillModalOpen(true)}
-                className="flex flex-col items-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                className="flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30 min-h-[80px] sm:min-h-[100px]"
               >
-                <Receipt className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                <span className="text-xs sm:text-sm font-medium text-center">Add Bill</span>
+                <Receipt className="h-6 w-6 sm:h-6 sm:w-6 text-primary" />
+                <span className="text-sm sm:text-sm font-medium text-center">Add Bill</span>
               </button>
               <button 
                 onClick={() => setUtilityResponsibilityModalOpen(true)}
-                className="flex flex-col items-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                className="flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30 min-h-[80px] sm:min-h-[100px] disabled:opacity-50"
                 disabled={!properties || properties.length === 0}
               >
-                <Percent className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                <span className="text-xs sm:text-sm font-medium text-center">Utility Split</span>
+                <Percent className="h-6 w-6 sm:h-6 sm:w-6 text-primary" />
+                <span className="text-sm sm:text-sm font-medium text-center">Utility Split</span>
               </button>
               <button 
                 onClick={() => setDocumentModalOpen(true)}
-                className="flex flex-col items-center gap-1 sm:gap-2 p-3 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30"
+                className="flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg bg-background hover:bg-muted/50 transition-colors border border-border hover:border-primary/30 min-h-[80px] sm:min-h-[100px]"
               >
-                <DollarSign className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
-                <span className="text-xs sm:text-sm font-medium text-center">Upload Docs</span>
+                <DollarSign className="h-6 w-6 sm:h-6 sm:w-6 text-primary" />
+                <span className="text-sm sm:text-sm font-medium text-center">Upload Docs</span>
               </button>
             </div>
           </Card>
