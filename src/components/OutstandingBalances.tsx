@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
+import type { CalculatedTenantCharge } from "@/../convex/utilityCharges";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -36,18 +37,7 @@ interface OutstandingBalancesProps {
 
 interface ChargeByUtility {
   utilityType: string;
-  charges: Array<{
-    _id: Id<"tenantUtilityCharges">;
-    utilityBillId: Id<"utilityBills">;
-    billMonth: string;
-    chargedAmount: number;
-    responsibilityPercentage: number;
-    totalBillAmount?: number;
-    paidAmount: number;
-    fullyPaid: boolean;
-    dueDate?: string;
-    createdAt: string;
-  }>;
+  charges: CalculatedTenantCharge[];
   totalOwed: number;
   totalBillAmount: number;
 }
@@ -75,11 +65,17 @@ export function OutstandingBalances({
   // Get all active leases
   const leases = useQuery(api.leases.getActiveLeases, { userId });
 
-  // Get outstanding charges
-  const charges = useQuery(api.tenantUtilityCharges.getOutstandingCharges, {
+  // Get outstanding charges using on-demand calculation
+  const allCharges = useQuery(api.utilityCharges.calculateAllTenantCharges, {
     userId,
     propertyId,
-    leaseId: selectedTenant === "all" ? undefined : selectedTenant as Id<"leases">,
+  });
+
+  // Filter charges based on selected tenant and only outstanding amounts
+  const charges = allCharges?.filter(charge => {
+    const isOutstanding = charge.remainingAmount > 0;
+    const matchesTenant = selectedTenant === "all" || charge.leaseId === selectedTenant;
+    return isOutstanding && matchesTenant;
   });
 
   // Get utility bills for context
@@ -116,7 +112,9 @@ export function OutstandingBalances({
     const groups: Record<string, TenantGroup> = {};
 
     charges.forEach(charge => {
-      if (paidCharges.has(charge._id)) return; // Skip recently paid charges
+      // Skip charges that have been paid in full recently
+      const chargeKey = `${charge.leaseId}-${charge.utilityBillId}`;
+      if (paidCharges.has(chargeKey)) return;
 
       const key = charge.leaseId;
       if (!groups[key]) {
@@ -131,10 +129,6 @@ export function OutstandingBalances({
         };
       }
 
-      // Find corresponding bill for total amount
-      const bill = utilityBills?.find(b => b._id === charge.utilityBillId);
-      const totalBillAmount = bill?.totalAmount || 0;
-
       // Find or create utility group
       let utilityGroup = groups[key].utilitiesByType.find(u => u.utilityType === charge.utilityType);
       if (!utilityGroup) {
@@ -147,15 +141,11 @@ export function OutstandingBalances({
         groups[key].utilitiesByType.push(utilityGroup);
       }
 
-      const remainingAmount = charge.chargedAmount - (charge.paidAmount || 0);
-      utilityGroup.charges.push({
-        ...charge,
-        paidAmount: charge.paidAmount || 0,
-        totalBillAmount,
-        responsibilityPercentage: charge.responsibilityPercentage || 100
-      });
+      // The remainingAmount is already calculated in the charge
+      const remainingAmount = charge.remainingAmount;
+      utilityGroup.charges.push(charge);
       utilityGroup.totalOwed += remainingAmount;
-      utilityGroup.totalBillAmount += totalBillAmount;
+      utilityGroup.totalBillAmount += charge.totalBillAmount;
       
       groups[key].totalOwed += remainingAmount;
       groups[key].totalCharges++;
@@ -176,10 +166,11 @@ export function OutstandingBalances({
   const tenantGroups = groupCharges();
   const totalOutstanding = tenantGroups.reduce((sum, group) => sum + group.totalOwed, 0);
 
-  const getAgeInDays = (createdAt: string): number => {
-    const created = new Date(createdAt);
+  const getAgeInDays = (billMonth: string): number => {
+    // Calculate age based on bill month
+    const billDate = new Date(billMonth + '-01');
     const now = new Date();
-    const diffTime = Math.abs(now.getTime() - created.getTime());
+    const diffTime = Math.abs(now.getTime() - billDate.getTime());
     return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
   };
 
@@ -346,16 +337,17 @@ export function OutstandingBalances({
                       
                       <div className="space-y-1 ml-6">
                         {utility.charges.map((charge) => {
-                          const remainingAmount = charge.chargedAmount - charge.paidAmount;
-                          const ageInDays = getAgeInDays(charge.createdAt);
+                          const remainingAmount = charge.remainingAmount;
+                          const ageInDays = getAgeInDays(charge.billMonth);
                           const ageBadge = getAgeBadge(ageInDays);
+                          const chargeKey = `${charge.leaseId}-${charge.utilityBillId}`;
                           
                           return (
                             <div
-                              key={charge._id}
+                              key={chargeKey}
                               className={cn(
                                 "flex items-center justify-between p-3 bg-muted/30 rounded-lg hover:bg-muted/50 transition-all duration-300",
-                                paidCharges.has(charge._id) && "opacity-50 scale-95"
+                                paidCharges.has(chargeKey) && "opacity-50 scale-95"
                               )}
                             >
                               <div className="flex items-center gap-4">
@@ -391,7 +383,7 @@ export function OutstandingBalances({
                                 <Button
                                   size="sm"
                                   onClick={() => handleRecordPayment(charge, group.tenantName)}
-                                  disabled={paidCharges.has(charge._id)}
+                                  disabled={paidCharges.has(chargeKey)}
                                   className="min-w-[60px]"
                                 >
                                   <CreditCard className="w-3 h-3 mr-1" />
@@ -459,7 +451,7 @@ export function OutstandingBalances({
               <p className="text-sm text-muted-foreground">Oldest Charge</p>
               <p className="text-lg font-semibold">
                 {charges.length > 0 
-                  ? Math.max(...charges.map(c => getAgeInDays(c.createdAt))) 
+                  ? Math.max(...charges.map(c => getAgeInDays(c.billMonth))) 
                   : 0} days
               </p>
             </div>
@@ -486,11 +478,14 @@ export function OutstandingBalances({
               onSubmit={async (data) => {
                 try {
                   await recordPayment({
-                    chargeId: selectedCharge._id,
+                    leaseId: selectedCharge.leaseId,
+                    utilityBillId: selectedCharge.utilityBillId,
+                    tenantName: selectedCharge.tenantName,
                     ...data,
                     userId
                   });
-                  handlePaymentSuccess(selectedCharge._id);
+                  const chargeKey = `${selectedCharge.leaseId}-${selectedCharge.utilityBillId}`;
+                  handlePaymentSuccess(chargeKey);
                   setPaymentDialogOpen(false);
                   setSelectedCharge(null);
                 } catch (error: any) {

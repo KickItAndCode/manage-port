@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
+import type { CalculatedTenantCharge } from "@/../convex/utilityCharges";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -95,11 +96,13 @@ export default function UtilityBillsPage() {
     user ? { userId: user.id } : "skip"
   );
   
-  // Get all charges for the user (comprehensive approach)
-  const allUserCharges = useQuery(api.tenantUtilityCharges.getAllChargesForUser,
+  // Get all calculated charges for the user
+  const allUserCharges = useQuery(api.utilityCharges.calculateAllTenantCharges,
     user ? { 
       userId: user.id,
       propertyId: selectedProperty ? selectedProperty as any : undefined,
+      startMonth: startMonth || undefined,
+      endMonth: endMonth || undefined,
     } : "skip"
   );
   
@@ -307,6 +310,7 @@ export default function UtilityBillsPage() {
     setEndMonth(today.toISOString().slice(0, 7));
   };
 
+
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -323,25 +327,41 @@ export default function UtilityBillsPage() {
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex flex-col gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Utility Bill Management</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-2xl md:text-3xl font-bold">Utility Bill Management</h1>
+            <p className="text-muted-foreground mt-1 text-sm md:text-base">
               Comprehensive bill tracking, payments, and tenant charge management
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-2">
             {selectedTenant && selectedProperty && (
-              <Button variant="outline" onClick={() => setStatementDialogOpen(true)} data-testid="generate-statement-btn">
+              <Button 
+                variant="outline" 
+                onClick={() => setStatementDialogOpen(true)} 
+                data-testid="generate-statement-btn"
+                className="w-full sm:w-auto justify-center sm:justify-start"
+              >
                 <Download className="w-4 h-4 mr-2" />
-                Generate Statement
+                <span className="hidden sm:inline">Generate Statement</span>
+                <span className="sm:hidden">Statement</span>
               </Button>
             )}
-            <Button variant="outline" onClick={() => setBulkDialogOpen(true)} data-testid="bulk-entry-btn">
+            <Button 
+              variant="outline" 
+              onClick={() => setBulkDialogOpen(true)} 
+              data-testid="bulk-entry-btn"
+              className="w-full sm:w-auto justify-center sm:justify-start"
+            >
               <FileText className="w-4 h-4 mr-2" />
-              Bulk Entry
+              <span className="hidden sm:inline">Bulk Entry</span>
+              <span className="sm:hidden">Bulk</span>
             </Button>
-            <Button onClick={() => setBillDialogOpen(true)} data-testid="add-bill-btn">
+            <Button 
+              onClick={() => setBillDialogOpen(true)} 
+              data-testid="add-bill-btn"
+              className="w-full sm:w-auto justify-center sm:justify-start"
+            >
               <Plus className="w-4 h-4 mr-2" />
               Add Bill
             </Button>
@@ -349,52 +369,52 @@ export default function UtilityBillsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
           <Card data-testid="stat-card-total">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Bills</p>
-                  <p className="text-2xl font-bold" data-testid="total-bills-count">{stats.total}</p>
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Bills</p>
+                  <p className="text-lg sm:text-2xl font-bold" data-testid="total-bills-count">{stats.total}</p>
                 </div>
-                <Receipt className="w-8 h-8 text-muted-foreground" />
+                <Receipt className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
           <Card data-testid="stat-card-unpaid">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Unpaid Bills</p>
-                  <p className="text-2xl font-bold text-orange-600" data-testid="unpaid-bills-count">{stats.unpaid}</p>
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Unpaid Bills</p>
+                  <p className="text-lg sm:text-2xl font-bold text-orange-600" data-testid="unpaid-bills-count">{stats.unpaid}</p>
                 </div>
-                <AlertCircle className="w-8 h-8 text-orange-600" />
+                <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
-          <Card data-testid="stat-card-amount">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">
+          <Card data-testid="stat-card-amount" className="col-span-2 lg:col-span-1">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {selectedTenant ? "Tenant Charges" : "Total Amount"}
                   </p>
-                  <p className="text-2xl font-bold" data-testid="total-amount">${stats.totalAmount.toFixed(2)}</p>
+                  <p className="text-lg sm:text-2xl font-bold" data-testid="total-amount">${stats.totalAmount.toFixed(2)}</p>
                 </div>
-                <DollarSign className="w-8 h-8 text-green-600" />
+                <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
-          <Card data-testid="stat-card-outstanding">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">
+          <Card data-testid="stat-card-outstanding" className="col-span-2 lg:col-span-1">
+            <CardContent className="p-3 md:p-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {selectedTenant ? "Outstanding Balance" : "Unpaid Amount"}
                   </p>
-                  <p className="text-2xl font-bold text-red-600" data-testid="unpaid-amount">${stats.unpaidAmount.toFixed(2)}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-red-600" data-testid="unpaid-amount">${stats.unpaidAmount.toFixed(2)}</p>
                 </div>
-                <TrendingUp className="w-8 h-8 text-red-600" />
+                <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 flex-shrink-0" />
               </div>
             </CardContent>
           </Card>
@@ -415,10 +435,11 @@ export default function UtilityBillsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Search and Quick Filters */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="space-y-4">
+              {/* Search - Full Width */}
               <div>
-                <Label htmlFor="search">Search</Label>
-                <div className="relative">
+                <Label htmlFor="search" className="text-sm font-medium">Search</Label>
+                <div className="relative mt-1">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="search"
@@ -429,114 +450,120 @@ export default function UtilityBillsPage() {
                   />
                 </div>
               </div>
-              <div>
-                <Label htmlFor="property">Property</Label>
-                <select
-                  id="property"
-                  className="w-full h-10 px-3 rounded-md border bg-background"
-                  value={selectedProperty}
-                  onChange={(e) => setSelectedProperty(e.target.value)}
-                >
-                  <option value="">All Properties</option>
-                  {properties?.map((p) => (
-                    <option key={p._id} value={p._id}>{p.name}</option>
-                  ))}
-                </select>
+              
+              {/* Main Filters Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label htmlFor="property" className="text-sm font-medium">Property</Label>
+                  <select
+                    id="property"
+                    className="w-full h-10 px-3 rounded-md border bg-background text-sm mt-1"
+                    value={selectedProperty}
+                    onChange={(e) => setSelectedProperty(e.target.value)}
+                  >
+                    <option value="">All Properties</option>
+                    {properties?.map((p) => (
+                      <option key={p._id} value={p._id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="utilityType" className="text-sm font-medium">Utility Type</Label>
+                  <select
+                    id="utilityType"
+                    className="w-full h-10 px-3 rounded-md border bg-background text-sm mt-1"
+                    value={selectedUtilityType}
+                    onChange={(e) => setSelectedUtilityType(e.target.value)}
+                  >
+                    <option value="">All Types</option>
+                    {utilityTypes.map((type) => (
+                      <option key={type} value={type}>{type}</option>
+                    ))}
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="status" className="text-sm font-medium">Status</Label>
+                  <select
+                    id="status"
+                    className="w-full h-10 px-3 rounded-md border bg-background text-sm mt-1"
+                    value={selectedStatus}
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                  >
+                    <option value="">All Status</option>
+                    <option value="paid">Paid</option>
+                    <option value="unpaid">Unpaid</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="tenant" className="text-sm font-medium">Tenant</Label>
+                  <select
+                    id="tenant"
+                    className="w-full h-10 px-3 rounded-md border bg-background text-sm mt-1"
+                    value={selectedTenant}
+                    onChange={(e) => setSelectedTenant(e.target.value)}
+                  >
+                    <option value="">All Tenants</option>
+                    {leases?.map((lease) => (
+                      <option key={lease._id} value={lease._id}>
+                        {lease.tenantName} {lease.unit?.unitIdentifier ? `- ${lease.unit.unitIdentifier}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
-              <div>
-                <Label htmlFor="utilityType">Utility Type</Label>
-                <select
-                  id="utilityType"
-                  className="w-full h-10 px-3 rounded-md border bg-background"
-                  value={selectedUtilityType}
-                  onChange={(e) => setSelectedUtilityType(e.target.value)}
-                >
-                  <option value="">All Types</option>
-                  {utilityTypes.map((type) => (
-                    <option key={type} value={type}>{type}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="status">Status</Label>
-                <select
-                  id="status"
-                  className="w-full h-10 px-3 rounded-md border bg-background"
-                  value={selectedStatus}
-                  onChange={(e) => setSelectedStatus(e.target.value)}
-                >
-                  <option value="">All Status</option>
-                  <option value="paid">Paid</option>
-                  <option value="unpaid">Unpaid</option>
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="tenant">Tenant</Label>
-                <select
-                  id="tenant"
-                  className="w-full h-10 px-3 rounded-md border bg-background"
-                  value={selectedTenant}
-                  onChange={(e) => setSelectedTenant(e.target.value)}
-                >
-                  <option value="">All Tenants</option>
-                  {leases?.map((lease) => (
-                    <option key={lease._id} value={lease._id}>
-                      {lease.tenantName} {lease.unit?.unitIdentifier ? `- ${lease.unit.unitIdentifier}` : ''}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
 
-            {/* Date Range and Display Options */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <Label htmlFor="startMonth">From Month</Label>
-                <Input
-                  id="startMonth"
-                  type="month"
-                  value={startMonth}
-                  onChange={(e) => setStartMonth(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="endMonth">To Month</Label>
-                <Input
-                  id="endMonth"
-                  type="month"
-                  value={endMonth}
-                  onChange={(e) => setEndMonth(e.target.value)}
-                />
-              </div>
-              <div>
-                <Label htmlFor="groupBy">Group By</Label>
-                <select
-                  id="groupBy"
-                  className="w-full h-10 px-3 rounded-md border bg-background"
-                  value={groupBy}
-                  onChange={(e) => setGroupBy(e.target.value as GroupingOption)}
-                >
-                  <option value="none">No Grouping</option>
-                  <option value="property">Property</option>
-                  <option value="utility">Utility Type</option>
-                  <option value="month">Month</option>
-                  <option value="status">Payment Status</option>
-                  <option value="tenant">Tenant</option>
-                </select>
-              </div>
-              <div>
-                <Label htmlFor="sortBy">Sort By</Label>
-                <select
-                  id="sortBy"
-                  className="w-full h-10 px-3 rounded-md border bg-background"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                >
-                  <option value="date">Date (Newest First)</option>
-                  <option value="amount">Amount (Highest First)</option>
-                  <option value="utility">Utility Type</option>
-                  <option value="status">Payment Status</option>
-                </select>
+              {/* Date Range and Display Options */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div>
+                  <Label htmlFor="startMonth" className="text-sm font-medium">From Month</Label>
+                  <Input
+                    id="startMonth"
+                    type="month"
+                    value={startMonth}
+                    onChange={(e) => setStartMonth(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="endMonth" className="text-sm font-medium">To Month</Label>
+                  <Input
+                    id="endMonth"
+                    type="month"
+                    value={endMonth}
+                    onChange={(e) => setEndMonth(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="groupBy" className="text-sm font-medium">Group By</Label>
+                  <select
+                    id="groupBy"
+                    className="w-full h-10 px-3 rounded-md border bg-background text-sm mt-1"
+                    value={groupBy}
+                    onChange={(e) => setGroupBy(e.target.value as GroupingOption)}
+                  >
+                    <option value="none">No Grouping</option>
+                    <option value="property">Property</option>
+                    <option value="utility">Utility Type</option>
+                    <option value="month">Month</option>
+                    <option value="status">Payment Status</option>
+                    <option value="tenant">Tenant</option>
+                  </select>
+                </div>
+                <div>
+                  <Label htmlFor="sortBy" className="text-sm font-medium">Sort By</Label>
+                  <select
+                    id="sortBy"
+                    className="w-full h-10 px-3 rounded-md border bg-background text-sm mt-1"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortOption)}
+                  >
+                    <option value="date">Date (Newest First)</option>
+                    <option value="amount">Amount (Highest First)</option>
+                    <option value="utility">Utility Type</option>
+                    <option value="status">Payment Status</option>
+                  </select>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -590,7 +617,104 @@ export default function UtilityBillsPage() {
                         
                         return (
                           <div key={bill._id} className="border rounded-lg p-4 hover:bg-muted/30 transition-colors" data-testid="bill-item">
-                            <div className="flex items-center justify-between">
+                            {/* Mobile Layout */}
+                            <div className="block md:hidden space-y-3">
+                              {/* Header Row */}
+                              <div className="flex items-start justify-between">
+                                <div className="flex items-center gap-3 flex-1 min-w-0">
+                                  <div className={cn("p-2 rounded-lg flex-shrink-0", colorClasses)}>
+                                    <Icon className="w-4 h-4" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <h3 className="font-medium text-sm truncate">{bill.utilityType}</h3>
+                                    <p className="text-xs text-muted-foreground truncate">{bill.provider}</p>
+                                  </div>
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm" data-testid="bill-actions" className="flex-shrink-0">
+                                      <MoreHorizontal className="w-4 h-4" data-testid="more-horizontal" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => setViewingBill(bill)}>
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      View Charges
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleTogglePaidStatus(bill)}>
+                                      {bill.landlordPaidUtilityCompany ? (
+                                        <>
+                                          <XCircle className="w-4 h-4 mr-2" />
+                                          Mark Unpaid
+                                        </>
+                                      ) : (
+                                        <>
+                                          <CheckCircle className="w-4 h-4 mr-2" />
+                                          Mark Paid
+                                        </>
+                                      )}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => {
+                                      setSelectedBill(bill);
+                                      setBillDialogOpen(true);
+                                    }}>
+                                      <Edit className="w-4 h-4 mr-2" />
+                                      Edit
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={() => handleDeleteBill(bill)}
+                                      className="text-destructive"
+                                    >
+                                      <Trash className="w-4 h-4 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                              
+                              {/* Details Grid */}
+                              <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                  <div className="flex items-center gap-1 mb-1">
+                                    <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+                                      {bill.billMonth}
+                                    </Badge>
+                                  </div>
+                                  {groupBy !== "property" && property && (
+                                    <p className="flex items-center gap-1 text-muted-foreground">
+                                      <Building className="w-3 h-3 flex-shrink-0" />
+                                      <span className="truncate">{property.name}</span>
+                                    </p>
+                                  )}
+                                  <p className="text-muted-foreground">Due: {bill.dueDate}</p>
+                                </div>
+                                <div className="text-right">
+                                  <p className="text-lg font-semibold" data-testid="bill-amount">${bill.totalAmount.toFixed(2)}</p>
+                                  <div className="flex justify-end mb-1">
+                                    {bill.landlordPaidUtilityCompany ? (
+                                      <Badge className="text-xs bg-green-100 text-green-800 px-1.5 py-0.5">
+                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                        Paid
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="destructive" className="text-xs px-1.5 py-0.5">
+                                        <AlertCircle className="w-3 h-3 mr-1" />
+                                        Unpaid
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  {bill.landlordPaidUtilityCompany && bill.landlordPaidDate && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Paid: {bill.landlordPaidDate}
+                                    </p>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Desktop Layout */}
+                            <div className="hidden md:flex items-center justify-between">
                               {/* Bill Info */}
                               <div className="flex items-center gap-4 flex-1">
                                 <div className={cn("p-2 rounded-lg", colorClasses)}>
@@ -698,9 +822,9 @@ export default function UtilityBillsPage() {
         setBillDialogOpen(open);
         if (!open) setSelectedBill(null);
       }}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{selectedBill ? "Edit Bill" : "Add Utility Bill"}</DialogTitle>
+            <DialogTitle className="text-lg md:text-xl">{selectedBill ? "Edit Bill" : "Add Utility Bill"}</DialogTitle>
           </DialogHeader>
           <UtilityBillForm
             defaultMonth={endMonth}
@@ -739,9 +863,9 @@ export default function UtilityBillsPage() {
 
       {/* Bulk Entry Dialog */}
       <Dialog open={bulkDialogOpen} onOpenChange={setBulkDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Bulk Utility Bill Entry</DialogTitle>
+            <DialogTitle className="text-lg md:text-xl">Bulk Utility Bill Entry</DialogTitle>
           </DialogHeader>
           {selectedPropertyData ? (
             <BulkUtilityBillEntry
@@ -775,9 +899,9 @@ export default function UtilityBillsPage() {
 
       {/* View Charges Dialog */}
       <Dialog open={!!viewingBill} onOpenChange={(open) => !open && setViewingBill(null)}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Bill Charges & Tenant Responsibilities</DialogTitle>
+            <DialogTitle className="text-lg md:text-xl">Bill Charges & Tenant Responsibilities</DialogTitle>
           </DialogHeader>
           {viewingBill && (
             <div className="space-y-4">
@@ -807,9 +931,9 @@ export default function UtilityBillsPage() {
 
       {/* Tenant Statement Generator Dialog */}
       <Dialog open={statementDialogOpen} onOpenChange={setStatementDialogOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Generate Tenant Statement</DialogTitle>
+            <DialogTitle className="text-lg md:text-xl">Generate Tenant Statement</DialogTitle>
           </DialogHeader>
           {selectedProperty && (
             <TenantStatementGenerator

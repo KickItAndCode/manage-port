@@ -52,14 +52,9 @@ export const clearAllData = mutation({
     const allPropertyImages = await ctx.db.query("propertyImages").collect();
     const propertyImages = allPropertyImages.filter(img => propertyIds.includes(img.propertyId));
 
-    // Get tenant utility charges for user's leases
-    const allTenantCharges = await ctx.db.query("tenantUtilityCharges").collect();
-    const tenantUtilityCharges = allTenantCharges.filter(charge => leaseIds.includes(charge.leaseId));
-
-    // Get utility payments for user's tenant charges
-    const chargeIds = tenantUtilityCharges.map(c => c._id);
+    // Get utility payments for user's bills
     const allUtilityPayments = await ctx.db.query("utilityPayments").collect();
-    const utilityPayments = allUtilityPayments.filter(payment => chargeIds.includes(payment.chargeId));
+    const utilityPayments = allUtilityPayments.filter(payment => billIds.includes(payment.utilityBillId));
 
     // Get lease utility settings for user's leases
     const allLeaseUtilitySettings = await ctx.db.query("leaseUtilitySettings").collect();
@@ -99,43 +94,37 @@ export const clearAllData = mutation({
       deletedCount++;
     }
 
-    // 5. Delete tenant utility charges
-    for (const charge of tenantUtilityCharges) {
-      await ctx.db.delete(charge._id);
-      deletedCount++;
-    }
-
-    // 6. Delete utility bills
+    // 5. Delete utility bills
     for (const bill of utilityBills) {
       await ctx.db.delete(bill._id);
       deletedCount++;
     }
 
-    // 7. Delete lease utility settings
+    // 6. Delete lease utility settings
     for (const setting of leaseUtilitySettings) {
       await ctx.db.delete(setting._id);
       deletedCount++;
     }
 
-    // 8. Delete leases
+    // 7. Delete leases
     for (const lease of leases) {
       await ctx.db.delete(lease._id);
       deletedCount++;
     }
 
-    // 9. Delete units
+    // 8. Delete units
     for (const unit of units) {
       await ctx.db.delete(unit._id);
       deletedCount++;
     }
 
-    // 10. Delete properties
+    // 9. Delete properties
     for (const property of properties) {
       await ctx.db.delete(property._id);
       deletedCount++;
     }
 
-    // 11. Delete user settings
+    // 10. Delete user settings
     for (const setting of userSettings) {
       await ctx.db.delete(setting._id);
       deletedCount++;
@@ -153,7 +142,6 @@ export const clearAllData = mutation({
         documentFolders: documentFolders.length,
         propertyImages: propertyImages.length,
         utilityBills: utilityBills.length,
-        tenantUtilityCharges: tenantUtilityCharges.length,
         utilityPayments: utilityPayments.length,
         leaseUtilitySettings: leaseUtilitySettings.length,
         userSettings: userSettings.length,
@@ -206,14 +194,9 @@ export const getDataCounts = query({
     const allPropertyImages = await ctx.db.query("propertyImages").collect();
     const propertyImages = allPropertyImages.filter(img => propertyIds.includes(img.propertyId));
 
-    // Get tenant utility charges count
-    const allTenantCharges = await ctx.db.query("tenantUtilityCharges").collect();
-    const tenantUtilityCharges = allTenantCharges.filter(charge => leaseIds.includes(charge.leaseId));
-
     // Get utility payments count
-    const chargeIds = tenantUtilityCharges.map(c => c._id);
     const allUtilityPayments = await ctx.db.query("utilityPayments").collect();
-    const utilityPayments = allUtilityPayments.filter(payment => chargeIds.includes(payment.chargeId));
+    const utilityPayments = allUtilityPayments.filter(payment => billIds.includes(payment.utilityBillId));
 
     // Get lease utility settings count
     const allLeaseUtilitySettings = await ctx.db.query("leaseUtilitySettings").collect();
@@ -227,7 +210,7 @@ export const getDataCounts = query({
 
     const totalCount = properties.length + units.length + leases.length + 
                      documents.length + documentFolders.length + propertyImages.length +
-                     utilityBills.length + tenantUtilityCharges.length + utilityPayments.length +
+                     utilityBills.length + utilityPayments.length +
                      leaseUtilitySettings.length + userSettings.length;
 
     return {
@@ -240,7 +223,6 @@ export const getDataCounts = query({
         documentFolders: documentFolders.length,
         propertyImages: propertyImages.length,
         utilityBills: utilityBills.length,
-        tenantUtilityCharges: tenantUtilityCharges.length,
         utilityPayments: utilityPayments.length,
         leaseUtilitySettings: leaseUtilitySettings.length,
         userSettings: userSettings.length,

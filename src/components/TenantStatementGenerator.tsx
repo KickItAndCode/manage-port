@@ -220,7 +220,7 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
           <p><strong>Name:</strong> ${data.lease.tenantName}</p>
           ${data.lease.tenantEmail ? `<p><strong>Email:</strong> ${data.lease.tenantEmail}</p>` : ''}
           ${data.lease.tenantPhone ? `<p><strong>Phone:</strong> ${data.lease.tenantPhone}</p>` : ''}
-          ${data.lease.unitId ? `<p><strong>Unit:</strong> ${data.lease.unitId}</p>` : ''}
+          ${data.lease.unit?.unitIdentifier ? `<p><strong>Unit:</strong> ${data.lease.unit.unitIdentifier}</p>` : ''}
         </div>
 
         <div class="section">
@@ -297,57 +297,65 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="w-5 h-5" />
-          Tenant Statement Generator
+      <CardHeader className="pb-4">
+        <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
+          <FileText className="w-5 h-5 flex-shrink-0" />
+          <span className="break-words">Tenant Statement Generator</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-4 p-4 sm:p-6">
         {/* Selection Controls */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="space-y-4">
           <div>
-            <Label htmlFor="lease">Select Tenant</Label>
+            <Label htmlFor="lease" className="text-sm font-medium">Select Tenant</Label>
             <select
               id="lease"
-              className="w-full h-10 px-3 rounded-md border bg-background"
+              className="w-full h-10 px-3 rounded-md border bg-background text-sm mt-1"
               value={selectedLeaseId}
               onChange={(e) => setSelectedLeaseId(e.target.value)}
             >
               <option value="">Select a tenant...</option>
               {leases?.map((lease) => (
                 <option key={lease._id} value={lease._id}>
-                  {lease.tenantName} {lease.unitId ? `(Unit ${lease.unitId})` : ''}
+                  {lease.tenantName} {lease.unit?.unitIdentifier ? `- ${lease.unit.unitIdentifier}` : ''}
                 </option>
               ))}
             </select>
           </div>
-          <div>
-            <Label htmlFor="startDate">Start Month</Label>
-            <Input
-              id="startDate"
-              type="month"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label htmlFor="endDate">End Month</Label>
-            <Input
-              id="endDate"
-              type="month"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="startDate" className="text-sm font-medium">Start Month</Label>
+              <Input
+                id="startDate"
+                type="month"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="endDate" className="text-sm font-medium">End Month</Label>
+              <Input
+                id="endDate"
+                type="month"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
           </div>
         </div>
 
         {/* Statement Preview */}
         {statementData && (
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h3 className="text-lg font-semibold">Statement Preview</h3>
-              <Button onClick={generatePDF} disabled={generating}>
+              <Button 
+                onClick={generatePDF} 
+                disabled={generating}
+                className="w-full sm:w-auto"
+              >
                 <Download className="w-4 h-4 mr-2" />
                 {generating ? "Generating..." : "Generate PDF"}
               </Button>
@@ -356,17 +364,28 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
             {/* Tenant Info */}
             <Card>
               <CardContent className="p-4">
-                <div className="flex items-center gap-3 mb-2">
+                <div className="flex items-center gap-3 mb-3">
                   <User className="w-5 h-5 text-blue-600" />
                   <h4 className="font-medium">Tenant Information</h4>
                 </div>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div><span className="text-muted-foreground">Name:</span> {statementData.lease.tenantName}</div>
-                  {statementData.lease.tenantEmail && (
-                    <div><span className="text-muted-foreground">Email:</span> {statementData.lease.tenantEmail}</div>
-                  )}
-                  {statementData.lease.unitId && (
-                    <div><span className="text-muted-foreground">Unit:</span> {statementData.lease.unitId}</div>
+                <div className="space-y-2 text-sm">
+                  <div className="flex flex-col sm:flex-row sm:gap-6">
+                    <div className="flex-1">
+                      <span className="text-muted-foreground">Name:</span>
+                      <span className="ml-2 font-medium">{statementData.lease.tenantName}</span>
+                    </div>
+                    {statementData.lease.tenantEmail && (
+                      <div className="flex-1">
+                        <span className="text-muted-foreground">Email:</span>
+                        <span className="ml-2 break-all">{statementData.lease.tenantEmail}</span>
+                      </div>
+                    )}
+                  </div>
+                  {statementData.lease.unit?.unitIdentifier && (
+                    <div>
+                      <span className="text-muted-foreground">Unit:</span>
+                      <span className="ml-2 font-medium">{statementData.lease.unit.unitIdentifier}</span>
+                    </div>
                   )}
                 </div>
               </CardContent>
@@ -379,22 +398,42 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
                   <Receipt className="w-5 h-5 text-green-600" />
                   <h4 className="font-medium">Utility Charges</h4>
                 </div>
-                <div className="space-y-2">
+                <div className="space-y-3">
                   {statementData.bills.map((bill) => {
                     const Icon = getUtilityIcon(bill.utilityType);
                     return (
-                      <div key={`${bill._id}-${bill.billMonth}`} className="flex items-center justify-between p-3 bg-muted/50 rounded">
-                        <div className="flex items-center gap-3">
-                          <Icon className="w-4 h-4 text-muted-foreground" />
-                          <div>
-                            <div className="font-medium">{bill.utilityType}</div>
-                            <div className="text-sm text-muted-foreground">{bill.billMonth}</div>
+                      <div key={`${bill._id}-${bill.billMonth}`} className="border rounded-lg p-3 bg-muted/20">
+                        {/* Mobile Layout */}
+                        <div className="block sm:hidden space-y-2">
+                          <div className="flex items-center gap-3">
+                            <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                            <div className="flex-1">
+                              <div className="font-medium text-sm">{bill.utilityType}</div>
+                              <div className="text-xs text-muted-foreground">{bill.billMonth}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold text-lg">${bill.tenantCharge.toFixed(2)}</div>
+                            </div>
+                          </div>
+                          <div className="text-xs text-muted-foreground text-center">
+                            {bill.tenantPercentage}% of ${bill.totalAmount.toFixed(2)}
                           </div>
                         </div>
-                        <div className="text-right">
-                          <div className="font-medium">${bill.tenantCharge.toFixed(2)}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {bill.tenantPercentage}% of ${bill.totalAmount.toFixed(2)}
+                        
+                        {/* Desktop Layout */}
+                        <div className="hidden sm:flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <Icon className="w-4 h-4 text-muted-foreground" />
+                            <div>
+                              <div className="font-medium">{bill.utilityType}</div>
+                              <div className="text-sm text-muted-foreground">{bill.billMonth}</div>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-medium">${bill.tenantCharge.toFixed(2)}</div>
+                            <div className="text-sm text-muted-foreground">
+                              {bill.tenantPercentage}% of ${bill.totalAmount.toFixed(2)}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -411,22 +450,25 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
                   <DollarSign className="w-5 h-5 text-purple-600" />
                   <h4 className="font-medium">Summary</h4>
                 </div>
-                <div className="space-y-2">
-                  <div className="flex justify-between">
-                    <span>Total Charges:</span>
-                    <span className="font-medium">${statementData.totalCharges.toFixed(2)}</span>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm">Total Charges:</span>
+                    <span className="font-medium text-lg">${statementData.totalCharges.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Total Paid:</span>
-                    <span className="font-medium">${statementData.totalPaid.toFixed(2)}</span>
+                  <div className="flex justify-between items-center py-2">
+                    <span className="text-sm">Total Paid:</span>
+                    <span className="font-medium text-lg">${statementData.totalPaid.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between pt-2 border-t">
-                    <span className="font-medium">Outstanding Balance:</span>
-                    <div className="text-right">
-                      <span className={`font-bold ${statementData.outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-3 border-t border-border">
+                    <span className="font-medium text-base">Outstanding Balance:</span>
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+                      <span className={`font-bold text-xl ${statementData.outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
                         ${Math.abs(statementData.outstandingBalance).toFixed(2)}
                       </span>
-                      <Badge variant={statementData.outstandingBalance > 0 ? "destructive" : "default"} className="ml-2">
+                      <Badge 
+                        variant={statementData.outstandingBalance > 0 ? "destructive" : "default"} 
+                        className="text-xs px-2 py-1 self-start sm:self-center"
+                      >
                         {statementData.outstandingBalance > 0 ? "Due" : "Credit"}
                       </Badge>
                     </div>
@@ -438,8 +480,9 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
         )}
 
         {!selectedLeaseId && (
-          <div className="text-center py-8 text-muted-foreground">
-            Select a tenant to generate a statement
+          <div className="text-center py-8 px-4 text-muted-foreground">
+            <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
+            <p className="text-sm sm:text-base">Select a tenant to generate a statement</p>
           </div>
         )}
       </CardContent>

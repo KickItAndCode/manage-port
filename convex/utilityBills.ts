@@ -31,7 +31,21 @@ async function calculateTenantCharges(
     .filter((q: any) => q.eq(q.field("status"), "active"))
     .collect();
 
+  console.log("calculateTenantCharges - Debug info:", {
+    billId,
+    propertyId: bill.propertyId,
+    utilityType: bill.utilityType,
+    totalAmount: bill.totalAmount,
+    activeLeasesCount: activeLeases.length,
+    activeLeases: activeLeases.map(l => ({
+      id: l._id,
+      tenantName: l.tenantName,
+      status: l.status
+    }))
+  });
+
   if (activeLeases.length === 0) {
+    console.log("calculateTenantCharges - No active leases found");
     return [];
   }
 
@@ -47,6 +61,14 @@ async function calculateTenantCharges(
       .filter((q: any) => q.eq(q.field("utilityType"), bill.utilityType))
       .first();
 
+    console.log("calculateTenantCharges - Lease processing:", {
+      leaseId: lease._id,
+      tenantName: lease.tenantName,
+      utilityType: bill.utilityType,
+      settingFound: !!setting,
+      responsibilityPercentage: setting?.responsibilityPercentage || 0
+    });
+
     if (setting && setting.responsibilityPercentage > 0) {
       const chargedAmount = (bill.totalAmount * setting.responsibilityPercentage) / 100;
       charges.push({
@@ -57,6 +79,11 @@ async function calculateTenantCharges(
         responsibilityPercentage: setting.responsibilityPercentage,
       });
       totalTenantPercentage += setting.responsibilityPercentage;
+      console.log("calculateTenantCharges - Charge created:", {
+        leaseId: lease._id,
+        chargedAmount: Math.round(chargedAmount * 100) / 100,
+        responsibilityPercentage: setting.responsibilityPercentage
+      });
     }
   }
 
@@ -70,6 +97,17 @@ async function calculateTenantCharges(
   // Allow partial tenant responsibility - owner covers the remaining percentage
   // This is valid: 50% tenant + 50% owner = 100%
   // No error needed if totalTenantPercentage < 100, as owner covers the difference
+
+  console.log("calculateTenantCharges - Final result:", {
+    chargesCount: charges.length,
+    totalTenantPercentage,
+    charges: charges.map(c => ({
+      leaseId: c.leaseId,
+      tenantName: c.tenantName,
+      chargedAmount: c.chargedAmount,
+      responsibilityPercentage: c.responsibilityPercentage
+    }))
+  });
 
   return charges;
 }
@@ -129,27 +167,7 @@ export const addUtilityBill = mutation({
       createdAt: new Date().toISOString(),
     });
 
-    // Calculate and create tenant charges
-    const bill = await ctx.db.get(billId);
-    if (bill) {
-      const charges = await calculateTenantCharges(ctx, billId, bill);
-      
-      // Create charge records
-      for (const charge of charges) {
-        await ctx.db.insert("tenantUtilityCharges", {
-          leaseId: charge.leaseId,
-          unitId: charge.unitId,
-          utilityBillId: billId,
-          tenantName: charge.tenantName,
-          chargedAmount: charge.chargedAmount,
-          responsibilityPercentage: charge.responsibilityPercentage,
-          dueDate: args.dueDate,
-          tenantPaidAmount: 0,
-          fullyPaid: false,
-          createdAt: new Date().toISOString(),
-        });
-      }
-    }
+    // Note: Tenant charges are now calculated on-demand, not stored
 
     return billId;
   },
@@ -185,49 +203,9 @@ export const updateUtilityBill = mutation({
       throw new Error("You do not have permission to update this bill");
     }
 
-    // If amount is being updated, recalculate charges
-    if (args.totalAmount !== undefined && args.totalAmount !== bill.totalAmount) {
-      if (args.totalAmount <= 0) {
-        throw new Error("Bill amount must be greater than 0");
-      }
-
-      // Update bill first
-      await ctx.db.patch(args.id, { 
-        totalAmount: args.totalAmount,
-        updatedAt: new Date().toISOString(),
-      });
-
-      // Get updated bill
-      const updatedBill = await ctx.db.get(args.id);
-      if (updatedBill) {
-        // Delete existing charges
-        const existingCharges = await ctx.db
-          .query("tenantUtilityCharges")
-          .withIndex("by_bill", (q: any) => q.eq("utilityBillId", args.id))
-          .collect();
-
-        for (const charge of existingCharges) {
-          await ctx.db.delete(charge._id);
-        }
-
-        // Recalculate and create new charges
-        const charges = await calculateTenantCharges(ctx, args.id, updatedBill);
-        
-        for (const charge of charges) {
-          await ctx.db.insert("tenantUtilityCharges", {
-            leaseId: charge.leaseId,
-            unitId: charge.unitId,
-            utilityBillId: args.id,
-            tenantName: charge.tenantName,
-            chargedAmount: charge.chargedAmount,
-            responsibilityPercentage: charge.responsibilityPercentage,
-            dueDate: args.dueDate || bill.dueDate,
-            tenantPaidAmount: 0,
-            fullyPaid: false,
-            createdAt: new Date().toISOString(),
-          });
-        }
-      }
+    // Validate amount if being updated
+    if (args.totalAmount !== undefined && args.totalAmount <= 0) {
+      throw new Error("Bill amount must be greater than 0");
     }
 
     // Update other fields
@@ -235,6 +213,7 @@ export const updateUtilityBill = mutation({
       updatedAt: new Date().toISOString(),
     };
 
+    if (args.totalAmount !== undefined) updates.totalAmount = args.totalAmount;
     if (args.utilityType !== undefined) updates.utilityType = args.utilityType;
     if (args.provider !== undefined) updates.provider = args.provider;
     
@@ -420,40 +399,16 @@ export const seedUtilityBills = mutation({
 
         createdBills++;
 
-        // Create tenant charges based on lease utility settings
-        for (const { lease, settings } of leaseSettings) {
-          const utilitySetting = settings.find(s => s.utilityType === config.type);
-          if (utilitySetting && utilitySetting.responsibilityPercentage > 0) {
-            const chargeAmount = Math.round(amount * (utilitySetting.responsibilityPercentage / 100) * 100) / 100;
-            const isPaidForOlderMonths = month < currentMonth - 1;
-            
-            await ctx.db.insert("tenantUtilityCharges", {
-              leaseId: lease._id,
-              utilityBillId: billId,
-              tenantName: lease.tenantName,
-              chargedAmount: chargeAmount,
-              responsibilityPercentage: utilitySetting.responsibilityPercentage,
-              dueDate: dueDate.toISOString().split('T')[0],
-              tenantPaidAmount: isPaidForOlderMonths ? chargeAmount : 0,
-              fullyPaid: isPaidForOlderMonths,
-              lastPaymentDate: isPaidForOlderMonths 
-                ? new Date(currentYear, month + 1, Math.floor(Math.random() * 10) + 5).toISOString().split('T')[0]
-                : undefined,
-              notes: "Auto-generated for testing",
-              createdAt: new Date().toISOString(),
-            });
-            
-            createdCharges++;
-          }
-        }
+        // Note: Tenant charges are now calculated on-demand, not stored
+        // The seedUtilityBills function now only creates utility bills
       }
     }
 
     return {
       success: true,
-      message: `Created ${createdBills} utility bills with ${createdCharges} tenant charges for ${currentYear} YTD`,
+      message: `Created ${createdBills} utility bills for ${currentYear} YTD (tenant charges calculated on-demand)`,
       createdBills,
-      createdCharges,
+      createdCharges: 0, // No longer creating stored charges
     };
   },
 });
@@ -476,16 +431,8 @@ export const deleteUtilityBill = mutation({
       throw new Error("You do not have permission to delete this bill");
     }
 
-    // Delete associated tenant charges
-    const charges = await ctx.db
-      .query("tenantUtilityCharges")
-      .withIndex("by_bill", (q: any) => q.eq("utilityBillId", args.id))
-      .collect();
-
-    for (const charge of charges) {
-      await ctx.db.delete(charge._id);
-    }
-
+    // Note: No need to delete tenant charges as they're calculated on-demand
+    
     // Delete the bill
     await ctx.db.delete(args.id);
     return { success: true };
@@ -530,7 +477,7 @@ export const getUtilityBills = query({
   },
 });
 
-// Get a utility bill with its charges
+// Get a utility bill with its calculated charges
 export const getUtilityBillWithCharges = query({
   args: {
     billId: v.id("utilityBills"),
@@ -542,29 +489,49 @@ export const getUtilityBillWithCharges = query({
       return null;
     }
 
-    // Get all charges for this bill
-    const charges = await ctx.db
-      .query("tenantUtilityCharges")
-      .withIndex("by_bill", (q: any) => q.eq("utilityBillId", args.billId))
-      .collect();
+    // Calculate charges on-demand using the same logic as utilityCharges.ts
+    const charges = await calculateTenantCharges(ctx, args.billId, bill);
 
-    // Get unit information for each charge
-    const chargesWithUnits = await Promise.all(
+    // Convert to the format expected by the frontend
+    const formattedCharges = await Promise.all(
       charges.map(async (charge) => {
-        let unit = null;
+        // Get payments for this lease and bill
+        const payments = await ctx.db
+          .query("utilityPayments")
+          .withIndex("by_lease", (q: any) => q.eq("leaseId", charge.leaseId))
+          .filter((q: any) => q.eq(q.field("utilityBillId"), bill._id))
+          .collect();
+
+        const paidAmount = payments.reduce((sum, payment) => sum + payment.amountPaid, 0);
+        const remainingAmount = Math.max(0, charge.chargedAmount - paidAmount);
+
+        // Get unit information if available
+        let unitIdentifier;
         if (charge.unitId) {
-          unit = await ctx.db.get(charge.unitId);
+          const unit = await ctx.db.get(charge.unitId);
+          unitIdentifier = unit?.unitIdentifier;
         }
-        return { ...charge, unit };
+
+        return {
+          ...charge,
+          utilityBillId: bill._id,
+          utilityType: bill.utilityType,
+          billMonth: bill.billMonth,
+          totalBillAmount: bill.totalAmount,
+          dueDate: bill.dueDate,
+          paidAmount,
+          remainingAmount,
+          unitIdentifier,
+        };
       })
     );
 
     return {
       ...bill,
-      charges: chargesWithUnits.sort((a, b) => {
+      charges: formattedCharges.sort((a, b) => {
         // Sort by unit identifier if available, otherwise by tenant name
-        if (a.unit && b.unit) {
-          return a.unit.unitIdentifier.localeCompare(b.unit.unitIdentifier);
+        if (a.unitIdentifier && b.unitIdentifier) {
+          return a.unitIdentifier.localeCompare(b.unitIdentifier);
         }
         return a.tenantName.localeCompare(b.tenantName);
       }),
@@ -729,26 +696,7 @@ export const bulkAddUtilityBills = mutation({
           createdAt: new Date().toISOString(),
         });
 
-        // Calculate and create tenant charges
-        const bill = await ctx.db.get(billId);
-        if (bill) {
-          const charges = await calculateTenantCharges(ctx, billId, bill);
-          
-          for (const charge of charges) {
-            await ctx.db.insert("tenantUtilityCharges", {
-              leaseId: charge.leaseId,
-              unitId: charge.unitId,
-              utilityBillId: billId,
-              tenantName: charge.tenantName,
-              chargedAmount: charge.chargedAmount,
-              responsibilityPercentage: charge.responsibilityPercentage,
-              dueDate: billData.dueDate,
-              tenantPaidAmount: 0,
-              fullyPaid: false,
-              createdAt: new Date().toISOString(),
-            });
-          }
-        }
+        // Note: Tenant charges are now calculated on-demand, not stored
 
         createdBillIds.push(billId);
       } catch (error: any) {
@@ -766,6 +714,7 @@ export const bulkAddUtilityBills = mutation({
     };
   },
 });
+
 
 // Get utility bills for a property with optional date filtering
 export const getUtilityBillsByProperty = query({

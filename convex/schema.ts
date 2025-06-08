@@ -87,27 +87,10 @@ export default defineSchema({
   })
     .index("by_lease", ["leaseId"])
     .index("by_utility_type", ["utilityType"]),
-  tenantUtilityCharges: defineTable({
-    leaseId: v.id("leases"), // Reference to lease
-    unitId: v.optional(v.id("units")), // Reference to unit
-    utilityBillId: v.id("utilityBills"), // Reference to utilityBill
-    tenantName: v.string(), // Denormalized for history
-    chargedAmount: v.number(), // Calculated: bill * percentage
-    responsibilityPercentage: v.number(), // Snapshot of percentage used
-    dueDate: v.string(), // Inherited from utilityBill
-    tenantPaidAmount: v.number(), // Total amount tenant has paid to landlord
-    fullyPaid: v.boolean(), // Computed: tenantPaidAmount >= chargedAmount
-    lastPaymentDate: v.optional(v.string()),
-    notes: v.optional(v.string()),
-    createdAt: v.string(),
-    updatedAt: v.optional(v.string()),
-  })
-    .index("by_lease", ["leaseId"])
-    .index("by_bill", ["utilityBillId"])
-    .index("by_payment_status", ["fullyPaid"])
-    .index("by_unit", ["unitId"]),
   utilityPayments: defineTable({
-    chargeId: v.id("tenantUtilityCharges"), // Reference to charge
+    leaseId: v.id("leases"), // Reference to lease
+    utilityBillId: v.id("utilityBills"), // Reference to utility bill
+    tenantName: v.string(), // Denormalized tenant name
     amountPaid: v.number(), // Amount paid in this transaction
     paymentDate: v.string(), // Date of payment
     paymentMethod: v.string(), // cash, check, credit_card, etc.
@@ -115,7 +98,8 @@ export default defineSchema({
     notes: v.optional(v.string()),
     createdAt: v.string(),
   })
-    .index("by_charge", ["chargeId"])
+    .index("by_lease", ["leaseId"])
+    .index("by_bill", ["utilityBillId"])
     .index("by_date", ["paymentDate"])
     .index("by_method", ["paymentMethod"]),
   documentFolders: defineTable({

@@ -2,16 +2,13 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 
-// Helper to verify charge ownership
-async function verifyChargeOwnership(
+// Helper to verify bill ownership
+async function verifyBillOwnership(
   ctx: any,
-  chargeId: Id<"tenantUtilityCharges">,
+  utilityBillId: Id<"utilityBills">,
   userId: string
 ): Promise<boolean> {
-  const charge = await ctx.db.get(chargeId);
-  if (!charge) return false;
-  
-  const bill = await ctx.db.get(charge.utilityBillId);
+  const bill = await ctx.db.get(utilityBillId);
   if (!bill) return false;
   
   return bill.userId === userId;
@@ -461,7 +458,9 @@ export const getTenantStatement = query({
 // Record a payment for a utility charge
 export const recordUtilityPayment = mutation({
   args: {
-    chargeId: v.id("tenantUtilityCharges"),
+    leaseId: v.id("leases"),
+    utilityBillId: v.id("utilityBills"),
+    tenantName: v.string(),
     amountPaid: v.number(),
     paymentDate: v.string(),
     paymentMethod: v.string(),
@@ -471,14 +470,15 @@ export const recordUtilityPayment = mutation({
   },
   handler: async (ctx, args) => {
     // Verify ownership
-    const isOwner = await verifyChargeOwnership(ctx, args.chargeId, args.userId);
+    const isOwner = await verifyBillOwnership(ctx, args.utilityBillId, args.userId);
     if (!isOwner) {
-      throw new Error("You do not have permission to record payments for this charge");
+      throw new Error("You do not have permission to record payments for this bill");
     }
 
-    const charge = await ctx.db.get(args.chargeId);
-    if (!charge) {
-      throw new Error("Charge not found");
+    // Verify lease exists and belongs to user
+    const lease = await ctx.db.get(args.leaseId);
+    if (!lease || lease.userId !== args.userId) {
+      throw new Error("Lease not found or you don't have permission");
     }
 
     // Validate payment amount
@@ -486,14 +486,34 @@ export const recordUtilityPayment = mutation({
       throw new Error("Payment amount must be greater than 0");
     }
 
-    // Get existing payments for this charge
+    // Calculate the charge amount for this lease/bill combination
+    const bill = await ctx.db.get(args.utilityBillId);
+    if (!bill) {
+      throw new Error("Utility bill not found");
+    }
+
+    // Get lease utility setting to calculate charge
+    const setting = await ctx.db
+      .query("leaseUtilitySettings")
+      .withIndex("by_lease", (q: any) => q.eq("leaseId", args.leaseId))
+      .filter((q: any) => q.eq(q.field("utilityType"), bill.utilityType))
+      .first();
+
+    if (!setting || setting.responsibilityPercentage === 0) {
+      throw new Error("No utility responsibility found for this tenant and utility type");
+    }
+
+    const chargedAmount = Math.round((bill.totalAmount * setting.responsibilityPercentage) / 100 * 100) / 100;
+
+    // Get existing payments for this lease/bill combination
     const existingPayments = await ctx.db
       .query("utilityPayments")
-      .withIndex("by_charge", (q: any) => q.eq("chargeId", args.chargeId))
+      .withIndex("by_lease", (q: any) => q.eq("leaseId", args.leaseId))
+      .filter((q: any) => q.eq(q.field("utilityBillId"), args.utilityBillId))
       .collect();
 
     const totalPaid = existingPayments.reduce((sum, p) => sum + p.amountPaid, 0);
-    const remainingAmount = charge.chargedAmount - totalPaid;
+    const remainingAmount = chargedAmount - totalPaid;
 
     if (args.amountPaid > remainingAmount) {
       throw new Error(`Payment amount cannot exceed remaining balance of $${remainingAmount.toFixed(2)}`);
@@ -501,7 +521,9 @@ export const recordUtilityPayment = mutation({
 
     // Create payment record
     const paymentId = await ctx.db.insert("utilityPayments", {
-      chargeId: args.chargeId,
+      leaseId: args.leaseId,
+      utilityBillId: args.utilityBillId,
+      tenantName: args.tenantName,
       amountPaid: args.amountPaid,
       paymentDate: args.paymentDate,
       paymentMethod: args.paymentMethod,
@@ -510,54 +532,7 @@ export const recordUtilityPayment = mutation({
       createdAt: new Date().toISOString(),
     });
 
-    // Update charge if fully paid
-    const newTotalPaid = totalPaid + args.amountPaid;
-    const isFullyPaid = newTotalPaid >= charge.chargedAmount;
-
-    if (isFullyPaid) {
-      await ctx.db.patch(args.chargeId, {
-        fullyPaid: true,
-        tenantPaidAmount: charge.chargedAmount,
-        lastPaymentDate: args.paymentDate,
-        updatedAt: new Date().toISOString(),
-      });
-    }
-
-    // Check if all charges for the bill are paid
-    const allCharges = await ctx.db
-      .query("tenantUtilityCharges")
-      .withIndex("by_bill", (q: any) => q.eq("utilityBillId", charge.utilityBillId))
-      .collect();
-
-    let allChargesPaid = true;
-    for (const c of allCharges) {
-      if (c._id === args.chargeId) {
-        if (!isFullyPaid) {
-          allChargesPaid = false;
-          break;
-        }
-      } else if (!c.fullyPaid) {
-        allChargesPaid = false;
-        break;
-      }
-    }
-
-    // Update bill if all charges are paid
-    if (allChargesPaid) {
-      await ctx.db.patch(charge.utilityBillId, {
-        landlordPaidUtilityCompany: true,
-        landlordPaidDate: args.paymentDate,
-        updatedAt: new Date().toISOString(),
-      });
-    }
-
-    return {
-      paymentId,
-      amountPaid: args.amountPaid,
-      remainingBalance: Math.max(0, charge.chargedAmount - newTotalPaid),
-      isFullyPaid,
-      allChargesPaid,
-    };
+    return paymentId;
   },
 });
 
