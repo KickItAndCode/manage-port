@@ -99,28 +99,16 @@ export const getImageDocuments = query({
 });
 
 // Get documents expiring soon
+// Note: Document expiry feature has been simplified - this returns empty for now
 export const getExpiringDocuments = query({
   args: {
     userId: v.string(),
-    daysAhead: v.optional(v.number()), // default 30 days
+    daysAhead: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const daysAhead = args.daysAhead || 30;
-    const futureDate = new Date();
-    futureDate.setDate(futureDate.getDate() + daysAhead);
-    
-    const documents = await ctx.db
-      .query("documents")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
-    
-    return documents.filter(doc => {
-      if (!doc.expiryDate) return false;
-      const expiryDate = new Date(doc.expiryDate);
-      return expiryDate <= futureDate && expiryDate >= new Date();
-    }).sort((a, b) => 
-      new Date(a.expiryDate!).getTime() - new Date(b.expiryDate!).getTime()
-    );
+    // Document expiry tracking feature has been removed for simplification
+    // Could be re-implemented in the future if needed
+    return [];
   },
 });
 
@@ -330,13 +318,7 @@ export const getDocumentStats = query({
         stats.totalSize += doc.fileSize;
       }
       
-      // Count expiring documents
-      if (doc.expiryDate) {
-        const expiryDate = new Date(doc.expiryDate);
-        if (expiryDate <= nextMonth && expiryDate >= new Date()) {
-          stats.expiringThisMonth++;
-        }
-      }
+      // Document expiry tracking removed for simplification
     });
 
     return stats;
@@ -357,10 +339,8 @@ export const createDocument = mutation({
     utilityBillId: v.optional(v.id("utilityBills")),
     fileSize: v.number(),
     mimeType: v.string(),
-    expiryDate: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
     notes: v.optional(v.string()),
-    thumbnailUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -411,10 +391,8 @@ export const createDocument = mutation({
       fileSize: args.fileSize,
       mimeType: args.mimeType,
       uploadedAt: new Date().toISOString(),
-      expiryDate: args.expiryDate,
       tags: args.tags,
       notes: args.notes,
-      thumbnailUrl: args.thumbnailUrl,
     });
   },
 });

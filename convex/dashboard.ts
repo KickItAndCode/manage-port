@@ -83,7 +83,6 @@ export const getDashboardMetrics = query({
         id: p._id,
         name: p.name,
         address: p.address,
-        monthlyRent: p.monthlyRent,
         status: p.status,
         type: p.type,
       }));

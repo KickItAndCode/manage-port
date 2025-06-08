@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Building, FileText, Settings, Flashlight, Layers } from "lucide-react";
+import { Home, Building, FileText, Settings, Flashlight, Layers, Shield } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const navItems = [
@@ -11,6 +11,7 @@ const navItems = [
   { label: "Bills & Payments", href: "/utility-bills", icon: Flashlight },
   { label: "Documents", href: "/documents", icon: FileText },
   { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Admin", href: "/admin", icon: Shield },
 ];
 
 export function Sidebar() {

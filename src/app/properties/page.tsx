@@ -26,7 +26,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
-type PropertySortKey = 'name' | 'type' | 'status' | 'address' | 'bedrooms' | 'bathrooms' | 'squareFeet' | 'monthlyRent' | 'purchaseDate';
+type PropertySortKey = 'name' | 'type' | 'status' | 'address' | 'bedrooms' | 'bathrooms' | 'squareFeet' | 'purchaseDate';
 
 export default function PropertiesPage() {
   const { user } = useUser();
@@ -143,9 +143,7 @@ export default function PropertiesPage() {
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
         squareFeet: data.squareFeet,
-        monthlyRent: data.monthlyRent,
         purchaseDate: data.purchaseDate,
-        imageUrl: data.imageUrl,
         monthlyMortgage: data.monthlyMortgage,
         monthlyCapEx: data.monthlyCapEx,
         
@@ -322,7 +320,12 @@ export default function PropertiesPage() {
                       </div>
                       
                       <div className="text-right sm:text-right">
-                        <p className="font-bold text-lg text-green-600">${property.monthlyRent.toLocaleString()}</p>
+                        <p className="font-bold text-lg text-green-600">
+                          {property.monthlyRent > 0 
+                            ? `$${property.monthlyRent.toLocaleString()}` 
+                            : '$0'
+                          }
+                        </p>
                         <p className="text-xs text-muted-foreground">per month</p>
                       </div>
                     </div>
@@ -434,8 +437,8 @@ export default function PropertiesPage() {
                 <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("status")}>
                   Status {sortKey==="status" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}
                 </TableHead>
-                <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("monthlyRent")}>
-                  Rent {sortKey==="monthlyRent" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}
+                <TableHead className="text-muted-foreground">
+                  Rent
                 </TableHead>
                 <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("bedrooms")}>
                   Bed/Bath {sortKey==="bedrooms" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}
@@ -488,7 +491,10 @@ export default function PropertiesPage() {
                   </TableCell>
                   <TableCell>
                     <span className="font-semibold text-green-600">
-                      ${property.monthlyRent.toLocaleString()}/mo
+                      {property.monthlyRent > 0 
+                        ? `$${property.monthlyRent.toLocaleString()}` 
+                        : '$0'
+                      }
                     </span>
                   </TableCell>
                   <TableCell>

@@ -18,7 +18,7 @@ export default function ConvexTest() {
           addProperty({
             name: "Test Property",
             address: "123 Main St",
-            monthlyRent: 1000,
+            monthlyMortgage: 1000,
             type: "single-family",
             status: "occupied",
             bedrooms: 3,
@@ -34,7 +34,7 @@ export default function ConvexTest() {
       <ul className="mt-4">
         {properties?.map((p) => (
           <li key={p._id} className="mb-2">
-            <span className="font-bold">{p.name}</span> - {p.address} - ${p.monthlyRent}
+            <span className="font-bold">{p.name}</span> - {p.address} - ${p.monthlyMortgage || 'N/A'}
           </li>
         ))}
       </ul>

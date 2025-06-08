@@ -126,13 +126,6 @@ const validatePropertyData = (args: any) => {
     });
   }
 
-  if (args.monthlyRent < 0 || args.monthlyRent > 100000) {
-    throw new ConvexError({
-      code: "VALIDATION_ERROR",
-      message: "Monthly rent must be between $0 and $100,000",
-      field: "monthlyRent"
-    });
-  }
 
   // Date validation
   const purchaseDate = new Date(args.purchaseDate);
@@ -169,9 +162,7 @@ export const addProperty = mutation({
     bedrooms: v.number(),
     bathrooms: v.number(),
     squareFeet: v.number(),
-    monthlyRent: v.number(),
     purchaseDate: v.string(),
-    imageUrl: v.optional(v.string()),
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
     userId: v.string(),
@@ -227,9 +218,7 @@ export const createPropertyWithUnits = mutation({
     bedrooms: v.number(),
     bathrooms: v.number(),
     squareFeet: v.number(),
-    monthlyRent: v.number(),
     purchaseDate: v.string(),
-    imageUrl: v.optional(v.string()),
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
     userId: v.string(),
@@ -288,13 +277,10 @@ export const createPropertyWithUnits = mutation({
         bedrooms: args.bedrooms,
         bathrooms: args.bathrooms,
         squareFeet: args.squareFeet,
-        monthlyRent: args.monthlyRent,
         purchaseDate: args.purchaseDate,
-        imageUrl: args.imageUrl,
         monthlyMortgage: args.monthlyMortgage,
         monthlyCapEx: args.monthlyCapEx,
         propertyType: args.propertyType,
-        defaultUnitCreated: true, // Mark as having units from creation
         createdAt: new Date().toISOString(),
       });
 
@@ -327,21 +313,8 @@ export const createPropertyWithUnits = mutation({
       if (args.setupUtilities && args.customSplit) {
         const UTILITY_TYPES = ["Electric", "Water", "Gas", "Sewer", "Trash", "Internet"];
         
-        for (const utilityType of UTILITY_TYPES) {
-          for (const unitSplit of args.customSplit) {
-            const unit = createdUnits.find(u => u.identifier === unitSplit.unitId);
-            if (unit && unitSplit.percentage > 0) {
-              await ctx.db.insert("unitUtilityResponsibilities", {
-                propertyId,
-                unitId: unit.id,
-                utilityType,
-                responsibilityPercentage: unitSplit.percentage,
-                notes: `Set during property creation - ${args.utilityPreset || 'custom'} preset`,
-                createdAt: new Date().toISOString(),
-              });
-            }
-          }
-        }
+        // Legacy: Unit utility responsibilities are now managed through lease settings
+        // Custom utility splits are configured when creating leases for specific units
       }
 
       return {
@@ -359,18 +332,47 @@ export const createPropertyWithUnits = mutation({
   },
 });
 
-// Get all properties for the signed-in user
+// Helper function to calculate monthly rent from active leases
+async function calculateMonthlyRentFromLeases(ctx: any, propertyId: string, userId: string): Promise<number> {
+  const activeLeases = await ctx.db
+    .query("leases")
+    .filter((q) => 
+      q.and(
+        q.eq(q.field("propertyId"), propertyId),
+        q.eq(q.field("userId"), userId),
+        q.eq(q.field("status"), "active")
+      )
+    )
+    .collect();
+
+  return activeLeases.reduce((total, lease) => total + (lease.rent || 0), 0);
+}
+
+// Get all properties for the signed-in user with calculated monthly rent
 export const getProperties = query({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
-    return await ctx.db
+    const properties = await ctx.db
       .query("properties")
       .filter((q) => q.eq(q.field("userId"), args.userId))
       .collect();
+
+    // Calculate monthly rent for each property from active leases
+    const propertiesWithRent = await Promise.all(
+      properties.map(async (property) => {
+        const monthlyRent = await calculateMonthlyRentFromLeases(ctx, property._id, args.userId);
+        return {
+          ...property,
+          monthlyRent
+        };
+      })
+    );
+
+    return propertiesWithRent;
   },
 });
 
-// Get property with units
+// Get property with units and calculated monthly rent
 export const getPropertyWithUnits = query({
   args: { 
     propertyId: v.id("properties"),
@@ -381,6 +383,9 @@ export const getPropertyWithUnits = query({
     if (!property || property.userId !== args.userId) {
       return null;
     }
+
+    // Calculate monthly rent from active leases
+    const monthlyRent = await calculateMonthlyRentFromLeases(ctx, args.propertyId, args.userId);
 
     // Get all units for this property
     const units = await ctx.db
@@ -402,6 +407,7 @@ export const getPropertyWithUnits = query({
 
     return {
       ...property,
+      monthlyRent,
       units: unitsWithLeases.sort((a, b) => 
         a.unitIdentifier.localeCompare(b.unitIdentifier)
       ),
@@ -458,9 +464,7 @@ export const updateProperty = mutation({
     bedrooms: v.number(),
     bathrooms: v.number(),
     squareFeet: v.number(),
-    monthlyRent: v.number(),
     purchaseDate: v.string(),
-    imageUrl: v.optional(v.string()),
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
     userId: v.string(),
@@ -517,9 +521,7 @@ export const updateProperty = mutation({
         bedrooms: args.bedrooms,
         bathrooms: args.bathrooms,
         squareFeet: args.squareFeet,
-        monthlyRent: args.monthlyRent,
         purchaseDate: args.purchaseDate,
-        imageUrl: args.imageUrl,
         monthlyMortgage: args.monthlyMortgage,
         monthlyCapEx: args.monthlyCapEx,
       });
@@ -583,22 +585,31 @@ export const deleteProperty = mutation({
           .filter((q) => q.eq(q.field("leaseId"), lease._id))
           .collect();
         
+        // Delete utility payments for these charges first
         for (const charge of utilityCharges) {
-          if (charge.userId === args.userId) { // Only delete user's charges
-            await ctx.db.delete(charge._id);
+          const payments = await ctx.db
+            .query("utilityPayments")
+            .filter((q) => q.eq(q.field("chargeId"), charge._id))
+            .collect();
+          
+          for (const payment of payments) {
+            await ctx.db.delete(payment._id);
           }
         }
         
-        // Delete utility payments for this lease  
-        const utilityPayments = await ctx.db
-          .query("utilityPayments")
+        // Then delete the charges
+        for (const charge of utilityCharges) {
+          await ctx.db.delete(charge._id);
+        }
+        
+        // Delete lease utility settings for this lease
+        const leaseUtilitySettings = await ctx.db
+          .query("leaseUtilitySettings")
           .filter((q) => q.eq(q.field("leaseId"), lease._id))
           .collect();
         
-        for (const payment of utilityPayments) {
-          if (payment.userId === args.userId) { // Only delete user's payments
-            await ctx.db.delete(payment._id);
-          }
+        for (const setting of leaseUtilitySettings) {
+          await ctx.db.delete(setting._id);
         }
         
         // Delete the lease itself
@@ -644,16 +655,7 @@ export const deleteProperty = mutation({
       }
 
       // 5. Delete lease utility settings for this property
-      const leaseUtilitySettings = await ctx.db
-        .query("leaseUtilitySettings")
-        .filter((q) => q.eq(q.field("propertyId"), args.id))
-        .collect();
-      
-      for (const setting of leaseUtilitySettings) {
-        if (setting.userId === args.userId) { // Only delete user's settings
-          await ctx.db.delete(setting._id);
-        }
-      }
+      // Lease utility settings are deleted through lease deletion above
 
       // 6. Delete units for this property
       const units = await ctx.db
@@ -662,9 +664,7 @@ export const deleteProperty = mutation({
         .collect();
 
       for (const unit of units) {
-        if (unit.userId === args.userId) { // Only delete user's units
-          await ctx.db.delete(unit._id);
-        }
+        await ctx.db.delete(unit._id);
       }
 
       // 7. Finally delete the property itself
@@ -683,7 +683,7 @@ export const deleteProperty = mutation({
   },
 });
 
-// Get a single property by ID for the signed-in user
+// Get a single property by ID for the signed-in user with calculated monthly rent
 export const getProperty = query({
   args: { id: v.id("properties"), userId: v.string() },
   handler: async (ctx, args) => {
@@ -692,7 +692,14 @@ export const getProperty = query({
       if (!property || property.userId !== args.userId) {
         return null;
       }
-      return property;
+
+      // Calculate monthly rent from active leases
+      const monthlyRent = await calculateMonthlyRentFromLeases(ctx, args.id, args.userId);
+
+      return {
+        ...property,
+        monthlyRent
+      };
     } catch (error) {
       throw new ConvexError({
         code: "DATABASE_ERROR",

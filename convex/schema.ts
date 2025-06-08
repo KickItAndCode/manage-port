@@ -11,13 +11,10 @@ export default defineSchema({
     bedrooms: v.number(),
     bathrooms: v.number(),
     squareFeet: v.number(),
-    monthlyRent: v.number(),
     purchaseDate: v.string(),
-    imageUrl: v.optional(v.string()),
     monthlyMortgage: v.optional(v.number()), // Monthly mortgage payment
     monthlyCapEx: v.optional(v.number()), // Capital expenditure reserve (10% of mortgage)
     propertyType: v.optional(v.union(v.literal("single-family"), v.literal("multi-family"))), // New field
-    defaultUnitCreated: v.optional(v.boolean()), // Track if we've created a default unit
     createdAt: v.string(),
   }),
   units: defineTable({
@@ -67,8 +64,8 @@ export default defineSchema({
     dueDate: v.string(), // ISO date string
     billDate: v.string(), // Date on the bill
     billingPeriod: v.optional(v.string()), // monthly, bi-monthly, quarterly, etc.
-    isPaid: v.boolean(), // Landlord paid to utility company
-    paidDate: v.optional(v.string()),
+    landlordPaidUtilityCompany: v.boolean(), // Landlord paid to utility company
+    landlordPaidDate: v.optional(v.string()),
     billDocumentId: v.optional(v.id("documents")), // Reference to uploaded bill
     notes: v.optional(v.string()),
     createdAt: v.string(),
@@ -78,7 +75,7 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_month", ["billMonth"])
     .index("by_type", ["utilityType"])
-    .index("by_paid_status", ["isPaid"])
+    .index("by_paid_status", ["landlordPaidUtilityCompany"])
     .index("by_property_month", ["propertyId", "billMonth"]),
   leaseUtilitySettings: defineTable({
     leaseId: v.id("leases"), // Reference to lease
@@ -90,19 +87,6 @@ export default defineSchema({
   })
     .index("by_lease", ["leaseId"])
     .index("by_utility_type", ["utilityType"]),
-  unitUtilityResponsibilities: defineTable({
-    propertyId: v.id("properties"), // Reference to property
-    unitId: v.id("units"), // Reference to unit
-    utilityType: v.string(), // Must match utilityBills.utilityType
-    responsibilityPercentage: v.number(), // 0-100
-    notes: v.optional(v.string()), // e.g., "Default setting - 100% tenant responsibility"
-    createdAt: v.string(),
-    updatedAt: v.optional(v.string()),
-  })
-    .index("by_property", ["propertyId"])
-    .index("by_unit", ["unitId"])
-    .index("by_utility_type", ["utilityType"])
-    .index("by_property_utility", ["propertyId", "utilityType"]),
   tenantUtilityCharges: defineTable({
     leaseId: v.id("leases"), // Reference to lease
     unitId: v.optional(v.id("units")), // Reference to unit
@@ -111,15 +95,16 @@ export default defineSchema({
     chargedAmount: v.number(), // Calculated: bill * percentage
     responsibilityPercentage: v.number(), // Snapshot of percentage used
     dueDate: v.string(), // Inherited from utilityBill
-    isPaid: v.boolean(), // Tenant paid to landlord
-    paidDate: v.optional(v.string()),
+    tenantPaidAmount: v.number(), // Total amount tenant has paid to landlord
+    fullyPaid: v.boolean(), // Computed: tenantPaidAmount >= chargedAmount
+    lastPaymentDate: v.optional(v.string()),
     notes: v.optional(v.string()),
     createdAt: v.string(),
     updatedAt: v.optional(v.string()),
   })
     .index("by_lease", ["leaseId"])
     .index("by_bill", ["utilityBillId"])
-    .index("by_payment_status", ["isPaid"])
+    .index("by_payment_status", ["fullyPaid"])
     .index("by_unit", ["unitId"]),
   utilityPayments: defineTable({
     chargeId: v.id("tenantUtilityCharges"), // Reference to charge
@@ -160,10 +145,8 @@ export default defineSchema({
     mimeType: v.string(), // application/pdf, image/jpeg, etc.
     uploadedAt: v.string(),
     updatedAt: v.optional(v.string()),
-    expiryDate: v.optional(v.string()), // for documents that expire (insurance, licenses)
     tags: v.optional(v.array(v.string())), // searchable tags
     notes: v.optional(v.string()),
-    thumbnailUrl: v.optional(v.string()), // For document previews
   })
     .index("by_user", ["userId"])
     .index("by_folder", ["folderId"])

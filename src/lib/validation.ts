@@ -28,20 +28,13 @@ export const propertySchema = z.object({
     .min(50, "Square feet must be at least 50")
     .max(50000, "Square feet must be less than 50,000")
     .int("Square feet must be a whole number"),
-  monthlyRent: z.coerce.number()
-    .min(0, "Monthly rent must be 0 or greater")
-    .max(100000, "Monthly rent must be less than $100,000"),
   purchaseDate: z.string()
     .min(1, "Purchase date is required")
     .refine((date) => {
       const parsedDate = new Date(date);
       const now = new Date();
       return parsedDate <= now;
-    }, "Purchase date cannot be in the future"),
-  imageUrl: z.string()
-    .url("Must be a valid URL")
-    .optional()
-    .or(z.literal(""))
+    }, "Purchase date cannot be in the future")
 });
 
 // Lease validation schema

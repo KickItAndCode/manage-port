@@ -13,7 +13,7 @@ export const getOutstandingCharges = query({
     // First get all unpaid charges
     let chargesQuery = ctx.db
       .query("tenantUtilityCharges")
-      .withIndex("by_payment_status", (q: any) => q.eq("isPaid", false));
+      .withIndex("by_payment_status", (q: any) => q.eq("fullyPaid", false));
 
     const charges = await chargesQuery.collect();
 
@@ -52,7 +52,7 @@ export const getOutstandingCharges = query({
         .withIndex("by_charge", (q: any) => q.eq("chargeId", charge._id))
         .collect();
 
-      const paidAmount = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+      const paidAmount = charge.tenantPaidAmount;
 
       userCharges.push({
         ...charge,
@@ -101,7 +101,7 @@ export const getChargeDetails = query({
       .withIndex("by_charge", (q: any) => q.eq("chargeId", args.chargeId))
       .collect();
 
-    const paidAmount = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+    const paidAmount = charge.tenantPaidAmount;
     const remainingAmount = charge.chargedAmount - paidAmount;
 
     return {
@@ -148,7 +148,7 @@ export const getChargesByLease = query({
         .withIndex("by_charge", (q: any) => q.eq("chargeId", charge._id))
         .collect();
 
-      const paidAmount = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+      const paidAmount = charge.tenantPaidAmount;
 
       chargesWithBillInfo.push({
         ...charge,
@@ -203,7 +203,7 @@ export const getChargesSummary = query({
         .withIndex("by_charge", (q: any) => q.eq("chargeId", charge._id))
         .collect();
 
-      const paidAmount = payments.reduce((sum, p) => sum + p.amountPaid, 0);
+      const paidAmount = charge.tenantPaidAmount;
       const remaining = charge.chargedAmount - paidAmount;
 
       outstandingCharges.push({
@@ -218,7 +218,7 @@ export const getChargesSummary = query({
 
     // Calculate summary statistics
     const totalOutstanding = outstandingCharges.reduce(
-      (sum, charge) => sum + (charge.chargedAmount - (charge.paidAmount || 0)), 
+      (sum, charge) => sum + (charge.chargedAmount - (charge.tenantPaidAmount || 0)), 
       0
     );
 
@@ -227,7 +227,7 @@ export const getChargesSummary = query({
     const byTenant: Record<string, number> = {};
 
     outstandingCharges.forEach(charge => {
-      const remaining = charge.chargedAmount - (charge.paidAmount || 0);
+      const remaining = charge.chargedAmount - (charge.tenantPaidAmount || 0);
       
       // By utility type
       byUtilityType[charge.utilityType] = (byUtilityType[charge.utilityType] || 0) + remaining;
@@ -253,12 +253,63 @@ export const getChargesSummary = query({
       oldestCharge: oldestCharge ? {
         id: oldestCharge._id,
         tenantName: oldestCharge.tenantName,
-        amount: oldestCharge.chargedAmount - (oldestCharge.paidAmount || 0),
+        amount: oldestCharge.chargedAmount - (oldestCharge.tenantPaidAmount || 0),
         daysOld: Math.floor(
           (new Date().getTime() - new Date(oldestCharge.createdAt).getTime()) / 
           (1000 * 60 * 60 * 24)
         ),
       } : null,
     };
+  },
+});
+
+// Get all charges for a user (for filtering purposes)
+export const getAllChargesForUser = query({
+  args: {
+    userId: v.string(),
+    propertyId: v.optional(v.id("properties")),
+  },
+  handler: async (ctx, args) => {
+    // Get all charges for the user's bills
+    const allCharges = await ctx.db
+      .query("tenantUtilityCharges")
+      .collect();
+
+    const userCharges = [];
+    
+    for (const charge of allCharges) {
+      // Get the utility bill to check ownership
+      const bill = await ctx.db.get(charge.utilityBillId);
+      if (!bill || bill.userId !== args.userId) continue;
+
+      // Apply property filter if specified
+      if (args.propertyId && bill.propertyId !== args.propertyId) continue;
+
+      // Get lease information
+      const lease = await ctx.db.get(charge.leaseId);
+      if (!lease) continue;
+
+      // Get payment information
+      const payments = await ctx.db
+        .query("utilityPayments")
+        .withIndex("by_charge", (q: any) => q.eq("chargeId", charge._id))
+        .collect();
+
+      const paidAmount = charge.tenantPaidAmount;
+
+      userCharges.push({
+        ...charge,
+        utilityType: bill.utilityType,
+        billMonth: bill.billMonth,
+        dueDate: bill.dueDate,
+        paidAmount,
+        remainingAmount: charge.chargedAmount - paidAmount,
+        tenantName: lease.tenantName,
+      });
+    }
+
+    return userCharges.sort((a, b) => 
+      new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
   },
 });

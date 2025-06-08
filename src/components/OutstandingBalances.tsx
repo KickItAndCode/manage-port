@@ -44,7 +44,7 @@ interface ChargeByUtility {
     responsibilityPercentage: number;
     totalBillAmount?: number;
     paidAmount: number;
-    isPaid: boolean;
+    fullyPaid: boolean;
     dueDate?: string;
     createdAt: string;
   }>;

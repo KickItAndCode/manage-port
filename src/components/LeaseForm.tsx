@@ -125,7 +125,6 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
       rent: rent,
       securityDeposit: rent * randomInt(1, 2), // 1-2 months rent
       status: startDate <= today ? "active" : "pending",
-      paymentDay: randomInt(1, 5), // 1st-5th of month
       notes: `Standard ${randomInt(6, 12)}-month lease agreement`,
       leaseDocumentUrl: `https://example.com/lease-${Date.now()}.pdf`,
     });

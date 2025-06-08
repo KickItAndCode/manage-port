@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as admin from "../admin.js";
 import type * as dashboard from "../dashboard.js";
 import type * as documentFolders from "../documentFolders.js";
 import type * as documents from "../documents.js";
@@ -38,6 +39,7 @@ import type * as utilityPayments from "../utilityPayments.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   dashboard: typeof dashboard;
   documentFolders: typeof documentFolders;
   documents: typeof documents;

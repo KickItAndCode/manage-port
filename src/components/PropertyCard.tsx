@@ -33,9 +33,7 @@ interface Property {
   bedrooms: number;
   bathrooms: number;
   squareFeet: number;
-  monthlyRent: number;
   purchaseDate: string;
-  imageUrl?: string;
   monthlyMortgage?: number;
   monthlyCapEx?: number;
 }
@@ -124,7 +122,7 @@ export function PropertyCard({
           <StatusBadge status={property.status} variant="compact" />
         </td>
         <td className="py-3 text-right font-medium px-2 sm:px-0 text-sm sm:text-base" role="cell">
-          ${property.monthlyRent.toLocaleString()}
+          <span className="text-muted-foreground">See lease</span>
         </td>
       </>
     );
@@ -219,8 +217,8 @@ export function PropertyCard({
                     {property.bathrooms}
                   </span>
                 </div>
-                <span className="font-semibold text-green-600">
-                  ${property.monthlyRent.toLocaleString()}/mo
+                <span className="text-sm text-muted-foreground">
+                  Rent from lease
                 </span>
               </div>
             </div>
@@ -360,12 +358,10 @@ export function PropertyCard({
             </div>
           </div>
           
-          {/* Price */}
+          {/* Mortgage Info */}
           <div className="flex items-center justify-between pt-3 border-t">
-            <span className="text-2xl font-bold text-green-600 flex items-center">
-              <DollarSign className="h-5 w-5" />
-              {property.monthlyRent.toLocaleString()}
-              <span className="text-sm font-normal text-muted-foreground ml-1">/month</span>
+            <span className="text-sm text-muted-foreground">
+              Rental pricing managed via leases
             </span>
           </div>
         </div>

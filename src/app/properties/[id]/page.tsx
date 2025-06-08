@@ -212,7 +212,8 @@ export default function PropertyDetailsPage() {
   // No longer tracking utilities at property level - use utility bills instead
   const monthlyExpenses = (property?.monthlyMortgage || 0) + 
     (showCapEx ? (property?.monthlyCapEx || 0) : 0);
-  const netIncome = (property?.monthlyRent || 0) - monthlyExpenses;
+  const totalRentFromLeases = propertyWithUnits?.monthlyRent || 0; // Calculated from active leases
+  const netIncome = totalRentFromLeases - monthlyExpenses;
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
@@ -281,7 +282,7 @@ export default function PropertyDetailsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Monthly Income</p>
-                <p className="text-xl sm:text-2xl font-bold">${property.monthlyRent?.toLocaleString()}</p>
+                <p className="text-xl sm:text-2xl font-bold">${totalRentFromLeases.toLocaleString()}</p>
               </div>
               <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
                 <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -402,7 +403,12 @@ export default function PropertyDetailsPage() {
                       </div>
                       <span className="text-sm text-muted-foreground">Monthly Rent</span>
                     </div>
-                    <span className="font-semibold text-green-600">${property.monthlyRent?.toLocaleString()}</span>
+                    <span className="font-semibold text-green-600">
+                      {totalRentFromLeases > 0 
+                        ? `$${totalRentFromLeases.toLocaleString()}` 
+                        : '$0'
+                      }
+                    </span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                     <div className="flex items-center gap-2">
@@ -866,7 +872,7 @@ export default function PropertyDetailsPage() {
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Income</p>
                     <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
                       <span className="text-muted-foreground">Monthly Rent</span>
-                      <span className="font-semibold text-lg">${property.monthlyRent?.toLocaleString()}</span>
+                      <span className="font-semibold text-lg">${totalRentFromLeases.toLocaleString()}</span>
                     </div>
                   </div>
                   
@@ -994,9 +1000,7 @@ export default function PropertyDetailsPage() {
                 bedrooms: property.bedrooms,
                 bathrooms: property.bathrooms,
                 squareFeet: property.squareFeet,
-                monthlyRent: property.monthlyRent,
                 purchaseDate: property.purchaseDate,
-                imageUrl: property.imageUrl,
                 monthlyMortgage: property.monthlyMortgage,
                 monthlyCapEx: property.monthlyCapEx,
               }}

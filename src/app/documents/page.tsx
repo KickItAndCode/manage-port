@@ -125,29 +125,28 @@ export default function DocumentsPage() {
     if (!user || selectedDocuments.size === 0) return;
     
     const selectedCount = selectedDocuments.size;
-    const confirmed = await confirm({
+    confirm({
       title: "Delete Documents",
       description: `Delete ${selectedCount} document${selectedCount !== 1 ? 's' : ''}? This action cannot be undone.`,
       variant: "destructive",
+      onConfirm: async () => {
+        try {
+          const result = await bulkDeleteDocuments({
+            documentIds: Array.from(selectedDocuments) as any,
+            userId: user.id,
+          });
+          
+          toast.success(`Successfully deleted ${result.success} document${result.success !== 1 ? 's' : ''}`, {
+            description: result.failed > 0 ? `${result.failed} document${result.failed !== 1 ? 's' : ''} could not be deleted` : undefined
+          });
+          
+          clearSelection();
+        } catch (err: any) {
+          console.error("Bulk delete error:", err);
+          toast.error(formatErrorForToast(err));
+        }
+      },
     });
-
-    if (confirmed) {
-      try {
-        const result = await bulkDeleteDocuments({
-          documentIds: Array.from(selectedDocuments) as any,
-          userId: user.id,
-        });
-        
-        toast.success(`Successfully deleted ${result.success} document${result.success !== 1 ? 's' : ''}`, {
-          description: result.failed > 0 ? `${result.failed} document${result.failed !== 1 ? 's' : ''} could not be deleted` : undefined
-        });
-        
-        clearSelection();
-      } catch (err: any) {
-        console.error("Bulk delete error:", err);
-        toast.error(formatErrorForToast(err));
-      }
-    }
   };
 
   const formatFileSize = (bytes?: number) => {

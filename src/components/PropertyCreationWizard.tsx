@@ -32,9 +32,7 @@ const basicInfoSchema = z.object({
   bedrooms: z.coerce.number().min(0, "Bedrooms required"),
   bathrooms: z.coerce.number().min(0, "Bathrooms required"),
   squareFeet: z.coerce.number().min(0, "Square feet required"),
-  monthlyRent: z.coerce.number().min(0, "Monthly rent required"),
   purchaseDate: z.string().min(4, "Purchase date required"),
-  imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   monthlyMortgage: z.coerce.number().min(0).optional(),
   monthlyCapEx: z.coerce.number().min(0).optional(),
 });
@@ -293,9 +291,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
       bedrooms: randomInt(1, 5),
       bathrooms: randomInt(1, 3),
       squareFeet: randomInt(700, 3500),
-      monthlyRent: randomInt(1200, 6500),
       purchaseDate: randomDate(new Date(2015, 0, 1), new Date()),
-      imageUrl: images[randomInt(0, images.length - 1)],
       monthlyMortgage: mortgage,
       monthlyCapEx: Math.round(mortgage * 0.1),
     });
@@ -653,16 +649,6 @@ function BasicInfoStep({ form, isModal = false }: { form: any; isModal?: boolean
           {errors.squareFeet && <span className="text-sm text-destructive">{errors.squareFeet.message}</span>}
         </div>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Monthly Rent ($)</label>
-          <Input
-            type="number"
-            min={0}
-            {...register("monthlyRent", { valueAsNumber: true })}
-            placeholder="0"
-          />
-          {errors.monthlyRent && <span className="text-sm text-destructive">{errors.monthlyRent.message}</span>}
-        </div>
 
         <div className="space-y-2">
           <label className="block text-sm font-medium">Monthly Mortgage ($)</label>
@@ -687,15 +673,6 @@ function BasicInfoStep({ form, isModal = false }: { form: any; isModal?: boolean
           {errors.monthlyCapEx && <span className="text-sm text-destructive">{errors.monthlyCapEx.message}</span>}
         </div>
 
-        <div className="md:col-span-2 space-y-2">
-          <label className="block text-sm font-medium">Property Image URL (Optional)</label>
-          <Input
-            type="url"
-            {...register("imageUrl")}
-            placeholder="https://..."
-          />
-          {errors.imageUrl && <span className="text-sm text-destructive">{errors.imageUrl.message}</span>}
-        </div>
       </div>
     </div>
   );

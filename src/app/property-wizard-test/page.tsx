@@ -40,9 +40,7 @@ export default function PropertyWizardTestPage() {
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
         squareFeet: data.squareFeet,
-        monthlyRent: data.monthlyRent,
         purchaseDate: data.purchaseDate,
-        imageUrl: data.imageUrl,
         monthlyMortgage: data.monthlyMortgage,
         monthlyCapEx: data.monthlyCapEx,
         

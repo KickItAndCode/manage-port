@@ -17,9 +17,9 @@ interface Property {
   address: string;
   type: string;
   status: string;
-  monthlyRent: number;
   bedrooms: number;
   bathrooms: number;
+  monthlyRent: number;
 }
 
 // Component for individual search result item to handle cover image query
@@ -81,7 +81,10 @@ function SearchResultItem({
           <span>{property.type}</span>
           <span className="flex items-center gap-1">
             <DollarSign className="h-3 w-3" />
-            ${property.monthlyRent?.toLocaleString()}/mo
+            {property.monthlyRent > 0 
+              ? `$${property.monthlyRent.toLocaleString()}` 
+              : '$0'
+            }
           </span>
           <span>{property.bedrooms}BR/{property.bathrooms}BA</span>
         </div>

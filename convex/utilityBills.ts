@@ -125,7 +125,7 @@ export const addUtilityBill = mutation({
     // Create the bill
     const billId = await ctx.db.insert("utilityBills", {
       ...args,
-      isPaid: false,
+      landlordPaidUtilityCompany: false,
       createdAt: new Date().toISOString(),
     });
 
@@ -144,7 +144,8 @@ export const addUtilityBill = mutation({
           chargedAmount: charge.chargedAmount,
           responsibilityPercentage: charge.responsibilityPercentage,
           dueDate: args.dueDate,
-          isPaid: false,
+          tenantPaidAmount: 0,
+          fullyPaid: false,
           createdAt: new Date().toISOString(),
         });
       }
@@ -167,8 +168,8 @@ export const updateUtilityBill = mutation({
     dueDate: v.optional(v.string()),
     billDate: v.optional(v.string()),
     billingPeriod: v.optional(v.string()),
-    isPaid: v.optional(v.boolean()),
-    paidDate: v.optional(v.string()),
+    landlordPaidUtilityCompany: v.optional(v.boolean()),
+    landlordPaidDate: v.optional(v.string()),
     billDocumentId: v.optional(v.id("documents")),
     notes: v.optional(v.string()),
   },
@@ -221,7 +222,8 @@ export const updateUtilityBill = mutation({
             chargedAmount: charge.chargedAmount,
             responsibilityPercentage: charge.responsibilityPercentage,
             dueDate: args.dueDate || bill.dueDate,
-            isPaid: false,
+            tenantPaidAmount: 0,
+            fullyPaid: false,
             createdAt: new Date().toISOString(),
           });
         }
@@ -253,8 +255,8 @@ export const updateUtilityBill = mutation({
     if (args.dueDate !== undefined) updates.dueDate = args.dueDate;
     if (args.billDate !== undefined) updates.billDate = args.billDate;
     if (args.billingPeriod !== undefined) updates.billingPeriod = args.billingPeriod;
-    if (args.isPaid !== undefined) updates.isPaid = args.isPaid;
-    if (args.paidDate !== undefined) updates.paidDate = args.paidDate;
+    if (args.landlordPaidUtilityCompany !== undefined) updates.landlordPaidUtilityCompany = args.landlordPaidUtilityCompany;
+    if (args.landlordPaidDate !== undefined) updates.landlordPaidDate = args.landlordPaidDate;
     if (args.billDocumentId !== undefined) updates.billDocumentId = args.billDocumentId;
     if (args.notes !== undefined) updates.notes = args.notes;
 
@@ -408,8 +410,8 @@ export const seedUtilityBills = mutation({
           totalAmount: amount,
           dueDate: dueDate.toISOString().split('T')[0],
           billDate: billDate.toISOString().split('T')[0],
-          isPaid: month < currentMonth - 1, // Mark older bills as paid
-          paidDate: month < currentMonth - 1 
+          landlordPaidUtilityCompany: month < currentMonth - 1, // Mark older bills as paid
+          landlordPaidDate: month < currentMonth - 1 
             ? new Date(currentYear, month + 1, Math.floor(Math.random() * 10) + 5).toISOString().split('T')[0]
             : undefined,
           notes: "Auto-generated for testing",
@@ -423,6 +425,7 @@ export const seedUtilityBills = mutation({
           const utilitySetting = settings.find(s => s.utilityType === config.type);
           if (utilitySetting && utilitySetting.responsibilityPercentage > 0) {
             const chargeAmount = Math.round(amount * (utilitySetting.responsibilityPercentage / 100) * 100) / 100;
+            const isPaidForOlderMonths = month < currentMonth - 1;
             
             await ctx.db.insert("tenantUtilityCharges", {
               leaseId: lease._id,
@@ -431,8 +434,9 @@ export const seedUtilityBills = mutation({
               chargedAmount: chargeAmount,
               responsibilityPercentage: utilitySetting.responsibilityPercentage,
               dueDate: dueDate.toISOString().split('T')[0],
-              isPaid: month < currentMonth - 1,
-              paidDate: month < currentMonth - 1 
+              tenantPaidAmount: isPaidForOlderMonths ? chargeAmount : 0,
+              fullyPaid: isPaidForOlderMonths,
+              lastPaymentDate: isPaidForOlderMonths 
                 ? new Date(currentYear, month + 1, Math.floor(Math.random() * 10) + 5).toISOString().split('T')[0]
                 : undefined,
               notes: "Auto-generated for testing",
@@ -495,7 +499,7 @@ export const getUtilityBills = query({
     propertyId: v.optional(v.id("properties")),
     billMonth: v.optional(v.string()),
     utilityType: v.optional(v.string()),
-    isPaid: v.optional(v.boolean()),
+    landlordPaid: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     let bills = await ctx.db
@@ -513,8 +517,8 @@ export const getUtilityBills = query({
     if (args.utilityType) {
       bills = bills.filter(b => b.utilityType === args.utilityType);
     }
-    if (args.isPaid !== undefined) {
-      bills = bills.filter(b => b.isPaid === args.isPaid);
+    if (args.landlordPaid !== undefined) {
+      bills = bills.filter(b => b.landlordPaidUtilityCompany === args.landlordPaid);
     }
 
     // Sort by bill month descending, then by utility type
@@ -577,7 +581,7 @@ export const getUnpaidBills = query({
   handler: async (ctx, args) => {
     let bills = await ctx.db
       .query("utilityBills")
-      .withIndex("by_paid_status", (q: any) => q.eq("isPaid", false))
+      .withIndex("by_paid_status", (q: any) => q.eq("landlordPaidUtilityCompany", false))
       .collect();
 
     // Filter by user
@@ -720,7 +724,7 @@ export const bulkAddUtilityBills = mutation({
           totalAmount: billData.totalAmount,
           dueDate: billData.dueDate,
           billDate: billData.billDate,
-          isPaid: false,
+          landlordPaidUtilityCompany: false,
           notes: billData.notes,
           createdAt: new Date().toISOString(),
         });
@@ -739,7 +743,8 @@ export const bulkAddUtilityBills = mutation({
               chargedAmount: charge.chargedAmount,
               responsibilityPercentage: charge.responsibilityPercentage,
               dueDate: billData.dueDate,
-              isPaid: false,
+              tenantPaidAmount: 0,
+              fullyPaid: false,
               createdAt: new Date().toISOString(),
             });
           }

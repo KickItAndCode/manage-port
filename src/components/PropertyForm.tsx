@@ -15,9 +15,7 @@ export interface PropertyFormProps {
     bedrooms: number;
     bathrooms: number;
     squareFeet: number;
-    monthlyRent: number;
     purchaseDate: string;
-    imageUrl?: string;
     monthlyMortgage?: number;
     monthlyCapEx?: number;
   };
@@ -29,9 +27,7 @@ export interface PropertyFormProps {
     bedrooms: number;
     bathrooms: number;
     squareFeet: number;
-    monthlyRent: number;
     purchaseDate: string;
-    imageUrl?: string;
     monthlyMortgage?: number;
     monthlyCapEx?: number;
   }) => void;
@@ -47,9 +43,7 @@ const propertySchema = z.object({
   bedrooms: z.coerce.number().min(0, "Bedrooms required"),
   bathrooms: z.coerce.number().min(0, "Bathrooms required"),
   squareFeet: z.coerce.number().min(0, "Square feet required"),
-  monthlyRent: z.coerce.number().min(0, "Monthly rent required"),
   purchaseDate: z.string().min(4, "Purchase date required"),
-  imageUrl: z.string().url("Must be a valid URL").optional().or(z.literal("")),
   monthlyMortgage: z.coerce.number().min(0).optional(),
   monthlyCapEx: z.coerce.number().min(0).optional(),
 });
@@ -91,14 +85,6 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
     ];
     const types = ["Single Family", "Duplex", "Apartment", "Condo", "Townhouse", "Other"];
     const statuses = ["Available", "Occupied", "Maintenance", "Under Contract"];
-    const images = [
-      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80",
-      "https://images.unsplash.com/photo-1460518451285-97b6aa326961?auto=format&fit=crop&w=400&q=80",
-      "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=400&q=80",
-      "https://images.unsplash.com/photo-1430285561322-7808604715df?auto=format&fit=crop&w=400&q=80",
-      "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=400&q=80",
-      "https://images.unsplash.com/photo-1507089947368-19c1da9775ae?auto=format&fit=crop&w=400&q=80"
-    ];
     function randomInt(min: number, max: number) {
       return Math.floor(Math.random() * (max - min + 1)) + min;
     }
@@ -114,9 +100,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
       bedrooms: randomInt(1, 6),
       bathrooms: randomInt(1, 4),
       squareFeet: randomInt(600, 4000),
-      monthlyRent: randomInt(900, 7500) * 10,
       purchaseDate: randomDate(new Date(2015, 0, 1), new Date()),
-      imageUrl: images[randomInt(0, images.length - 1)],
     });
   }
 
@@ -220,16 +204,6 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
           />
           {errors.squareFeet && <span className="text-sm text-destructive">{errors.squareFeet.message}</span>}
         </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Monthly Rent ($)</label>
-          <Input
-            type="number"
-            min={0}
-            {...register("monthlyRent", { valueAsNumber: true })}
-            placeholder="0"
-          />
-          {errors.monthlyRent && <span className="text-sm text-destructive">{errors.monthlyRent.message}</span>}
-        </div>
       </div>
       <div className="space-y-2">
         <label className="block text-sm font-medium text-foreground dark:text-gray-200">Purchase Date</label>
@@ -261,15 +235,6 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
           <p className="text-xs text-muted-foreground mt-1">Auto-calculated as 10% of mortgage</p>
           {errors.monthlyCapEx && <span className="text-sm text-destructive">{errors.monthlyCapEx.message}</span>}
         </div>
-      </div>
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Property Image URL</label>
-        <Input
-          type="url"
-          {...register("imageUrl")}
-          placeholder="https://..."
-        />
-        {errors.imageUrl && <span className="text-sm text-destructive">{errors.imageUrl.message}</span>}
       </div>
       <div className="flex gap-2 justify-end pt-4">
         {onCancel && (

@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import type { QueryCtx, MutationCtx } from "./_generated/server";
 
 // Default dashboard component settings
 const DEFAULT_DASHBOARD_COMPONENTS = {
@@ -68,7 +69,7 @@ export const getUserSettings = query({
 
 // Helper function for updating user settings (shared logic)
 async function updateUserSettingsHelper(
-  ctx: any,
+  ctx: MutationCtx,
   args: {
     userId: string;
     theme?: "light" | "dark" | "system";
@@ -97,7 +98,7 @@ async function updateUserSettingsHelper(
 ) {
   const existingSettings = await ctx.db
     .query("userSettings")
-    .withIndex("by_user", (q) => q.eq("userId", args.userId))
+    .filter((q) => q.eq(q.field("userId"), args.userId))
     .first();
 
   const now = new Date().toISOString();

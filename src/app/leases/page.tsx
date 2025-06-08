@@ -220,7 +220,7 @@ function LeasesPageContent() {
                             {leaseDocuments.map(doc => (
                               <DropdownMenuItem key={doc._id} asChild>
                                 <DocumentViewer
-                                  storageId={doc.storageId || doc.url}
+                                  storageId={doc.storageId}
                                   fileName={doc.name}
                                 >
                                   <div className="flex items-center w-full cursor-pointer">
@@ -374,7 +374,7 @@ function LeasesPageContent() {
                               {leaseDocuments.map(doc => (
                                 <DropdownMenuItem key={doc._id} asChild>
                                   <DocumentViewer
-                                    storageId={doc.storageId || doc.url}
+                                    storageId={doc.storageId}
                                     fileName={doc.name}
                                   >
                                     <div className="flex items-center w-full cursor-pointer">

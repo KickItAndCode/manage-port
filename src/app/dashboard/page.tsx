@@ -492,7 +492,9 @@ export default function DashboardPage() {
                           <StatusBadge status={property.status as any} />
                         </td>
                         <td className="py-2 sm:py-3 px-1 sm:px-0 text-right" role="cell">
-                          <span className="font-medium text-sm sm:text-base">${property.monthlyRent.toLocaleString()}</span>
+                          <span className="font-medium text-sm sm:text-base">
+                            ${property.monthlyRent ? property.monthlyRent.toLocaleString() : '0'}
+                          </span>
                           <span className="text-xs text-muted-foreground sm:hidden block">/mo</span>
                         </td>
                         <td className="py-2 sm:py-3 px-1 sm:px-0" role="cell">
@@ -536,9 +538,7 @@ export default function DashboardPage() {
                   bedrooms: data.bedrooms,
                   bathrooms: data.bathrooms,
                   squareFeet: data.squareFeet,
-                  monthlyRent: data.monthlyRent,
                   purchaseDate: data.purchaseDate,
-                  imageUrl: data.imageUrl,
                   monthlyMortgage: data.monthlyMortgage,
                   monthlyCapEx: data.monthlyCapEx,
                   

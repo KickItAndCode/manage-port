@@ -39,8 +39,8 @@ export const markUtilityPaid = mutation({
 
     // Update the charge
     const updates: Partial<Doc<"tenantUtilityCharges">> = {
-      isPaid: args.isPaid,
-      paidDate: args.isPaid ? new Date().toISOString() : undefined,
+      fullyPaid: args.isPaid,
+      lastPaymentDate: args.isPaid ? new Date().toISOString() : undefined,
       notes: args.notes,
       updatedAt: new Date().toISOString(),
     };
@@ -54,12 +54,12 @@ export const markUtilityPaid = mutation({
       .collect();
 
     const allPaid = allCharges.every(c => 
-      c._id === args.chargeId ? args.isPaid : c.isPaid
+      c._id === args.chargeId ? args.isPaid : c.fullyPaid
     );
 
     return { 
       success: true, 
-      isPaid: args.isPaid,
+      fullyPaid: args.isPaid,
       allChargesPaid: allPaid 
     };
   },
@@ -100,8 +100,8 @@ export const markBulkPaid = mutation({
 
         // Update the charge
         await ctx.db.patch(chargeId, {
-          isPaid: args.isPaid,
-          paidDate: args.isPaid ? new Date().toISOString() : undefined,
+          fullyPaid: args.isPaid,
+          lastPaymentDate: args.isPaid ? new Date().toISOString() : undefined,
           notes: args.notes,
           updatedAt: new Date().toISOString(),
         });
@@ -146,14 +146,14 @@ export const reversePayment = mutation({
       throw new Error("Charge not found");
     }
 
-    if (!charge.isPaid) {
+    if (!charge.fullyPaid) {
       throw new Error("This charge is not marked as paid");
     }
 
     // Reverse the payment
     await ctx.db.patch(args.chargeId, {
-      isPaid: false,
-      paidDate: undefined,
+      fullyPaid: false,
+      lastPaymentDate: undefined,
       notes: `Payment reversed: ${args.reason}. Previous notes: ${charge.notes || 'None'}`,
       updatedAt: new Date().toISOString(),
     });
@@ -173,7 +173,7 @@ export const getOutstandingCharges = query({
     // Get all unpaid charges
     let charges = await ctx.db
       .query("tenantUtilityCharges")
-      .withIndex("by_payment_status", (q) => q.eq("isPaid", false))
+      .withIndex("by_payment_status", (q) => q.eq("fullyPaid", false))
       .collect();
 
     // Filter by user's bills
@@ -343,7 +343,7 @@ export const getUtilityBalance = query({
 
     // Calculate totals
     const totalCharged = charges.reduce((sum, c) => sum + c.chargedAmount, 0);
-    const totalPaid = charges.filter(c => c.isPaid).reduce((sum, c) => sum + c.chargedAmount, 0);
+    const totalPaid = charges.filter(c => c.fullyPaid).reduce((sum, c) => sum + c.chargedAmount, 0);
     const totalOwed = totalCharged - totalPaid;
 
     // Group by utility type
@@ -368,7 +368,7 @@ export const getUtilityBalance = query({
       }
 
       byUtilityType[type].charged += charge.chargedAmount;
-      if (charge.isPaid) {
+      if (charge.fullyPaid) {
         byUtilityType[type].paid += charge.chargedAmount;
       } else {
         byUtilityType[type].owed += charge.chargedAmount;
@@ -435,7 +435,7 @@ export const getTenantStatement = query({
 
     // Calculate totals
     const totalCharged = charges.reduce((sum, c) => sum + c.chargedAmount, 0);
-    const totalPaid = charges.filter(c => c.isPaid).reduce((sum, c) => sum + c.chargedAmount, 0);
+    const totalPaid = charges.filter(c => c.fullyPaid).reduce((sum, c) => sum + c.chargedAmount, 0);
     const totalOwed = totalCharged - totalPaid;
 
     return {
@@ -516,8 +516,9 @@ export const recordUtilityPayment = mutation({
 
     if (isFullyPaid) {
       await ctx.db.patch(args.chargeId, {
-        isPaid: true,
-        paidDate: args.paymentDate,
+        fullyPaid: true,
+        tenantPaidAmount: charge.chargedAmount,
+        lastPaymentDate: args.paymentDate,
         updatedAt: new Date().toISOString(),
       });
     }
@@ -535,7 +536,7 @@ export const recordUtilityPayment = mutation({
           allChargesPaid = false;
           break;
         }
-      } else if (!c.isPaid) {
+      } else if (!c.fullyPaid) {
         allChargesPaid = false;
         break;
       }
@@ -544,8 +545,8 @@ export const recordUtilityPayment = mutation({
     // Update bill if all charges are paid
     if (allChargesPaid) {
       await ctx.db.patch(charge.utilityBillId, {
-        isPaid: true,
-        paidDate: args.paymentDate,
+        landlordPaidUtilityCompany: true,
+        landlordPaidDate: args.paymentDate,
         updatedAt: new Date().toISOString(),
       });
     }

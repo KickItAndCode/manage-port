@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
@@ -7,46 +7,63 @@ import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UtilityBillForm } from "@/components/UtilityBillForm";
 import { BulkUtilityBillEntry } from "@/components/BulkUtilityBillEntry";
 import { BillSplitPreview } from "@/components/BillSplitPreview";
-import { OutstandingBalances } from "@/components/OutstandingBalances";
-import { PaymentHistory } from "@/components/PaymentHistory";
+import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
 import { LoadingContent } from "@/components/LoadingContent";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { cn } from "@/lib/utils";
 import { 
   Plus, 
   Receipt, 
-  Calendar,
   DollarSign,
-  Home,
   Search,
   Filter,
-  ChevronDown,
-  ChevronRight,
   CheckCircle,
   XCircle,
   AlertCircle,
-  FileText,
   Users,
   Zap,
   Droplets,
   Flame,
   Wifi,
   Trash,
-  Clock,
-  History
+  Edit,
+  Eye,
+  MoreHorizontal,
+  Building,
+  Calendar,
+  TrendingUp,
+  FileText,
+  RotateCcw,
+  Download,
+  User
 } from "lucide-react";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger,
+  DropdownMenuSeparator
+} from "@/components/ui/dropdown-menu";
+
+type GroupingOption = "none" | "property" | "utility" | "month" | "status" | "tenant";
+type SortOption = "date" | "amount" | "utility" | "status";
 
 export default function UtilityBillsPage() {
   const { user } = useUser();
-  const [activeTab, setActiveTab] = useState("bills");
+  
+  // State for filtering and searching
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedProperty, setSelectedProperty] = useState<string>("");
+  const [selectedUtilityType, setSelectedUtilityType] = useState<string>("");
+  const [selectedStatus, setSelectedStatus] = useState<string>("");
+  const [selectedTenant, setSelectedTenant] = useState<string>("");
   const [startMonth, setStartMonth] = useState<string>(() => {
     const today = new Date();
     return `${today.getFullYear()}-01`; // January of current year
@@ -55,12 +72,18 @@ export default function UtilityBillsPage() {
     const today = new Date();
     return today.toISOString().slice(0, 7); // Current month
   });
+  
+  // State for grouping and sorting
+  const [groupBy, setGroupBy] = useState<GroupingOption>("property");
+  const [sortBy, setSortBy] = useState<SortOption>("date");
+  
+  // Dialog states
   const [billDialogOpen, setBillDialogOpen] = useState(false);
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
+  const [statementDialogOpen, setStatementDialogOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [viewingBill, setViewingBill] = useState<any>(null);
-  const [expandedBills, setExpandedBills] = useState<Set<string>>(new Set());
-  const [searchTerm, setSearchTerm] = useState("");
+  
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
   // Queries
@@ -68,6 +91,17 @@ export default function UtilityBillsPage() {
     user ? { userId: user.id } : "skip"
   );
   
+  const leases = useQuery(api.leases.getActiveLeases,
+    user ? { userId: user.id } : "skip"
+  );
+  
+  // Get all charges for the user (comprehensive approach)
+  const allUserCharges = useQuery(api.tenantUtilityCharges.getAllChargesForUser,
+    user ? { 
+      userId: user.id,
+      propertyId: selectedProperty ? selectedProperty as any : undefined,
+    } : "skip"
+  );
   
   const bills = useQuery(
     selectedProperty 
@@ -83,16 +117,13 @@ export default function UtilityBillsPage() {
     }) : "skip"
   );
 
-  const unpaidBills = useQuery(api.utilityBills.getUnpaidBills,
-    user ? { userId: user.id } : "skip"
-  );
-
   // Mutations
   const addBill = useMutation(api.utilityBills.addUtilityBill);
   const updateBill = useMutation(api.utilityBills.updateUtilityBill);
   const deleteBill = useMutation(api.utilityBills.deleteUtilityBill);
   const bulkAddBills = useMutation(api.utilityBills.bulkAddUtilityBills);
 
+  // Utility helper functions
   const getUtilityIcon = (type: string) => {
     switch (type) {
       case "Electric": return Zap;
@@ -106,24 +137,134 @@ export default function UtilityBillsPage() {
 
   const getUtilityColor = (type: string) => {
     switch (type) {
-      case "Electric": return "text-yellow-600";
-      case "Water": return "text-blue-600";
-      case "Gas": return "text-orange-600";
-      case "Internet": case "Cable": return "text-purple-600";
-      case "Trash": return "text-gray-600";
-      default: return "text-gray-600";
+      case "Electric": return "text-yellow-600 bg-yellow-50";
+      case "Water": return "text-blue-600 bg-blue-50";
+      case "Gas": return "text-orange-600 bg-orange-50";
+      case "Internet": case "Cable": return "text-purple-600 bg-purple-50";
+      case "Trash": return "text-gray-600 bg-gray-50";
+      default: return "text-gray-600 bg-gray-50";
     }
   };
 
-  const toggleBillExpanded = (billId: string) => {
-    const newExpanded = new Set(expandedBills);
-    if (newExpanded.has(billId)) {
-      newExpanded.delete(billId);
-    } else {
-      newExpanded.add(billId);
+  // Filter and sort bills with tenant-specific logic
+  const filteredAndSortedBills = useMemo(() => {
+    if (!bills) return [];
+    
+    let filtered = bills.filter(bill => {
+      const matchesSearch = searchTerm === "" || 
+        bill.utilityType.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        bill.provider.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        bill.notes?.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesUtilityType = selectedUtilityType === "" || bill.utilityType === selectedUtilityType;
+      const matchesStatus = selectedStatus === "" || 
+        (selectedStatus === "paid" && bill.landlordPaidUtilityCompany) ||
+        (selectedStatus === "unpaid" && !bill.landlordPaidUtilityCompany);
+      
+      const matchesDateRange = (!startMonth || bill.billMonth >= startMonth) &&
+        (!endMonth || bill.billMonth <= endMonth);
+      
+      // Tenant filtering: only show bills where the selected tenant has responsibility
+      let matchesTenant = true;
+      if (selectedTenant && allUserCharges) {
+        matchesTenant = allUserCharges.some(charge => 
+          charge.utilityBillId === bill._id && charge.leaseId === selectedTenant
+        );
+      }
+      
+      return matchesSearch && matchesUtilityType && matchesStatus && matchesDateRange && matchesTenant;
+    });
+
+    // Sort bills
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "date":
+          return b.billMonth.localeCompare(a.billMonth);
+        case "amount":
+          return b.totalAmount - a.totalAmount;
+        case "utility":
+          return a.utilityType.localeCompare(b.utilityType);
+        case "status":
+          return Number(a.landlordPaidUtilityCompany) - Number(b.landlordPaidUtilityCompany);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [bills, searchTerm, selectedUtilityType, selectedStatus, startMonth, endMonth, sortBy]);
+
+  // Group bills based on groupBy option
+  const groupedBills = useMemo(() => {
+    if (groupBy === "none") {
+      return { "All Bills": filteredAndSortedBills };
     }
-    setExpandedBills(newExpanded);
-  };
+
+    const groups: Record<string, any[]> = {};
+    
+    filteredAndSortedBills.forEach(bill => {
+      let groupKey = "";
+      
+      switch (groupBy) {
+        case "property":
+          const property = properties?.find(p => p._id === bill.propertyId);
+          groupKey = property?.name || "Unknown Property";
+          break;
+        case "utility":
+          groupKey = bill.utilityType;
+          break;
+        case "month":
+          groupKey = bill.billMonth;
+          break;
+        case "status":
+          groupKey = bill.landlordPaidUtilityCompany ? "Paid" : "Unpaid";
+          break;
+        case "tenant":
+          // Find tenant name from charges
+          const charge = allUserCharges?.find(c => c.utilityBillId === bill._id);
+          groupKey = charge?.tenantName || "No Tenant Assigned";
+          break;
+      }
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(bill);
+    });
+
+    return groups;
+  }, [filteredAndSortedBills, groupBy, properties]);
+
+  // Calculate summary stats (tenant-aware when filtering by tenant)
+  const stats = useMemo(() => {
+    const total = filteredAndSortedBills.length;
+    const unpaid = filteredAndSortedBills.filter(b => !b.landlordPaidUtilityCompany).length;
+    
+    // If tenant is selected, calculate tenant-specific amounts from charges
+    if (selectedTenant && allUserCharges) {
+      const tenantBillIds = new Set(filteredAndSortedBills.map(b => b._id));
+      const relevantCharges = allUserCharges.filter(c => 
+        tenantBillIds.has(c.utilityBillId) && c.leaseId === selectedTenant
+      );
+      
+      const totalAmount = relevantCharges.reduce((sum, c) => sum + c.chargedAmount, 0);
+      const unpaidAmount = relevantCharges.reduce((sum, c) => sum + c.remainingAmount, 0);
+      
+      return { total, unpaid, totalAmount, unpaidAmount };
+    } else {
+      // Standard calculation for all bills
+      const totalAmount = filteredAndSortedBills.reduce((sum, b) => sum + b.totalAmount, 0);
+      const unpaidAmount = filteredAndSortedBills.filter(b => !b.landlordPaidUtilityCompany).reduce((sum, b) => sum + b.totalAmount, 0);
+      
+      return { total, unpaid, totalAmount, unpaidAmount };
+    }
+  }, [filteredAndSortedBills, selectedTenant, allUserCharges]);
+
+  // Get unique utility types for filter
+  const utilityTypes = useMemo(() => {
+    if (!bills) return [];
+    return [...new Set(bills.map(b => b.utilityType))].sort();
+  }, [bills]);
 
   const handleDeleteBill = async (bill: any) => {
     confirm({
@@ -133,6 +274,7 @@ export default function UtilityBillsPage() {
       onConfirm: async () => {
         try {
           await deleteBill({ id: bill._id, userId: user!.id });
+          toast.success("Bill deleted successfully");
         } catch (error: any) {
           toast.error(formatErrorForToast(error));
         }
@@ -140,18 +282,29 @@ export default function UtilityBillsPage() {
     });
   };
 
-  const groupBillsByProperty = () => {
-    if (!bills || !properties) return {};
-    
-    const grouped: Record<string, any[]> = {};
-    bills.forEach(bill => {
-      const property = properties.find(p => p._id === bill.propertyId);
-      const key = property?.name || "Unknown Property";
-      if (!grouped[key]) grouped[key] = [];
-      grouped[key].push({ ...bill, property });
-    });
-    
-    return grouped;
+  const handleTogglePaidStatus = async (bill: any) => {
+    try {
+      await updateBill({
+        id: bill._id,
+        userId: user!.id,
+        landlordPaidUtilityCompany: !bill.landlordPaidUtilityCompany,
+        landlordPaidDate: !bill.landlordPaidUtilityCompany ? new Date().toISOString().split('T')[0] : undefined,
+      });
+      toast.success(`Bill marked as ${!bill.landlordPaidUtilityCompany ? 'paid' : 'unpaid'}`);
+    } catch (error: any) {
+      toast.error(formatErrorForToast(error));
+    }
+  };
+
+  const resetFilters = () => {
+    setSearchTerm("");
+    setSelectedProperty("");
+    setSelectedUtilityType("");
+    setSelectedStatus("");
+    setSelectedTenant("");
+    const today = new Date();
+    setStartMonth(`${today.getFullYear()}-01`);
+    setEndMonth(today.toISOString().slice(0, 7));
   };
 
   if (!user) {
@@ -164,35 +317,104 @@ export default function UtilityBillsPage() {
     );
   }
 
-  const groupedBills = groupBillsByProperty();
   const selectedPropertyData = properties?.find(p => p._id === selectedProperty);
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-7xl mx-auto space-y-6">
         {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold">Utility Bills & Payments</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold">Utility Bill Management</h1>
             <p className="text-muted-foreground mt-1">
-              Manage utility bills, track tenant charges, and process payments
+              Comprehensive bill tracking, payments, and tenant charge management
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setBulkDialogOpen(true)}>
-              <Plus className="w-4 h-4 mr-2" />
+            {selectedTenant && selectedProperty && (
+              <Button variant="outline" onClick={() => setStatementDialogOpen(true)} data-testid="generate-statement-btn">
+                <Download className="w-4 h-4 mr-2" />
+                Generate Statement
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setBulkDialogOpen(true)} data-testid="bulk-entry-btn">
+              <FileText className="w-4 h-4 mr-2" />
               Bulk Entry
             </Button>
-            <Button onClick={() => setBillDialogOpen(true)}>
+            <Button onClick={() => setBillDialogOpen(true)} data-testid="add-bill-btn">
               <Plus className="w-4 h-4 mr-2" />
               Add Bill
             </Button>
           </div>
         </div>
 
-        {/* Filters */}
-        <Card className="mb-6">
-          <CardContent className="p-4">
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card data-testid="stat-card-total">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Total Bills</p>
+                  <p className="text-2xl font-bold" data-testid="total-bills-count">{stats.total}</p>
+                </div>
+                <Receipt className="w-8 h-8 text-muted-foreground" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card data-testid="stat-card-unpaid">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">Unpaid Bills</p>
+                  <p className="text-2xl font-bold text-orange-600" data-testid="unpaid-bills-count">{stats.unpaid}</p>
+                </div>
+                <AlertCircle className="w-8 h-8 text-orange-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card data-testid="stat-card-amount">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedTenant ? "Tenant Charges" : "Total Amount"}
+                  </p>
+                  <p className="text-2xl font-bold" data-testid="total-amount">${stats.totalAmount.toFixed(2)}</p>
+                </div>
+                <DollarSign className="w-8 h-8 text-green-600" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card data-testid="stat-card-outstanding">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedTenant ? "Outstanding Balance" : "Unpaid Amount"}
+                  </p>
+                  <p className="text-2xl font-bold text-red-600" data-testid="unpaid-amount">${stats.unpaidAmount.toFixed(2)}</p>
+                </div>
+                <TrendingUp className="w-8 h-8 text-red-600" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Filters and Controls */}
+        <Card>
+          <CardHeader className="pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <CardTitle className="text-lg">Filters & Search</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm" onClick={resetFilters}>
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Search and Quick Filters */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
               <div>
                 <Label htmlFor="search">Search</Label>
@@ -200,7 +422,7 @@ export default function UtilityBillsPage() {
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                   <Input
                     id="search"
-                    placeholder="Search bills..."
+                    placeholder="Search bills, providers..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="pl-9"
@@ -222,6 +444,53 @@ export default function UtilityBillsPage() {
                 </select>
               </div>
               <div>
+                <Label htmlFor="utilityType">Utility Type</Label>
+                <select
+                  id="utilityType"
+                  className="w-full h-10 px-3 rounded-md border bg-background"
+                  value={selectedUtilityType}
+                  onChange={(e) => setSelectedUtilityType(e.target.value)}
+                >
+                  <option value="">All Types</option>
+                  {utilityTypes.map((type) => (
+                    <option key={type} value={type}>{type}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <select
+                  id="status"
+                  className="w-full h-10 px-3 rounded-md border bg-background"
+                  value={selectedStatus}
+                  onChange={(e) => setSelectedStatus(e.target.value)}
+                >
+                  <option value="">All Status</option>
+                  <option value="paid">Paid</option>
+                  <option value="unpaid">Unpaid</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="tenant">Tenant</Label>
+                <select
+                  id="tenant"
+                  className="w-full h-10 px-3 rounded-md border bg-background"
+                  value={selectedTenant}
+                  onChange={(e) => setSelectedTenant(e.target.value)}
+                >
+                  <option value="">All Tenants</option>
+                  {leases?.map((lease) => (
+                    <option key={lease._id} value={lease._id}>
+                      {lease.tenantName} {lease.unit?.unitIdentifier ? `- ${lease.unit.unitIdentifier}` : ''}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {/* Date Range and Display Options */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
                 <Label htmlFor="startMonth">From Month</Label>
                 <Input
                   id="startMonth"
@@ -239,94 +508,39 @@ export default function UtilityBillsPage() {
                   onChange={(e) => setEndMonth(e.target.value)}
                 />
               </div>
-              <div className="flex items-end">
-                <Button 
-                  variant="outline" 
-                  onClick={() => {
-                    setSearchTerm("");
-                    setSelectedProperty("");
-                    const today = new Date();
-                    setStartMonth(`${today.getFullYear()}-01`);
-                    setEndMonth(today.toISOString().slice(0, 7));
-                  }}
-                  className="w-full"
+              <div>
+                <Label htmlFor="groupBy">Group By</Label>
+                <select
+                  id="groupBy"
+                  className="w-full h-10 px-3 rounded-md border bg-background"
+                  value={groupBy}
+                  onChange={(e) => setGroupBy(e.target.value as GroupingOption)}
                 >
-                  Reset Filters
-                </Button>
+                  <option value="none">No Grouping</option>
+                  <option value="property">Property</option>
+                  <option value="utility">Utility Type</option>
+                  <option value="month">Month</option>
+                  <option value="status">Payment Status</option>
+                  <option value="tenant">Tenant</option>
+                </select>
+              </div>
+              <div>
+                <Label htmlFor="sortBy">Sort By</Label>
+                <select
+                  id="sortBy"
+                  className="w-full h-10 px-3 rounded-md border bg-background"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                >
+                  <option value="date">Date (Newest First)</option>
+                  <option value="amount">Amount (Highest First)</option>
+                  <option value="utility">Utility Type</option>
+                  <option value="status">Payment Status</option>
+                </select>
               </div>
             </div>
           </CardContent>
         </Card>
-
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-3">
-            <TabsTrigger value="bills" className="flex items-center gap-2">
-              <Receipt className="w-4 h-4" />
-              Bills
-            </TabsTrigger>
-            <TabsTrigger value="outstanding" className="flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              Outstanding
-            </TabsTrigger>
-            <TabsTrigger value="history" className="flex items-center gap-2">
-              <History className="w-4 h-4" />
-              History
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Bills Overview Tab */}
-          <TabsContent value="bills" className="space-y-6">
-            {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Total Bills</p>
-                  <p className="text-2xl font-bold">{bills?.length || 0}</p>
-                </div>
-                <Receipt className="w-8 h-8 text-muted-foreground" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Unpaid Bills</p>
-                  <p className="text-2xl font-bold">{unpaidBills?.length || 0}</p>
-                </div>
-                <AlertCircle className="w-8 h-8 text-orange-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Period Total</p>
-                  <p className="text-2xl font-bold">
-                    ${bills?.reduce((sum, b) => sum + b.totalAmount, 0)
-                      .toFixed(2) || "0.00"}
-                  </p>
-                </div>
-                <DollarSign className="w-8 h-8 text-green-600" />
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Properties</p>
-                  <p className="text-2xl font-bold">{Object.keys(groupedBills).length}</p>
-                </div>
-                <Home className="w-8 h-8 text-blue-600" />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
 
         {/* Bills List */}
         <LoadingContent loading={!bills} skeletonRows={6}>
@@ -336,7 +550,7 @@ export default function UtilityBillsPage() {
                 <Receipt className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">No Bills Found</h3>
                 <p className="text-muted-foreground mb-4">
-                  {selectedProperty || startMonth || endMonth
+                  {searchTerm || selectedProperty || selectedUtilityType || selectedStatus
                     ? "Try adjusting your filters"
                     : "Start by adding your first utility bill"}
                 </p>
@@ -347,135 +561,96 @@ export default function UtilityBillsPage() {
               </CardContent>
             </Card>
           ) : (
-            <div className="space-y-4">
-              {Object.entries(groupedBills).map(([propertyName, propertyBills]) => (
-                <Card key={propertyName}>
-                  <CardHeader>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Home className="w-5 h-5" />
-                      {propertyName}
-                    </CardTitle>
-                    <CardDescription>
-                      {propertyBills.length} bill{propertyBills.length !== 1 ? 's' : ''}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-2">
-                    {propertyBills
-                      .filter(bill => 
-                        searchTerm === "" ||
-                        bill.utilityType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                        bill.provider.toLowerCase().includes(searchTerm.toLowerCase())
-                      )
-                      .map((bill) => {
+            <div className="space-y-6">
+              {Object.entries(groupedBills).map(([groupName, groupBills]) => (
+                <Card key={groupName}>
+                  {groupBy !== "none" && (
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          {groupBy === "property" && <Building className="w-5 h-5" />}
+                          {groupBy === "utility" && React.createElement(getUtilityIcon(groupName), { className: "w-5 h-5" })}
+                          {groupBy === "month" && <Calendar className="w-5 h-5" />}
+                          {groupBy === "status" && (groupName === "Paid" ? <CheckCircle className="w-5 h-5 text-green-600" /> : <AlertCircle className="w-5 h-5 text-orange-600" />)}
+                          {groupBy === "tenant" && <User className="w-5 h-5" />}
+                          {groupName}
+                        </CardTitle>
+                        <Badge variant="outline">
+                          {groupBills.length} bill{groupBills.length !== 1 ? 's' : ''}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                  )}
+                  <CardContent className={groupBy !== "none" ? "pt-0" : "pt-6"}>
+                    <div className="space-y-2">
+                      {groupBills.map((bill) => {
                         const Icon = getUtilityIcon(bill.utilityType);
-                        const iconColor = getUtilityColor(bill.utilityType);
-                        const isExpanded = expandedBills.has(bill._id);
+                        const colorClasses = getUtilityColor(bill.utilityType);
+                        const property = properties?.find(p => p._id === bill.propertyId);
                         
                         return (
-                          <div key={bill._id} className="border rounded-lg">
-                            <div
-                              className="p-4 cursor-pointer hover:bg-muted/50 transition-colors"
-                              onClick={() => toggleBillExpanded(bill._id)}
-                            >
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                  <div className={`p-2 rounded-lg bg-muted ${iconColor}`}>
-                                    <Icon className="w-4 h-4" />
-                                  </div>
-                                  <div>
-                                    <div className="font-medium">{bill.utilityType}</div>
-                                    <div className="text-sm text-muted-foreground">
-                                      {bill.provider} • {bill.billMonth}
-                                    </div>
-                                  </div>
+                          <div key={bill._id} className="border rounded-lg p-4 hover:bg-muted/30 transition-colors" data-testid="bill-item">
+                            <div className="flex items-center justify-between">
+                              {/* Bill Info */}
+                              <div className="flex items-center gap-4 flex-1">
+                                <div className={cn("p-2 rounded-lg", colorClasses)}>
+                                  <Icon className="w-5 h-5" />
                                 </div>
-                                <div className="flex items-center gap-4">
-                                  <div className="text-right">
-                                    <div className="font-semibold">${bill.totalAmount.toFixed(2)}</div>
-                                    <div className="flex items-center gap-2">
-                                      {bill.isPaid ? (
-                                        <Badge variant="outline" className="text-green-600">
-                                          <CheckCircle className="w-3 h-3 mr-1" />
-                                          Paid
-                                        </Badge>
-                                      ) : (
-                                        <Badge variant="outline" className="text-orange-600">
-                                          <AlertCircle className="w-3 h-3 mr-1" />
-                                          Unpaid
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  </div>
-                                  {isExpanded ? (
-                                    <ChevronDown className="w-4 h-4 text-muted-foreground" />
-                                  ) : (
-                                    <ChevronRight className="w-4 h-4 text-muted-foreground" />
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                            
-                            {isExpanded && (
-                              <div className="border-t p-4 bg-muted/20">
-                                <div className="space-y-4">
-                                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                                    <div>
-                                      <p className="text-muted-foreground">Bill Date</p>
-                                      <p className="font-medium">{bill.billDate}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-muted-foreground">Due Date</p>
-                                      <p className="font-medium">{bill.dueDate}</p>
-                                    </div>
-                                    <div>
-                                      <p className="text-muted-foreground">Status</p>
-                                      <p className="font-medium">{bill.isPaid ? "Paid" : "Unpaid"}</p>
-                                    </div>
-                                    {bill.paidDate && (
-                                      <div>
-                                        <p className="text-muted-foreground">Paid Date</p>
-                                        <p className="font-medium">{bill.paidDate}</p>
-                                      </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <h3 className="font-medium">{bill.utilityType}</h3>
+                                    <Badge variant="outline" className="text-xs">
+                                      {bill.billMonth}
+                                    </Badge>
+                                    {bill.landlordPaidUtilityCompany ? (
+                                      <Badge className="text-xs bg-green-100 text-green-800">
+                                        <CheckCircle className="w-3 h-3 mr-1" />
+                                        Paid
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="destructive" className="text-xs">
+                                        <AlertCircle className="w-3 h-3 mr-1" />
+                                        Unpaid
+                                      </Badge>
                                     )}
                                   </div>
-                                  
-                                  {bill.notes && (
-                                    <div>
-                                      <p className="text-sm text-muted-foreground">Notes</p>
-                                      <p className="text-sm">{bill.notes}</p>
-                                    </div>
+                                  <div className="text-sm text-muted-foreground space-y-1">
+                                    <p>{bill.provider}</p>
+                                    {groupBy !== "property" && property && (
+                                      <p className="flex items-center gap-1">
+                                        <Building className="w-3 h-3" />
+                                        {property.name}
+                                      </p>
+                                    )}
+                                    <p>Due: {bill.dueDate}</p>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Amount and Actions */}
+                              <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                  <p className="text-lg font-semibold" data-testid="bill-amount">${bill.totalAmount.toFixed(2)}</p>
+                                  {bill.landlordPaidUtilityCompany && bill.landlordPaidDate && (
+                                    <p className="text-xs text-muted-foreground">
+                                      Paid: {bill.landlordPaidDate}
+                                    </p>
                                   )}
-                                  
-                                  <div className="flex gap-2">
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setViewingBill(bill);
-                                      }}
-                                    >
-                                      <Users className="w-4 h-4 mr-2" />
-                                      View Charges
+                                </div>
+                                
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="outline" size="sm" data-testid="bill-actions">
+                                      <MoreHorizontal className="w-4 h-4" data-testid="more-horizontal" />
                                     </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={async (e) => {
-                                        e.stopPropagation();
-                                        try {
-                                          await updateBill({
-                                            id: bill._id,
-                                            userId: user.id,
-                                            isPaid: !bill.isPaid,
-                                            paidDate: !bill.isPaid ? new Date().toISOString().split('T')[0] : undefined,
-                                          });
-                                        } catch (error: any) {
-                                          toast.error(formatErrorForToast(error));
-                                        }
-                                      }}
-                                    >
-                                      {bill.isPaid ? (
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem onClick={() => setViewingBill(bill)}>
+                                      <Eye className="w-4 h-4 mr-2" />
+                                      View Charges
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem onClick={() => handleTogglePaidStatus(bill)}>
+                                      {bill.landlordPaidUtilityCompany ? (
                                         <>
                                           <XCircle className="w-4 h-4 mr-2" />
                                           Mark Unpaid
@@ -486,57 +661,36 @@ export default function UtilityBillsPage() {
                                           Mark Paid
                                         </>
                                       )}
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setSelectedBill(bill);
-                                        setBillDialogOpen(true);
-                                      }}
-                                    >
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem onClick={() => {
+                                      setSelectedBill(bill);
+                                      setBillDialogOpen(true);
+                                    }}>
+                                      <Edit className="w-4 h-4 mr-2" />
                                       Edit
-                                    </Button>
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="text-destructive hover:text-destructive"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleDeleteBill(bill);
-                                      }}
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={() => handleDeleteBill(bill)}
+                                      className="text-destructive"
                                     >
+                                      <Trash className="w-4 h-4 mr-2" />
                                       Delete
-                                    </Button>
-                                  </div>
-                                </div>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
                               </div>
-                            )}
+                            </div>
                           </div>
                         );
                       })}
+                    </div>
                   </CardContent>
                 </Card>
               ))}
             </div>
           )}
         </LoadingContent>
-          </TabsContent>
-
-          {/* Outstanding Payments Tab */}
-          <TabsContent value="outstanding" className="space-y-6">
-            <OutstandingBalances 
-              userId={user.id} 
-              propertyId={selectedProperty ? selectedProperty as any : undefined}
-            />
-          </TabsContent>
-
-          {/* Payment History Tab */}
-          <TabsContent value="history" className="space-y-6">
-            <PaymentHistory userId={user.id} />
-          </TabsContent>
-        </Tabs>
       </div>
 
       {/* Add/Edit Bill Dialog */}
@@ -560,12 +714,14 @@ export default function UtilityBillsPage() {
                     ...data,
                     propertyId: data.propertyId as any,
                   });
+                  toast.success("Bill updated successfully");
                 } else {
                   await addBill({
                     userId: user.id,
                     ...data,
                     propertyId: data.propertyId as any,
                   });
+                  toast.success("Bill added successfully");
                 }
                 setBillDialogOpen(false);
                 setSelectedBill(null);
@@ -600,6 +756,7 @@ export default function UtilityBillsPage() {
                 });
                 if (result.createdBillIds.length > 0) {
                   setBulkDialogOpen(false);
+                  toast.success(`Successfully added ${result.createdBillIds.length} bills`);
                 }
                 return result;
               }}
@@ -620,7 +777,7 @@ export default function UtilityBillsPage() {
       <Dialog open={!!viewingBill} onOpenChange={(open) => !open && setViewingBill(null)}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Bill Charges</DialogTitle>
+            <DialogTitle>Bill Charges & Tenant Responsibilities</DialogTitle>
           </DialogHeader>
           {viewingBill && (
             <div className="space-y-4">
@@ -644,6 +801,21 @@ export default function UtilityBillsPage() {
                 <Button onClick={() => setViewingBill(null)}>Close</Button>
               </div>
             </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Tenant Statement Generator Dialog */}
+      <Dialog open={statementDialogOpen} onOpenChange={setStatementDialogOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Generate Tenant Statement</DialogTitle>
+          </DialogHeader>
+          {selectedProperty && (
+            <TenantStatementGenerator
+              propertyId={selectedProperty as any}
+              userId={user.id}
+            />
           )}
         </DialogContent>
       </Dialog>
