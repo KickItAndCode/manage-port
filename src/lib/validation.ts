@@ -37,9 +37,10 @@ export const propertySchema = z.object({
     }, "Purchase date cannot be in the future")
 });
 
-// Lease validation schema
-export const leaseSchema = z.object({
+// Base lease object schema without refinements
+const baseLeaseSchema = z.object({
   propertyId: z.string().min(1, "Property is required"),
+  unitId: z.string().optional(), // Unit ID is optional but will be validated contextually
   tenantName: z.string()
     .min(2, "Tenant name must be at least 2 characters")
     .max(100, "Tenant name must be less than 100 characters")
@@ -77,23 +78,94 @@ export const leaseSchema = z.object({
     }, "Must be a valid URL or storage ID")
     .optional()
     .or(z.literal(""))
-}).refine((data) => {
-  const start = new Date(data.startDate);
-  const end = new Date(data.endDate);
-  return end > start;
-}, {
-  message: "End date must be after start date",
-  path: ["endDate"],
-}).refine((data) => {
-  // If security deposit is provided, it shouldn't exceed 3 months rent
-  if (data.securityDeposit && data.rent) {
-    return data.securityDeposit <= (data.rent * 3);
-  }
-  return true;
-}, {
-  message: "Security deposit should not exceed 3 months rent",
-  path: ["securityDeposit"],
 });
+
+// Common refinements for both schemas
+const leaseRefinements = (schema: typeof baseLeaseSchema) => schema
+  .refine((data) => {
+    const start = new Date(data.startDate);
+    const end = new Date(data.endDate);
+    return end > start;
+  }, {
+    message: "End date must be after start date",
+    path: ["endDate"],
+  })
+  .refine((data) => {
+    // If security deposit is provided, it shouldn't exceed 3 months rent
+    if (data.securityDeposit && data.rent) {
+      return data.securityDeposit <= (data.rent * 3);
+    }
+    return true;
+  }, {
+    message: "Security deposit should not exceed 3 months rent",
+    path: ["securityDeposit"],
+  });
+
+// Lease validation schema
+export const leaseSchema = leaseRefinements(baseLeaseSchema);
+
+// Multi-unit lease validation schema that requires unit selection
+const multiUnitBaseSchema = z.object({
+  propertyId: z.string().min(1, "Property is required"),
+  unitId: z.string().min(1, "Unit selection is required for multi-unit properties"),
+  tenantName: z.string()
+    .min(2, "Tenant name must be at least 2 characters")
+    .max(100, "Tenant name must be less than 100 characters")
+    .regex(/^[a-zA-Z\s\-'.]+$/, "Tenant name contains invalid characters"),
+  tenantEmail: z.string()
+    .email("Invalid email address")
+    .optional()
+    .or(z.literal("")),
+  tenantPhone: z.string()
+    .regex(/^(\+?1[-.\s]?)?\(?[0-9]{3}\)?[-.\s]?[0-9]{3}[-.\s]?[0-9]{4}$/, "Invalid phone number format")
+    .optional()
+    .or(z.literal("")),
+  startDate: z.string().min(1, "Start date is required"),
+  endDate: z.string().min(1, "End date is required"),
+  rent: z.coerce.number()
+    .min(0, "Rent must be 0 or greater")
+    .max(100000, "Rent must be less than $100,000"),
+  securityDeposit: z.coerce.number()
+    .min(0, "Security deposit must be 0 or greater")
+    .max(100000, "Security deposit must be less than $100,000")
+    .optional(),
+  status: z.enum(["active", "expired", "pending"], {
+    errorMap: () => ({ message: "Please select a valid lease status" })
+  }),
+  notes: z.string()
+    .max(1000, "Notes must be less than 1000 characters")
+    .optional(),
+  leaseDocumentUrl: z.string()
+    .refine((val) => {
+      if (!val || val === "") return true; // Allow empty strings
+      // Accept either valid URLs or Convex storage IDs (which start with "k" and are long)
+      const isUrl = /^https?:\/\//.test(val);
+      const isStorageId = /^k[a-zA-Z0-9_-]{20,}$/.test(val);
+      return isUrl || isStorageId;
+    }, "Must be a valid URL or storage ID")
+    .optional()
+    .or(z.literal(""))
+});
+
+export const multiUnitLeaseSchema = multiUnitBaseSchema
+  .refine((data) => {
+    const start = new Date(data.startDate);
+    const end = new Date(data.endDate);
+    return end > start;
+  }, {
+    message: "End date must be after start date",
+    path: ["endDate"],
+  })
+  .refine((data) => {
+    // If security deposit is provided, it shouldn't exceed 3 months rent
+    if (data.securityDeposit && data.rent) {
+      return data.securityDeposit <= (data.rent * 3);
+    }
+    return true;
+  }, {
+    message: "Security deposit should not exceed 3 months rent",
+    path: ["securityDeposit"],
+  });
 
 
 // Document validation schema
@@ -165,4 +237,5 @@ export const isPastDate = (dateString: string): boolean => {
 // Type exports for TypeScript
 export type PropertyFormData = z.infer<typeof propertySchema>;
 export type LeaseFormData = z.infer<typeof leaseSchema>;
+export type MultiUnitLeaseFormData = z.infer<typeof multiUnitLeaseSchema>;
 export type DocumentFormData = z.infer<typeof documentSchema>;

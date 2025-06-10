@@ -381,7 +381,7 @@ export function LeaseUtilityResponsibilityForm({
                       max={utilityStatus.remaining + setting.responsibilityPercentage}
                       value={setting.responsibilityPercentage}
                       onChange={(e) => updatePercentage(setting.utilityType, e.target.value)}
-                      className={`pr-8 ${hasError ? 'border-red-500' : ''}`}
+                      className={`pr-8 ${hasError ? 'border-destructive' : ''}`}
                       disabled={loading}
                     />
                     <Percent className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -400,7 +400,7 @@ export function LeaseUtilityResponsibilityForm({
                 </div>
 
                 {hasError && (
-                  <p className="text-sm text-red-500 mt-1">{hasError}</p>
+                  <p className="text-sm text-destructive mt-1">{hasError}</p>
                 )}
               </div>
             );

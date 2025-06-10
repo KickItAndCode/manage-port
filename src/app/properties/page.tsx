@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
@@ -7,26 +7,15 @@ import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { PropertyForm } from "@/components/PropertyForm";
 import { PropertyCreationWizard, type PropertyWizardData } from "@/components/PropertyCreationWizard";
-import { PropertyCard } from "@/components/PropertyCard";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { ChevronUp, ChevronDown, ImageIcon, Wand2, MoreHorizontal, Edit, Trash2, Eye } from "lucide-react";
+import { ImageIcon, Wand2, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { StatusBadge } from "@/components/ui/status-badge";
-import { cn } from "@/lib/utils";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveTable, BulkActionsToolbar } from "@/components/ui/responsive-table";
+import { createPropertyTableConfig, PropertyMobileCard, type Property } from "@/lib/table-configs";
 
-type PropertySortKey = 'name' | 'type' | 'status' | 'address' | 'bedrooms' | 'bathrooms' | 'squareFeet' | 'purchaseDate';
 
 export default function PropertiesPage() {
   const { user } = useUser();
@@ -43,9 +32,9 @@ export default function PropertiesPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [sortKey, setSortKey] = useState<PropertySortKey>("name");
+  const [sortKey, setSortKey] = useState<keyof Property>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selectedProperties, setSelectedProperties] = useState<Property[]>([]);
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
   const propertyTypes = [
@@ -59,55 +48,51 @@ export default function PropertiesPage() {
   ];
   const statusOptions = ["Vacant", "Occupied", "Under Maintenance", "Other"];
 
-  function handleSort(key: PropertySortKey) {
-    if (sortKey === key) setSortDir(sortDir === "asc" ? "desc" : "asc");
-    else {
-      setSortKey(key);
-      setSortDir("asc");
-    }
+  function handleSort(key: keyof Property, direction: "asc" | "desc") {
+    setSortKey(key);
+    setSortDir(direction);
   }
 
-  const filtered = (properties || [])
-    .filter((p) =>
-      (!search ||
-        p.name.toLowerCase().includes(search.toLowerCase()) ||
-        p.address.toLowerCase().includes(search.toLowerCase()) ||
-        p.type.toLowerCase().includes(search.toLowerCase())) &&
-      (!typeFilter || p.type === typeFilter) &&
-      (!statusFilter || p.status === statusFilter)
-    )
-    .sort((a, b) => {
-      const v1 = a[sortKey];
-      const v2 = b[sortKey];
-      if (typeof v1 === "string" && typeof v2 === "string") {
-        return sortDir === "asc"
-          ? v1.localeCompare(v2)
-          : v2.localeCompare(v1);
-      }
-      if (typeof v1 === "number" && typeof v2 === "number") {
-        return sortDir === "asc" ? v1 - v2 : v2 - v1;
-      }
-      return 0;
-    });
+  const filtered = useMemo(() => {
+    return (properties || [])
+      .filter((p) =>
+        (!search ||
+          p.name.toLowerCase().includes(search.toLowerCase()) ||
+          p.address.toLowerCase().includes(search.toLowerCase()) ||
+          p.type.toLowerCase().includes(search.toLowerCase())) &&
+        (!typeFilter || p.type === typeFilter) &&
+        (!statusFilter || p.status === statusFilter)
+      )
+      .sort((a, b) => {
+        const v1 = a[sortKey];
+        const v2 = b[sortKey];
+        if (typeof v1 === "string" && typeof v2 === "string") {
+          return sortDir === "asc"
+            ? v1.localeCompare(v2)
+            : v2.localeCompare(v1);
+        }
+        if (typeof v1 === "number" && typeof v2 === "number") {
+          return sortDir === "asc" ? v1 - v2 : v2 - v1;
+        }
+        return 0;
+      });
+  }, [properties, search, typeFilter, statusFilter, sortKey, sortDir]);
 
-  function toggleSelect(id: string) {
-    setSelected((prev) => prev.includes(String(id)) ? prev.filter(x => x !== String(id)) : [...prev, String(id)]);
-  }
-  function selectAll() {
-    if (selected.length === filtered.length) setSelected([]);
-    else setSelected(filtered.map(p => String(p._id)));
-  }
-  async function handleBulkDelete() {
-    if (selected.length === 0 || !user) return;
+  const handleBulkDelete = async (propertiesToDelete: Property[]) => {
+    if (propertiesToDelete.length === 0 || !user) return;
     confirm({
       title: "Delete Properties",
-      description: `Delete ${selected.length} selected properties? This will also delete associated leases, utilities, and documents.`,
+      description: `Delete ${propertiesToDelete.length} selected properties? This will also delete associated leases, utilities, and documents.`,
       variant: "destructive",
       onConfirm: async () => {
         setLoading(true);
         try {
-          const results = await Promise.all(selected.map(id => deleteProperty({ id: id as any, userId: user.id })));
-          setSelected([]);
+          const results = await Promise.all(
+            propertiesToDelete.map(property => 
+              deleteProperty({ id: property._id as any, userId: user.id })
+            )
+          );
+          setSelectedProperties([]);
           
           // Show success toast for bulk deletion
           if (results.length === 1) {
@@ -123,7 +108,28 @@ export default function PropertiesPage() {
         }
       }
     });
-  }
+  };
+
+  const handleDeleteProperty = async (property: Property) => {
+    if (!user) return;
+    confirm({
+      title: "Delete Property",
+      description: "Delete this property? This will also delete associated leases, utilities, and documents.",
+      variant: "destructive",
+      onConfirm: async () => {
+        setLoading(true);
+        try {
+          const result = await deleteProperty({ id: property._id as any, userId: user.id });
+          toast.success(result.message);
+        } catch (err: any) {
+          console.error("Delete property error:", err);
+          toast.error(formatErrorForToast(err));
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
 
   const handleWizardSubmit = async (data: PropertyWizardData) => {
     if (!user) {
@@ -229,174 +235,35 @@ export default function PropertiesPage() {
         </div>
 
       </div>
-      {/* Floating Bulk Actions Toolbar */}
-      {selected.length > 0 && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-2">
-          <Card className="shadow-lg border-primary/20 bg-card/95 backdrop-blur-sm">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
-                  <span className="text-sm font-medium">
-                    {selected.length} propert{selected.length !== 1 ? 'ies' : 'y'} selected
-                  </span>
-                </div>
-                
-                <div className="flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => {
-                      if (selected.length === filtered.length) {
-                        setSelected([]);
-                      } else {
-                        setSelected(filtered.map(p => String(p._id)));
-                      }
-                    }}
-                    disabled={filtered.length === 0}
-                  >
-                    {selected.length === filtered.length ? 'Clear All' : `Select All (${filtered.length})`}
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => setSelected([])}
-                  >
-                    Clear Selection
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    onClick={handleBulkDelete}
-                    disabled={loading}
-                    className="gap-2"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                    Delete
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
 
       {/* Properties List */}
       <Card className="p-3 sm:p-6">
-        {/* Mobile Card View */}
-        <div className="lg:hidden space-y-3">
-          {filtered.map((property) => (
-            <Card key={property._id} className="p-4 hover:shadow-md transition-shadow duration-200">
-              <div className="space-y-4">
-                <div className="flex items-start gap-3">
-                  {/* Selection Checkbox */}
-                  <input
-                    type="checkbox"
-                    checked={selected.includes(String(property._id))}
-                    onChange={() => toggleSelect(String(property._id))}
-                    aria-label="Select property"
-                    className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 checked:bg-primary checked:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer mt-1"
-                  />
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <h3 
-                            className="font-semibold text-base cursor-pointer hover:text-primary transition-colors truncate"
-                            onClick={() => router.push(`/properties/${property._id}`)}
-                          >
-                            {property.name}
-                          </h3>
-                          <Badge variant="outline" className="text-xs shrink-0">{property.type}</Badge>
-                        </div>
-                        <p className="text-sm text-muted-foreground mb-2 leading-relaxed">{property.address}</p>
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={property.status} variant="compact" />
-                        </div>
-                      </div>
-                      
-                      <div className="text-right sm:text-right">
-                        <p className="font-bold text-lg text-green-600">
-                          {property.monthlyRent > 0 
-                            ? `$${property.monthlyRent.toLocaleString()}` 
-                            : '$0'
-                          }
-                        </p>
-                        <p className="text-xs text-muted-foreground">per month</p>
-                      </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-3 gap-3 text-sm py-3 bg-muted/30 rounded-lg px-3">
-                      <div className="text-center">
-                        <p className="text-xs text-muted-foreground mb-1">Bedrooms</p>
-                        <p className="font-semibold">{property.bedrooms}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-muted-foreground mb-1">Bathrooms</p>
-                        <p className="font-semibold">{property.bathrooms}</p>
-                      </div>
-                      <div className="text-center">
-                        <p className="text-xs text-muted-foreground mb-1">Sq Ft</p>
-                        <p className="font-semibold">{property.squareFeet.toLocaleString()}</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="flex items-center justify-end pt-3 border-t">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" size="sm" className="h-9 px-4 font-medium">
-                        <MoreHorizontal className="h-4 w-4 mr-2" />
-                        Actions
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => router.push(`/properties/${property._id}`)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        View Details
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => setEdit(property)}>
-                        <Edit className="h-4 w-4 mr-2" />
-                        Edit Property
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem 
-                        className="text-destructive focus:text-destructive"
-                        onClick={() => {
-                          confirm({
-                            title: "Delete Property",
-                            description: "Delete this property? This will also delete associated leases, utilities, and documents.",
-                            variant: "destructive",
-                            onConfirm: async () => {
-                              setLoading(true);
-                              try {
-                                const result = await deleteProperty({ id: property._id as any, userId: user.id });
-                                toast.success(result.message);
-                              } catch (err: any) {
-                                console.error("Delete property error:", err);
-                                toast.error(formatErrorForToast(err));
-                              } finally {
-                                setLoading(false);
-                              }
-                            }
-                          });
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Property
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
+        {/* Properties Table */}
+        <ResponsiveTable
+          data={filtered}
+          config={createPropertyTableConfig(
+            (property) => setEdit(property),
+            handleDeleteProperty,
+            (property) => router.push(`/properties/${property._id}`)
+          )}
+          loading={loading}
+          onSort={handleSort}
+          onSelect={setSelectedProperties}
+          selectedItems={selectedProperties}
+          getItemId={(property) => property._id}
+          mobileCardRenderer={(property, { selected, onSelect }) => (
+            <Card className={selected ? "bg-primary/10 dark:bg-primary/15 border-l-4 border-l-primary" : ""}>
+              <PropertyMobileCard
+                property={property}
+                selected={selected}
+                onSelect={onSelect}
+                onEdit={(p) => setEdit(p)}
+                onDelete={handleDeleteProperty}
+                onView={(p) => router.push(`/properties/${p._id}`)}
+              />
             </Card>
-          ))}
-          
-          {(!filtered || filtered.length === 0) && (
+          )}
+          emptyState={
             <div className="text-center text-muted-foreground py-12">
               <ImageIcon className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
               <h3 className="text-lg font-medium mb-2 text-foreground">No properties found</h3>
@@ -410,173 +277,24 @@ export default function PropertiesPage() {
                 Use the Property Wizard from the dashboard to add your first property.
               </p>
             </div>
-          )}
-        </div>
-        
-        {/* Desktop Table View */}
-        <div className="hidden lg:block overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-8">
-                  <input
-                    type="checkbox"
-                    checked={selected.length === filtered.length && filtered.length > 0}
-                    onChange={selectAll}
-                    aria-label="Select all"
-                    className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 checked:bg-primary checked:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer"
-                  />
-                </TableHead>
-                <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("name")}>
-                  Name {sortKey==="name" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}
-                </TableHead>
-                <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("type")}>
-                  Type {sortKey==="type" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}
-                </TableHead>
-                <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("status")}>
-                  Status {sortKey==="status" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}
-                </TableHead>
-                <TableHead className="text-muted-foreground">
-                  Rent
-                </TableHead>
-                <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("bedrooms")}>
-                  Bed/Bath {sortKey==="bedrooms" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}
-                </TableHead>
-                <TableHead className="text-muted-foreground cursor-pointer" onClick={() => handleSort("squareFeet")}>
-                  Sq Ft {sortKey==="squareFeet" && (sortDir==="asc" ? <ChevronUp className="inline w-4 h-4"/> : <ChevronDown className="inline w-4 h-4"/>)}
-                </TableHead>
-                <TableHead className="text-center w-16">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filtered.map((property) => (
-                <TableRow 
-                  key={property._id} 
-                  className={cn(
-                    "hover:bg-muted/50 transition-colors duration-200",
-                    selected.includes(String(property._id)) 
-                      ? "bg-primary/10 dark:bg-primary/15 border-l-4 border-l-primary" 
-                      : "border-l-4 border-l-transparent"
-                  )}
-                >
-                  <TableCell 
-                    className="w-8"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <input
-                      type="checkbox"
-                      checked={selected.includes(String(property._id))}
-                      onChange={() => toggleSelect(String(property._id))}
-                      aria-label="Select property"
-                      className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 checked:bg-primary checked:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p 
-                        className="font-medium cursor-pointer hover:text-primary transition-colors"
-                        onClick={() => router.push(`/properties/${property._id}`)}
-                      >
-                        {property.name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">{property.address}</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className="text-xs">{property.type}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <StatusBadge status={property.status} />
-                  </TableCell>
-                  <TableCell>
-                    <span className="font-semibold text-green-600">
-                      {property.monthlyRent > 0 
-                        ? `$${property.monthlyRent.toLocaleString()}` 
-                        : '$0'
-                      }
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <p>{property.bedrooms} bed, {property.bathrooms} bath</p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    {property.squareFeet.toLocaleString()} ft²
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex justify-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem onClick={() => router.push(`/properties/${property._id}`)}>
-                            <Eye className="h-4 w-4 mr-2" />
-                            View Details
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => setEdit(property)}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Property
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => {
-                              confirm({
-                                title: "Delete Property",
-                                description: "Delete this property? This will also delete associated leases, utilities, and documents.",
-                                variant: "destructive",
-                                onConfirm: async () => {
-                                  setLoading(true);
-                                  try {
-                                    const result = await deleteProperty({ id: property._id as any, userId: user.id });
-                                    toast.success(result.message);
-                                  } catch (err: any) {
-                                    console.error("Delete property error:", err);
-                                    toast.error(formatErrorForToast(err));
-                                  } finally {
-                                    setLoading(false);
-                                  }
-                                }
-                              });
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Property
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-              
-              {(!filtered || filtered.length === 0) && (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-12">
-                    <div className="flex flex-col items-center">
-                      <ImageIcon className="h-16 w-16 text-muted-foreground/30 mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No properties found</h3>
-                      <p className="text-muted-foreground mb-4">
-                        {search || typeFilter || statusFilter ? 
-                          "Try adjusting your filters" : 
-                          "Add your first property to get started"
-                        }
-                      </p>
-                      <p className="text-muted-foreground">
-                        Use the Property Wizard from the dashboard to add your first property.
-                      </p>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
+          }
+        />
       </Card>
+
+      {/* Bulk Actions Toolbar */}
+      <BulkActionsToolbar
+        selectedItems={selectedProperties}
+        actions={[
+          {
+            id: 'delete',
+            label: 'Delete',
+            icon: Trash2,
+            variant: 'destructive',
+            action: handleBulkDelete
+          }
+        ]}
+        onClearSelection={() => setSelectedProperties([])}
+      />
 
       <Dialog open={!!edit} onOpenChange={(isOpen) => {
         if (!isOpen) {

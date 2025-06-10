@@ -6,9 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle, Home, DollarSign, Percent, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, Home, DollarSign, Percent, XCircle, Info, AlertTriangle, Building2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
 
 interface BillSplitPreviewProps {
   propertyId: Id<"properties">;
@@ -16,6 +17,7 @@ interface BillSplitPreviewProps {
   totalAmount: number;
   billId?: Id<"utilityBills">;
   userId: string;
+  mode?: "preview" | "actual";
 }
 
 export function BillSplitPreview({ 
@@ -23,7 +25,8 @@ export function BillSplitPreview({
   utilityType, 
   totalAmount, 
   billId,
-  userId 
+  userId,
+  mode = "preview"
 }: BillSplitPreviewProps) {
   // Get actual charges if bill ID is provided
   const billWithCharges = useQuery(
@@ -31,22 +34,26 @@ export function BillSplitPreview({
     billId ? { billId, userId } : "skip"
   );
 
-  // Get active leases for the property (fallback for preview)
-  const leases = useQuery(api.leases.getLeasesByProperty, {
-    propertyId,
-    userId,
-  });
+  // Get real-time split preview for form mode
+  const splitPreview = useQuery(
+    api.utilityBills.getBillSplitPreview,
+    !billId && propertyId && utilityType && totalAmount > 0 ? {
+      propertyId,
+      utilityType,
+      totalAmount,
+      userId,
+    } : "skip"
+  );
 
   // Mutation for marking charges as paid
   const markChargePaid = useMutation(api.utilityPayments.markUtilityPaid);
-
-  const activeLeases = leases?.filter(l => l.status === "active") || [];
 
   // Use actual charges if available, otherwise show preview
   const charges = billWithCharges?.charges || [];
   const hasActualCharges = billWithCharges && charges.length > 0;
 
-  if (!leases && !billWithCharges) {
+  // Loading state
+  if (!billWithCharges && !splitPreview) {
     return (
       <Card className="p-6">
         <div className="space-y-3">
@@ -207,53 +214,120 @@ export function BillSplitPreview({
     );
   }
 
-  // Fallback: Show preview mode (original logic for when no actual charges exist)
-  if (activeLeases.length === 0) {
+  // Show real-time preview mode
+  if (splitPreview) {
+    const { 
+      charges: previewCharges, 
+      ownerPortion, 
+      totalTenantPercentage, 
+      vacantUnits = [], 
+      totalUnits = 0,
+      isValid, 
+      message 
+    } = splitPreview;
+
     return (
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>No Active Leases</AlertTitle>
-        <AlertDescription>
-          This property has no active leases. Add a lease before entering utility bills.
-        </AlertDescription>
-      </Alert>
-    );
-  }
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Real-Time Bill Split</h3>
+          <Badge 
+            variant="outline" 
+            className={cn(
+              isValid 
+                ? "text-green-600 border-green-600" 
+                : "text-orange-600 border-orange-600"
+            )}
+          >
+            {isValid ? (
+              <CheckCircle className="w-4 h-4 mr-1" />
+            ) : (
+              <AlertTriangle className="w-4 h-4 mr-1" />
+            )}
+            {isValid ? "Ready to Save" : "Needs Attention"}
+          </Badge>
+        </div>
 
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Bill Split Preview</h3>
-        <Badge variant="outline" className="text-blue-600 border-blue-600">
-          <AlertCircle className="w-4 h-4 mr-1" />
-          Preview Mode
-        </Badge>
-      </div>
+        {/* Status Alert */}
+        <Alert className={cn(
+          isValid ? "border-green-200 bg-green-50" : "border-orange-200 bg-orange-50"
+        )}>
+          {isValid ? (
+            <Info className="h-4 w-4 text-green-600" />
+          ) : (
+            <AlertCircle className="h-4 w-4 text-orange-600" />
+          )}
+          <AlertDescription className={cn(
+            isValid ? "text-green-700" : "text-orange-700"
+          )}>
+            {message}
+          </AlertDescription>
+        </Alert>
 
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertDescription>
-          This is a preview. Actual charges will be created when you save the bill.
-        </AlertDescription>
-      </Alert>
+        {/* Vacant Units Information */}
+        {vacantUnits.length > 0 && (
+          <Card className="p-4 border-blue-200 bg-blue-50">
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-blue-600" />
+                <h4 className="font-medium text-blue-800">
+                  {vacantUnits.length} Vacant Unit{vacantUnits.length !== 1 ? 's' : ''}
+                </h4>
+              </div>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {vacantUnits.map((unit) => (
+                  <div 
+                    key={unit.unitId}
+                    className="flex items-center gap-2 p-2 bg-white/60 rounded border border-blue-200"
+                  >
+                    <Building2 className="w-3 h-3 text-blue-500" />
+                    <span className="text-sm text-blue-700">
+                      Unit {unit.unitIdentifier}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <Alert className="border-blue-200 bg-blue-50/50">
+                <Info className="h-4 w-4 text-blue-600" />
+                <AlertDescription className="text-blue-700">
+                  Vacant units have no utility charges. Their portion ({totalUnits > 0 ? ((vacantUnits.length / totalUnits) * 100).toFixed(1) : '0'}% of property) 
+                  is automatically assigned to the owner.
+                </AlertDescription>
+              </Alert>
+            </div>
+          </Card>
+        )}
 
-      <div className="space-y-3">
-        {activeLeases.map((lease) => {
-          const percentage = Math.floor(100 / activeLeases.length);
-          const amount = (totalAmount * percentage) / 100;
-          
-          return (
-            <Card key={lease._id} className="p-4">
+        {/* Tenant Charges */}
+        <div className="space-y-3">
+          {previewCharges.map((charge) => (
+            <Card 
+              key={charge.leaseId} 
+              className={cn(
+                "p-4",
+                !charge.hasUtilitySettings && "border-orange-200 bg-orange-50/50"
+              )}
+            >
               <div className="flex items-start justify-between">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <Home className="w-4 h-4 text-muted-foreground" />
-                    <span className="font-medium">{lease.tenantName}</span>
+                    <span className="font-medium">{charge.tenantName}</span>
+                    {charge.unit?.unitIdentifier && (
+                      <Badge variant="secondary" className="text-xs">
+                        Unit {charge.unit.unitIdentifier}
+                      </Badge>
+                    )}
+                    {!charge.hasUtilitySettings && (
+                      <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        No Settings
+                      </Badge>
+                    )}
                   </div>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Percent className="w-3 h-3" />
-                      <span>{percentage}%</span>
+                      <span>{charge.responsibilityPercentage}%</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span>{utilityType}</span>
@@ -261,31 +335,81 @@ export function BillSplitPreview({
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="flex items-center gap-1 text-lg font-semibold">
+                  <div className={cn(
+                    "flex items-center gap-1 text-lg font-semibold",
+                    charge.chargedAmount === 0 && "text-muted-foreground"
+                  )}>
                     <DollarSign className="w-4 h-4" />
-                    <span>{amount.toFixed(2)}</span>
+                    <span>{charge.chargedAmount.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
             </Card>
-          );
-        })}
-      </div>
-
-      <Card className="p-4 bg-muted/50">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-medium">Total Bill Amount</p>
-            <p className="text-xs text-muted-foreground">
-              Split between {activeLeases.length} tenant{activeLeases.length !== 1 ? 's' : ''}
-            </p>
-          </div>
-          <div className="text-right">
-            <p className="text-2xl font-bold">${totalAmount.toFixed(2)}</p>
-            <p className="text-xs text-muted-foreground">Preview calculation</p>
-          </div>
+          ))}
         </div>
-      </Card>
-    </div>
+
+        {/* Bill Breakdown Summary */}
+        <Card className="p-4 bg-muted/50">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-sm font-medium">Bill Breakdown</p>
+              <Badge variant="outline" className="text-xs">
+                {utilityType}
+              </Badge>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Bill:</span>
+                  <span className="font-medium">${totalAmount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tenant Charges:</span>
+                  <span className="font-medium text-blue-600">
+                    ${(totalAmount - ownerPortion).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Owner Portion:</span>
+                  <span className="font-medium text-green-600">${ownerPortion.toFixed(2)}</span>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tenant %:</span>
+                  <span className="font-medium">{totalTenantPercentage.toFixed(1)}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Owner %:</span>
+                  <span className="font-medium">{(100 - totalTenantPercentage).toFixed(1)}%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Status:</span>
+                  <span className={cn(
+                    "font-medium text-xs",
+                    isValid ? "text-green-600" : "text-orange-600"
+                  )}>
+                    {isValid ? "Valid" : "Invalid"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Card>
+      </div>
+    );
+  }
+
+  // Fallback for edge cases
+  return (
+    <Alert>
+      <AlertCircle className="h-4 w-4" />
+      <AlertTitle>Unable to Calculate Split</AlertTitle>
+      <AlertDescription>
+        Please ensure you have selected a property, utility type, and entered a valid amount.
+      </AlertDescription>
+    </Alert>
   );
 }

@@ -270,12 +270,12 @@ export function UniversalUtilityAllocation({
           </CardTitle>
           
           {/* Status and Actions Row */}
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             {!isEditing && (
               <Badge 
                 variant="outline" 
                 className={cn(
-                  "text-xs sm:text-sm transition-colors",
+                  "text-xs sm:text-sm transition-colors w-fit",
                   isComplete 
                     ? "text-green-600 border-green-600 bg-green-50 dark:bg-green-950/20" 
                     : "text-blue-600 border-blue-600 bg-blue-50 dark:bg-blue-950/20"
@@ -286,7 +286,7 @@ export function UniversalUtilityAllocation({
               </Badge>
             )}
             
-            <div className={`flex gap-2 sm:gap-3 ${!isEditing ? 'ml-auto' : 'w-full justify-end'}`}>
+            <div className="flex gap-2 w-full sm:w-auto justify-end">
               {!isEditing ? (
                 <>
                   {/* Show Apply Defaults button if property has defaults but no utility settings exist */}
@@ -296,19 +296,20 @@ export function UniversalUtilityAllocation({
                       variant="default"
                       size="sm"
                       onClick={handleApplyDefaults}
-                      className="transition-all hover:scale-105 active:scale-95"
+                      className="transition-all hover:scale-105 active:scale-95 text-xs px-3"
                     >
-                      <Home className="w-4 h-4 mr-2" />
-                      Apply Wizard Defaults
+                      <Home className="w-4 h-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Apply Wizard Defaults</span>
+                      <span className="sm:hidden">Apply Defaults</span>
                     </Button>
                   )}
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsEditing(true)}
-                    className="transition-all hover:scale-105 active:scale-95"
+                    className="transition-all hover:scale-105 active:scale-95 text-xs px-3"
                   >
-                    <Edit className="w-4 h-4 mr-2" />
+                    <Edit className="w-4 h-4 mr-1 sm:mr-2" />
                     Edit
                   </Button>
                 </>
@@ -318,7 +319,7 @@ export function UniversalUtilityAllocation({
                     variant="outline"
                     size="sm"
                     onClick={() => setIsEditing(false)}
-                    className="transition-all hover:scale-105 active:scale-95 min-w-[80px]"
+                    className="transition-all hover:scale-105 active:scale-95 flex-1 sm:flex-none min-w-[70px] text-xs"
                   >
                     Cancel
                   </Button>
@@ -327,14 +328,14 @@ export function UniversalUtilityAllocation({
                     onClick={handleSave}
                     disabled={isOverAllocated || saving}
                     className={cn(
-                      "transition-all hover:scale-105 active:scale-95 min-w-[80px]",
+                      "transition-all hover:scale-105 active:scale-95 flex-1 sm:flex-none min-w-[70px] text-xs",
                       isOverAllocated 
                         ? "bg-red-500 hover:bg-red-600" 
                         : "bg-primary hover:bg-primary/90"
                     )}
                     title={isOverAllocated ? `Total allocation is ${totalAllocated}%, cannot exceed 100%` : !isComplete ? `Total allocation is ${totalAllocated}%` : ''}
                   >
-                    <Save className="w-4 h-4 mr-2" />
+                    <Save className="w-4 h-4 mr-1 sm:mr-2" />
                     {saving ? "Saving..." : "Save"}
                   </Button>
                 </>
@@ -414,11 +415,11 @@ export function UniversalUtilityAllocation({
                 animationDelay: `${index * 100}ms`
               }}
             >
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-3">
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <div className={cn(
                     "rounded-lg flex-shrink-0 transition-colors",
-                    isEditing ? "p-3 bg-primary/10" : "p-2 bg-muted"
+                    isEditing ? "p-2 sm:p-3 bg-primary/10" : "p-2 bg-muted"
                   )}>
                     <Users className={cn(
                       "w-4 h-4",
@@ -435,9 +436,9 @@ export function UniversalUtilityAllocation({
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-3 flex-shrink-0">
+                <div className="flex items-center justify-end gap-2 flex-shrink-0 w-full sm:w-auto">
                   {isEditing ? (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
                       <Input
                         type="number"
                         min="0"
@@ -454,7 +455,7 @@ export function UniversalUtilityAllocation({
                             handleInputChange(allocation.leaseId, '0');
                           }
                         }}
-                        className="w-20 sm:w-24 text-right text-sm focus:ring-2 focus:ring-primary/50 transition-all"
+                        className="w-16 sm:w-20 text-right text-sm focus:ring-2 focus:ring-primary/50 transition-all"
                         placeholder="0"
                       />
                       <span className="text-sm text-muted-foreground font-medium">%</span>
@@ -471,7 +472,7 @@ export function UniversalUtilityAllocation({
 
           {/* Owner Responsibility */}
           {ownerPercentage > 0 && (
-            <div className="flex items-center justify-between p-3 sm:p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 border-blue-200 dark:border-blue-800 overflow-hidden transition-all duration-200 hover:shadow-md">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 sm:p-4 border rounded-lg bg-gradient-to-r from-blue-50 to-blue-100 dark:from-blue-950/50 dark:to-blue-900/50 border-blue-200 dark:border-blue-800 overflow-hidden transition-all duration-200 hover:shadow-md">
               <div className="flex items-center gap-3 min-w-0 flex-1">
                 <div className="p-2 sm:p-3 rounded-lg bg-blue-200 dark:bg-blue-800 flex-shrink-0">
                   <Home className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-300" />
@@ -480,7 +481,7 @@ export function UniversalUtilityAllocation({
                   Owner Responsibility
                 </div>
               </div>
-              <div className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400 flex-shrink-0">
+              <div className="text-lg sm:text-xl font-bold text-blue-600 dark:text-blue-400 flex-shrink-0 text-right sm:text-left">
                 {ownerPercentage}%
               </div>
             </div>
@@ -490,16 +491,17 @@ export function UniversalUtilityAllocation({
         {/* Quick Actions */}
         {isEditing && (
           <div className="bg-muted/30 rounded-lg p-3 border-t">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="flex gap-2 flex-1">
+            <div className="flex flex-col gap-3">
+              <div className="flex gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleEqualSplit}
-                  className="flex-1 sm:flex-none transition-all hover:scale-105 active:scale-95"
+                  className="flex-1 transition-all hover:scale-105 active:scale-95 text-xs"
                 >
-                  <Users className="w-4 h-4 mr-2" />
-                  Equal Split
+                  <Users className="w-4 h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Equal Split</span>
+                  <span className="sm:hidden">Equal</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -514,15 +516,16 @@ export function UniversalUtilityAllocation({
                     });
                     setInputValues(clearedInputs);
                   }}
-                  className="flex-1 sm:flex-none transition-all hover:scale-105 active:scale-95"
+                  className="flex-1 transition-all hover:scale-105 active:scale-95 text-xs"
                 >
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  Clear All
+                  <AlertTriangle className="w-4 h-4 mr-1 sm:mr-2" />
+                  <span className="hidden sm:inline">Clear All</span>
+                  <span className="sm:hidden">Clear</span>
                 </Button>
               </div>
               
               {/* Quick percentage buttons */}
-              <div className="flex gap-1 sm:gap-2">
+              <div className="flex gap-1 justify-center">
                 {[25, 50, 75, 100].map((percent) => (
                   <Button
                     key={percent}
@@ -536,7 +539,7 @@ export function UniversalUtilityAllocation({
                       }
                     }}
                     disabled={allocations.length !== 1}
-                    className="text-xs px-2 py-1 h-auto min-w-[40px] transition-all hover:scale-105 active:scale-95"
+                    className="text-xs px-3 py-1 h-auto min-w-[45px] flex-1 transition-all hover:scale-105 active:scale-95"
                     title={allocations.length !== 1 ? "Only available with single tenant" : `Set to ${percent}%`}
                   >
                     {percent}%
@@ -549,28 +552,31 @@ export function UniversalUtilityAllocation({
 
         {/* Summary */}
         <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950 border border-green-200 dark:border-green-800 rounded-lg p-3">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-3">
             <h4 className="font-semibold text-green-800 dark:text-green-200 flex items-center gap-2 text-sm">
               <CheckCircle className="w-4 h-4" />
               Allocation Summary
             </h4>
-            <div className="text-right">
+            <div className="text-right sm:text-center">
               <div className="text-xl font-bold text-green-600">{totalAllocated}%</div>
               <div className="text-xs text-muted-foreground">to tenants</div>
             </div>
           </div>
-          <div className="grid grid-cols-3 gap-2 text-xs">
-            <div className="text-center p-2 bg-white/50 dark:bg-black/20 rounded">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+            <div className="flex justify-between sm:block sm:text-center p-2 bg-white/50 dark:bg-black/20 rounded">
+              <div className="sm:hidden text-muted-foreground">Active Tenants</div>
               <div className="font-semibold text-base">{activeLeases.length}</div>
-              <div className="text-muted-foreground">Active Tenants</div>
+              <div className="hidden sm:block text-muted-foreground">Active Tenants</div>
             </div>
-            <div className="text-center p-2 bg-white/50 dark:bg-black/20 rounded">
+            <div className="flex justify-between sm:block sm:text-center p-2 bg-white/50 dark:bg-black/20 rounded">
+              <div className="sm:hidden text-muted-foreground">Utilities</div>
               <div className="font-semibold text-base">{UTILITY_TYPES.length}</div>
-              <div className="text-muted-foreground">Utilities</div>
+              <div className="hidden sm:block text-muted-foreground">Utilities</div>
             </div>
-            <div className="text-center p-2 bg-white/50 dark:bg-black/20 rounded">
+            <div className="flex justify-between sm:block sm:text-center p-2 bg-white/50 dark:bg-black/20 rounded">
+              <div className="sm:hidden text-muted-foreground">Owner Share</div>
               <div className="font-semibold text-base text-blue-600">{ownerPercentage}%</div>
-              <div className="text-muted-foreground">Owner Share</div>
+              <div className="hidden sm:block text-muted-foreground">Owner Share</div>
             </div>
           </div>
         </div>

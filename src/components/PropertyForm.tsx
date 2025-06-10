@@ -5,6 +5,9 @@ import * as z from "zod";
 import { useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { SelectNative } from "@/components/ui/select-native";
+import { FormField } from "@/components/ui/form-field";
+import { FormContainer } from "@/components/ui/form-container";
 
 export interface PropertyFormProps {
   initial?: {
@@ -115,7 +118,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
   const statusOptions = ["Available", "Occupied", "Maintenance", "Under Contract"];
 
   return (
-    <div className="dark:bg-gradient-to-br dark:from-gray-900/50 dark:to-gray-800/30 dark:border dark:border-gray-700/50 dark:rounded-lg dark:p-6">
+    <FormContainer variant="elevated">
       <form
         className="space-y-6"
         onSubmit={handleSubmit(onSubmit)}
@@ -128,113 +131,126 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
       >
         Fill with Dummy Data
       </Button>
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Property Name</label>
+      <FormField
+        label="Property Name"
+        required
+        error={errors.name?.message}
+      >
         <Input
           {...register("name")}
           placeholder="Enter property name"
         />
-        {errors.name && <span className="text-sm text-destructive">{errors.name.message}</span>}
-      </div>
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Address</label>
+      </FormField>
+      <FormField
+        label="Address"
+        required
+        error={errors.address?.message}
+      >
         <Input
           {...register("address")}
           placeholder="Enter property address"
         />
-        {errors.address && <span className="text-sm text-destructive">{errors.address.message}</span>}
-      </div>
+      </FormField>
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Property Type</label>
-          <select
-            className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
-            {...register("type")}
-          >
+        <FormField
+          label="Property Type"
+          required
+          error={errors.type?.message}
+        >
+          <SelectNative {...register("type")}>
             <option value="">Select property type</option>
             {propertyTypes.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
-          </select>
-          {errors.type && <span className="text-sm text-destructive">{errors.type.message}</span>}
-        </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Status</label>
-          <select
-            className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
-            {...register("status")}
-          >
+          </SelectNative>
+        </FormField>
+        
+        <FormField
+          label="Status"
+          required
+          error={errors.status?.message}
+        >
+          <SelectNative {...register("status")}>
             {statusOptions.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
-          </select>
-          {errors.status && <span className="text-sm text-destructive">{errors.status.message}</span>}
-        </div>
+          </SelectNative>
+        </FormField>
       </div>
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Bedrooms</label>
+        <FormField
+          label="Bedrooms"
+          required
+          error={errors.bedrooms?.message}
+        >
           <Input
             type="number"
             min={0}
             {...register("bedrooms", { valueAsNumber: true })}
             placeholder="0"
           />
-          {errors.bedrooms && <span className="text-sm text-destructive">{errors.bedrooms.message}</span>}
-        </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Bathrooms</label>
+        </FormField>
+        
+        <FormField
+          label="Bathrooms"
+          required
+          error={errors.bathrooms?.message}
+        >
           <Input
             type="number"
             min={0}
             {...register("bathrooms", { valueAsNumber: true })}
             placeholder="0"
           />
-          {errors.bathrooms && <span className="text-sm text-destructive">{errors.bathrooms.message}</span>}
-        </div>
+        </FormField>
       </div>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Square Feet</label>
-          <Input
-            type="number"
-            min={0}
-            {...register("squareFeet", { valueAsNumber: true })}
-            placeholder="0"
-          />
-          {errors.squareFeet && <span className="text-sm text-destructive">{errors.squareFeet.message}</span>}
-        </div>
-      </div>
-      <div className="space-y-2">
-        <label className="block text-sm font-medium text-foreground dark:text-gray-200">Purchase Date</label>
+      <FormField
+        label="Square Feet"
+        required
+        error={errors.squareFeet?.message}
+      >
+        <Input
+          type="number"
+          min={0}
+          {...register("squareFeet", { valueAsNumber: true })}
+          placeholder="0"
+        />
+      </FormField>
+      <FormField
+        label="Purchase Date"
+        required
+        error={errors.purchaseDate?.message}
+      >
         <Input
           type="date"
           {...register("purchaseDate")}
         />
-        {errors.purchaseDate && <span className="text-sm text-destructive">{errors.purchaseDate.message}</span>}
-      </div>
+      </FormField>
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Monthly Mortgage ($)</label>
+        <FormField
+          label="Monthly Mortgage ($)"
+          error={errors.monthlyMortgage?.message}
+        >
           <Input
             type="number"
             min={0}
             {...register("monthlyMortgage", { valueAsNumber: true })}
             placeholder="Optional"
           />
-          {errors.monthlyMortgage && <span className="text-sm text-destructive">{errors.monthlyMortgage.message}</span>}
-        </div>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Monthly CapEx Reserve ($)</label>
+        </FormField>
+        
+        <FormField
+          label="Monthly CapEx Reserve ($)"
+          description="Auto-calculated as 10% of mortgage"
+          error={errors.monthlyCapEx?.message}
+        >
           <Input
             type="number"
             min={0}
             {...register("monthlyCapEx", { valueAsNumber: true })}
             placeholder="Auto-calculated (10% of mortgage)"
           />
-          <p className="text-xs text-muted-foreground mt-1">Auto-calculated as 10% of mortgage</p>
-          {errors.monthlyCapEx && <span className="text-sm text-destructive">{errors.monthlyCapEx.message}</span>}
-        </div>
+        </FormField>
       </div>
       <div className="flex gap-2 justify-end pt-4">
         {onCancel && (
@@ -247,6 +263,6 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
         </Button>
       </div>
       </form>
-    </div>
+    </FormContainer>
   );
 } 

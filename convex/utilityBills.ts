@@ -763,3 +763,152 @@ export const getUtilityBillsByProperty = query({
     });
   },
 });
+
+// Get real-time bill split preview calculation
+export const getBillSplitPreview = query({
+  args: {
+    propertyId: v.id("properties"),
+    utilityType: v.string(),
+    totalAmount: v.number(),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Verify property ownership
+    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, args.userId);
+    if (!isOwner) {
+      throw new Error("You do not have permission to access this property");
+    }
+
+    // Validate amount
+    if (args.totalAmount <= 0) {
+      return {
+        charges: [],
+        ownerPortion: 0,
+        totalTenantPercentage: 0,
+        isValid: false,
+        message: "Total amount must be greater than 0",
+      };
+    }
+
+    // Get all active leases for the property
+    const activeLeases = await ctx.db
+      .query("leases")
+      .withIndex("by_property", (q: any) => q.eq("propertyId", args.propertyId))
+      .filter((q: any) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    if (activeLeases.length === 0) {
+      return {
+        charges: [],
+        ownerPortion: args.totalAmount,
+        totalTenantPercentage: 0,
+        isValid: false,
+        message: "No active leases found for this property",
+      };
+    }
+
+    // Get all units for the property to identify vacant ones
+    const allUnits = await ctx.db
+      .query("units")
+      .withIndex("by_property", (q: any) => q.eq("propertyId", args.propertyId))
+      .collect();
+
+    const charges = [];
+    let totalTenantPercentage = 0;
+    let leasesWithSettings = 0;
+    let vacantUnits = [];
+
+    // Identify vacant units (units without active leases)
+    const occupiedUnitIds = new Set(activeLeases.map(lease => lease.unitId).filter(Boolean));
+    vacantUnits = allUnits.filter(unit => !occupiedUnitIds.has(unit._id));
+
+    // Calculate charges for each lease based on utility settings
+    for (const lease of activeLeases) {
+      // Get utility setting for this lease and utility type
+      const setting = await ctx.db
+        .query("leaseUtilitySettings")
+        .withIndex("by_lease", (q: any) => q.eq("leaseId", lease._id))
+        .filter((q: any) => q.eq(q.field("utilityType"), args.utilityType))
+        .first();
+
+      // Get unit information if available
+      let unitInfo = null;
+      if (lease.unitId) {
+        const unit = await ctx.db.get(lease.unitId);
+        unitInfo = unit ? {
+          unitIdentifier: unit.unitIdentifier,
+          displayName: unit.displayName,
+        } : null;
+      }
+
+      if (setting && setting.responsibilityPercentage > 0) {
+        const chargedAmount = (args.totalAmount * setting.responsibilityPercentage) / 100;
+        charges.push({
+          leaseId: lease._id,
+          unitId: lease.unitId,
+          tenantName: lease.tenantName,
+          chargedAmount: Math.round(chargedAmount * 100) / 100, // Round to cents
+          responsibilityPercentage: setting.responsibilityPercentage,
+          unit: unitInfo,
+          hasUtilitySettings: true,
+        });
+        totalTenantPercentage += setting.responsibilityPercentage;
+        leasesWithSettings++;
+      } else {
+        // Show lease with no settings
+        charges.push({
+          leaseId: lease._id,
+          unitId: lease.unitId,
+          tenantName: lease.tenantName,
+          chargedAmount: 0,
+          responsibilityPercentage: 0,
+          unit: unitInfo,
+          hasUtilitySettings: false,
+        });
+      }
+    }
+
+    // Calculate owner portion
+    const ownerPortion = args.totalAmount - (args.totalAmount * totalTenantPercentage) / 100;
+
+    // Determine validity and messages
+    let isValid = true;
+    let message = "";
+    
+    if (totalTenantPercentage > 100) {
+      isValid = false;
+      message = `Utility percentages sum to ${totalTenantPercentage}%, which exceeds 100%`;
+    } else if (leasesWithSettings === 0) {
+      isValid = false;
+      message = `No utility responsibility settings found for ${args.utilityType}`;
+    } else if (leasesWithSettings < activeLeases.length) {
+      message = `${leasesWithSettings} of ${activeLeases.length} leases have ${args.utilityType} settings configured`;
+    } else {
+      message = "All leases have utility settings configured";
+    }
+
+    // Sort charges by unit identifier if available, otherwise by tenant name
+    charges.sort((a, b) => {
+      if (a.unit?.unitIdentifier && b.unit?.unitIdentifier) {
+        return a.unit.unitIdentifier.localeCompare(b.unit.unitIdentifier);
+      }
+      return a.tenantName.localeCompare(b.tenantName);
+    });
+
+    return {
+      charges,
+      ownerPortion: Math.round(ownerPortion * 100) / 100,
+      totalTenantPercentage,
+      leasesWithSettings,
+      totalLeases: activeLeases.length,
+      vacantUnits: vacantUnits.map(unit => ({
+        unitId: unit._id,
+        unitIdentifier: unit.unitIdentifier,
+        displayName: unit.displayName,
+      })),
+      totalUnits: allUnits.length,
+      isValid,
+      message,
+    };
+  },
+});

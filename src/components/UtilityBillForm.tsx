@@ -3,9 +3,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SelectNative } from "@/components/ui/select-native";
+import { FormField } from "@/components/ui/form-field";
 import { Textarea } from "@/components/ui/textarea";
 import { Id } from "@/../convex/_generated/dataModel";
-import { DollarSign, AlertCircle, Settings } from "lucide-react";
+import { DollarSign, AlertCircle, Settings, Home, Upload, X, CheckCircle, FileText, Sparkles, HelpCircle, Calendar, Calculator } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { useDropzone } from "react-dropzone";
@@ -13,8 +15,9 @@ import { useUser } from "@clerk/nextjs";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { DOCUMENT_TYPES } from "@/../convex/documents";
-import { Upload, X, CheckCircle, FileText, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { BillSplitPreview } from "./BillSplitPreview";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface UtilityBillFormProps {
   defaultMonth?: string;
@@ -139,31 +142,44 @@ export function UtilityBillForm({
     const newErrors: Record<string, string> = {};
 
     if (!propertyId) {
-      newErrors.propertyId = "Property is required";
+      newErrors.propertyId = "Please select a property to assign this utility bill";
     }
 
     if (!utilityType) {
-      newErrors.utilityType = "Utility type is required";
+      newErrors.utilityType = "Please specify the type of utility (Electric, Water, Gas, etc.)";
     }
 
     if (!provider.trim()) {
-      newErrors.provider = "Provider is required";
+      newErrors.provider = "Please enter the utility company name (e.g., City Electric Co.)";
     }
 
     if (!billMonth) {
-      newErrors.billMonth = "Bill month is required";
+      newErrors.billMonth = "Please select the month this bill covers";
     }
 
-    if (!totalAmount || isNaN(Number(totalAmount)) || Number(totalAmount) <= 0) {
-      newErrors.totalAmount = "Total amount must be greater than 0";
+    if (!totalAmount || isNaN(Number(totalAmount))) {
+      newErrors.totalAmount = "Please enter a valid dollar amount for the total bill";
+    } else if (Number(totalAmount) <= 0) {
+      newErrors.totalAmount = "Bill amount must be greater than $0.00";
+    } else if (Number(totalAmount) > 10000) {
+      newErrors.totalAmount = "Bill amount seems unusually high. Please verify the amount.";
     }
 
     if (!dueDate) {
-      newErrors.dueDate = "Due date is required";
+      newErrors.dueDate = "Please enter when this bill is due to be paid";
     }
 
     if (!billDate) {
-      newErrors.billDate = "Bill date is required";
+      newErrors.billDate = "Please enter the date this bill was issued";
+    }
+
+    // Cross-field validation
+    if (billDate && dueDate) {
+      const billDateObj = new Date(billDate);
+      const dueDateObj = new Date(dueDate);
+      if (dueDateObj < billDateObj) {
+        newErrors.dueDate = "Due date cannot be before the bill date";
+      }
     }
 
     setErrors(newErrors);
@@ -290,11 +306,19 @@ export function UtilityBillForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <TooltipProvider>
+      <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6 max-w-4xl mx-auto">
+      {/* Basic Information Section */}
+      <div className="bg-white/50 rounded-lg border p-4 sm:p-6 space-y-4">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Home className="w-5 h-5" />
+          Basic Information
+        </h3>
+        
       {/* Property Selection */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <Label htmlFor="propertyId">Property *</Label>
+          <Label>Property *</Label>
           {!initial && (
             <Button
               type="button"
@@ -314,34 +338,33 @@ export function UtilityBillForm({
             </Button>
           )}
         </div>
-        <select
-          id="propertyId"
-          value={propertyId}
-          onChange={(e) => setPropertyId(e.target.value)}
-          className="w-full h-10 px-3 rounded-md border bg-background"
-          disabled={loading}
+        <FormField
+          error={errors.propertyId}
+          description={propertyId && !initial ? `Tip: Use "Generate Year's Bills" to create test data for ${new Date().getFullYear()}` : undefined}
         >
-          <option value="">Select a property</option>
-          {properties?.map((property) => (
-            <option key={property._id} value={property._id}>
-              {property.name}
-            </option>
-          ))}
-        </select>
-        {errors.propertyId && (
-          <p className="text-sm text-red-500 mt-1">{errors.propertyId}</p>
-        )}
-        {propertyId && !initial && (
-          <p className="text-xs text-muted-foreground mt-1">
-            Tip: Use "Generate Year's Bills" to create test data for {new Date().getFullYear()}
-          </p>
-        )}
+          <SelectNative
+            id="propertyId"
+            value={propertyId}
+            onChange={(e) => setPropertyId(e.target.value)}
+            disabled={loading}
+          >
+            <option value="">Select a property</option>
+            {properties?.map((property) => (
+              <option key={property._id} value={property._id}>
+                {property.name}
+              </option>
+            ))}
+          </SelectNative>
+        </FormField>
       </div>
 
       {/* Utility Type */}
-      <div>
-        <Label htmlFor="utilityType">Utility Type *</Label>
-        <select
+      <FormField
+        label="Utility Type"
+        required
+        error={errors.utilityType}
+      >
+        <SelectNative
           id="utilityType"
           value={utilityType}
           onChange={(e) => {
@@ -349,7 +372,6 @@ export function UtilityBillForm({
             // Reset provider when type changes
             if (!initial) setProvider("");
           }}
-          className="w-full h-10 px-3 rounded-md border bg-background"
           disabled={loading}
         >
           <option value="">Select utility type</option>
@@ -358,51 +380,98 @@ export function UtilityBillForm({
               {type}
             </option>
           ))}
-        </select>
-        {errors.utilityType && (
-          <p className="text-sm text-red-500 mt-1">{errors.utilityType}</p>
-        )}
-      </div>
+        </SelectNative>
+      </FormField>
 
-      {/* Provider */}
+      {/* Provider with Touch-Friendly Selection */}
       <div>
-        <Label htmlFor="provider">Provider *</Label>
-        <div className="space-y-2">
+        <div className="flex items-center gap-2 mb-2">
+          <Label htmlFor="provider">Provider *</Label>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-64">
+              <div className="space-y-2">
+                <p className="font-medium">Name of the utility company</p>
+                <ul className="text-xs space-y-1">
+                  <li>• Use the exact name from your bill</li>
+                  <li>• Helps track billing patterns</li>
+                  <li>• Click suggested providers for common choices</li>
+                </ul>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="space-y-3">
           <Input
             id="provider"
             value={provider}
             onChange={(e) => setProvider(e.target.value)}
             placeholder="e.g., City Electric Company"
             disabled={loading}
-            className={errors.provider ? "border-red-500" : ""}
+            className={`h-11 ${errors.provider ? "border-destructive" : ""}`}
           />
           {suggestedProviders.length > 0 && !provider && (
-            <div className="flex flex-wrap gap-2">
-              <span className="text-xs text-muted-foreground">Quick select:</span>
-              {suggestedProviders.map((p) => (
-                <Button
-                  key={p}
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setProvider(p)}
-                  className="text-xs h-7"
-                >
-                  {p}
-                </Button>
-              ))}
+            <div className="space-y-2">
+              <span className="text-sm font-medium text-muted-foreground">Popular {utilityType} Providers:</span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {suggestedProviders.map((p) => (
+                  <Button
+                    key={p}
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setProvider(p)}
+                    className="h-10 justify-start text-left px-3"
+                    disabled={loading}
+                  >
+                    {p}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+          {provider && suggestedProviders.length > 0 && (
+            <div className="text-xs text-muted-foreground">
+              Selected provider: {provider}
             </div>
           )}
         </div>
         {errors.provider && (
-          <p className="text-sm text-red-500 mt-1">{errors.provider}</p>
+          <p className="text-sm text-destructive mt-1">{errors.provider}</p>
         )}
       </div>
+      </div>
+
+      {/* Billing Details Section */}
+      <div className="bg-white/50 rounded-lg border p-4 sm:p-6 space-y-4">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Calendar className="w-5 h-5" />
+          Billing Details
+        </h3>
 
       {/* Bill Month and Advanced Mode Toggle */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <Label htmlFor="billMonth">Bill Month *</Label>
+          <div className="flex items-center gap-2">
+            <Label htmlFor="billMonth">Bill Month *</Label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Calendar className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-64">
+                <div className="space-y-2">
+                  <p className="font-medium">Month this bill covers</p>
+                  <ul className="text-xs space-y-1">
+                    <li>• Usually found at the top of your bill</li>
+                    <li>• Different from due date</li>
+                    <li>• Used for monthly comparisons and reporting</li>
+                  </ul>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </div>
           <Button
             type="button"
             variant="ghost"
@@ -420,21 +489,22 @@ export function UtilityBillForm({
           value={billMonth}
           onChange={(e) => setBillMonth(e.target.value)}
           disabled={loading}
-          className={errors.billMonth ? "border-red-500" : ""}
+          className={errors.billMonth ? "border-destructive" : ""}
         />
         {errors.billMonth && (
-          <p className="text-sm text-red-500 mt-1">{errors.billMonth}</p>
+          <p className="text-sm text-destructive mt-1">{errors.billMonth}</p>
         )}
       </div>
 
       {/* Billing Period */}
-      <div>
-        <Label htmlFor="billingPeriod">Billing Period</Label>
-        <select
+      <FormField
+        label="Billing Period"
+        description="How often this utility bill is issued"
+      >
+        <SelectNative
           id="billingPeriod"
           value={billingPeriod}
           onChange={(e) => setBillingPeriod(e.target.value)}
-          className="w-full h-10 px-3 rounded-md border bg-background"
           disabled={loading}
         >
           {BILLING_PERIODS.map((period) => (
@@ -442,37 +512,134 @@ export function UtilityBillForm({
               {period.label}
             </option>
           ))}
-        </select>
-        <p className="text-xs text-muted-foreground mt-1">
-          How often this utility bill is issued
-        </p>
-      </div>
+        </SelectNative>
+      </FormField>
 
-      {/* Amount */}
+      {/* Amount with Quick Helper Buttons */}
       <div>
-        <Label htmlFor="totalAmount">Total Amount *</Label>
-        <div className="relative">
-          <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            id="totalAmount"
-            type="number"
-            step="0.01"
-            min="0"
-            value={totalAmount}
-            onChange={(e) => setTotalAmount(e.target.value)}
-            placeholder="0.00"
-            className={`pl-9 ${errors.totalAmount ? "border-red-500" : ""}`}
-            disabled={loading}
-          />
+        <div className="flex items-center gap-2 mb-2">
+          <Label htmlFor="totalAmount">Total Amount *</Label>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <HelpCircle className="w-4 h-4 text-muted-foreground hover:text-foreground cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-64">
+              <div className="space-y-2">
+                <p className="font-medium">Enter the total amount from your utility bill</p>
+                <ul className="text-xs space-y-1">
+                  <li>• Include all fees and taxes</li>
+                  <li>• Use the final amount due</li>
+                  <li>• Will be split among tenants based on their utility percentages</li>
+                </ul>
+              </div>
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="space-y-3">
+          <div className="relative">
+            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              id="totalAmount"
+              type="number"
+              step="0.01"
+              min="0"
+              value={totalAmount}
+              onChange={(e) => setTotalAmount(e.target.value)}
+              placeholder="0.00"
+              className={`pl-9 text-lg h-12 ${errors.totalAmount ? "border-destructive" : ""}`}
+              disabled={loading}
+            />
+          </div>
+          
+          {/* Quick Amount Buttons */}
+          {!totalAmount && (
+            <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+              {[50, 75, 100, 125, 150, 200].map((amount) => (
+                <Button
+                  key={amount}
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setTotalAmount(amount.toString())}
+                  className="text-xs h-8 px-2"
+                  disabled={loading}
+                >
+                  ${amount}
+                </Button>
+              ))}
+            </div>
+          )}
+          
+          {/* Clear Amount Button */}
+          {totalAmount && (
+            <div className="flex justify-between items-center">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => setTotalAmount("")}
+                className="text-xs h-7 px-2 text-muted-foreground hover:text-foreground"
+                disabled={loading}
+              >
+                Clear Amount
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Tip: Tap quick amounts above to set common values
+              </span>
+            </div>
+          )}
         </div>
         {errors.totalAmount && (
-          <p className="text-sm text-red-500 mt-1">{errors.totalAmount}</p>
+          <p className="text-sm text-destructive mt-1">{errors.totalAmount}</p>
         )}
       </div>
+      </div>
 
-      {/* Dates - Only show in advanced mode */}
+      {/* Real-time Bill Split Preview */}
+      {propertyId && utilityType && totalAmount && Number(totalAmount) > 0 && user && (
+        <div className="bg-gradient-to-br from-blue-50/50 to-green-50/50 rounded-lg border border-blue-200/50 p-4 sm:p-6 space-y-4 transition-all duration-300 animate-in slide-in-from-bottom-2">
+          <div className="flex items-center gap-2 mb-4">
+            <Calculator className="w-5 h-5 text-blue-600" />
+            <span className="text-lg font-semibold text-blue-800">
+              Live Split Preview
+            </span>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <HelpCircle className="w-4 h-4 text-blue-600 hover:text-blue-800 cursor-help" />
+              </TooltipTrigger>
+              <TooltipContent className="max-w-72">
+                <div className="space-y-2">
+                  <p className="font-medium">Real-time utility split calculation</p>
+                  <ul className="text-xs space-y-1">
+                    <li>• Shows how the bill will be divided among tenants</li>
+                    <li>• Based on each lease's utility responsibility percentages</li>
+                    <li>• Owner covers remaining percentage + vacant units</li>
+                    <li>• Updates automatically as you type</li>
+                  </ul>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </div>
+          <BillSplitPreview
+            propertyId={propertyId as Id<"properties">}
+            utilityType={utilityType}
+            totalAmount={Number(totalAmount)}
+            userId={user.id}
+            mode="preview"
+          />
+        </div>
+      )}
+
+      {/* Advanced Options Section */}
       {advancedMode && (
-        <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white/50 rounded-lg border p-4 sm:p-6 space-y-4">
+          <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+            <Settings className="w-5 h-5" />
+            Advanced Options
+          </h3>
+        
+        {/* Dates */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <Label htmlFor="billDate">Bill Date *</Label>
             <Input
@@ -481,10 +648,10 @@ export function UtilityBillForm({
               value={billDate}
               onChange={(e) => setBillDate(e.target.value)}
               disabled={loading}
-              className={errors.billDate ? "border-red-500" : ""}
+              className={errors.billDate ? "border-destructive" : ""}
             />
             {errors.billDate && (
-              <p className="text-sm text-red-500 mt-1">{errors.billDate}</p>
+              <p className="text-sm text-destructive mt-1">{errors.billDate}</p>
             )}
           </div>
 
@@ -496,12 +663,13 @@ export function UtilityBillForm({
               value={dueDate}
               onChange={(e) => setDueDate(e.target.value)}
               disabled={loading}
-              className={errors.dueDate ? "border-red-500" : ""}
+              className={errors.dueDate ? "border-destructive" : ""}
             />
             {errors.dueDate && (
-              <p className="text-sm text-red-500 mt-1">{errors.dueDate}</p>
+              <p className="text-sm text-destructive mt-1">{errors.dueDate}</p>
             )}
           </div>
+        </div>
         </div>
       )}
 
@@ -515,6 +683,13 @@ export function UtilityBillForm({
           <p className="text-xs mt-2">Use "Advanced" mode to customize these dates</p>
         </div>
       )}
+
+      {/* Additional Information Section */}
+      <div className="bg-white/50 rounded-lg border p-4 sm:p-6 space-y-4">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <FileText className="w-5 h-5" />
+          Additional Information
+        </h3>
 
       {/* Notes */}
       <div>
@@ -604,18 +779,32 @@ export function UtilityBillForm({
           Upload the utility bill document. It will be automatically linked to this property and stored in your documents.
         </p>
       </div>
+      </div>
 
       {/* Actions */}
-      <div className="flex gap-3 pt-4">
-        <Button type="submit" disabled={loading}>
-          {loading ? "Saving..." : initial ? "Update Bill" : "Add Bill"}
-        </Button>
-        {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
-            Cancel
+      <div className="bg-white/50 rounded-lg border p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row gap-3 w-full">
+          <Button 
+            type="submit" 
+            disabled={loading}
+            className="flex-1 h-12 text-base font-medium"
+          >
+            {loading ? "Saving..." : initial ? "Update Bill" : "Add Bill"}
           </Button>
-        )}
+          {onCancel && (
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel} 
+              disabled={loading}
+              className="flex-1 sm:flex-none h-12 text-base"
+            >
+              Cancel
+            </Button>
+          )}
+        </div>
       </div>
     </form>
+    </TooltipProvider>
   );
 }

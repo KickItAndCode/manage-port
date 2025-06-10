@@ -5,7 +5,11 @@ import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { leaseSchema, type LeaseFormData } from "@/lib/validation";
+import { SelectNative } from "@/components/ui/select-native";
+import { FormField } from "@/components/ui/form-field";
+import { FormContainer } from "@/components/ui/form-container";
+import { Textarea } from "@/components/ui/textarea";
+import { leaseSchema, multiUnitLeaseSchema, type LeaseFormData } from "@/lib/validation";
 import { LeaseDocumentUpload } from "@/components/LeaseDocumentUpload";
 import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
@@ -58,20 +62,6 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>(initial?.propertyId || "");
   const [selectedUnitId, setSelectedUnitId] = useState<string>(initial?.unitId || "");
   
-  const {
-    register,
-    handleSubmit,
-    formState: { errors, isSubmitting },
-    reset,
-    watch,
-    setValue,
-  } = useForm<LeaseFormType>({
-    resolver: zodResolver(leaseSchema),
-    defaultValues: initial as LeaseFormType || {
-      status: "pending",
-    },
-  });
-
   // Query units for selected property
   const units = useQuery(
     api.units.getUnitsByProperty,
@@ -79,6 +69,34 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
       ? { propertyId: selectedPropertyId as Id<"properties">, userId }
       : "skip"
   );
+
+  // Query selected property details to determine if unit selection is required
+  const selectedProperty = useQuery(
+    api.properties.getProperty,
+    selectedPropertyId && userId
+      ? { id: selectedPropertyId as Id<"properties">, userId }
+      : "skip"
+  );
+
+  // Determine if unit selection is required based on property type and available units
+  const isMultiUnit = selectedProperty?.propertyType === "multi-family" || (units && units.length > 1);
+  const requiresUnitSelection = isMultiUnit && units && units.length > 0;
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+    reset,
+    watch,
+    setValue,
+    setError,
+    clearErrors,
+  } = useForm<LeaseFormType>({
+    resolver: zodResolver(requiresUnitSelection ? multiUnitLeaseSchema : leaseSchema),
+    defaultValues: initial as LeaseFormType || {
+      status: "pending",
+    },
+  });
 
   // Update selected property when form value changes
   const watchedPropertyId = watch("propertyId");
@@ -134,7 +152,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
   }
 
   return (
-    <div className="dark:bg-gradient-to-br dark:from-gray-900/50 dark:to-gray-800/30 dark:border dark:border-gray-700/50 dark:rounded-lg dark:p-6">
+    <FormContainer variant="elevated">
       <form
         className="space-y-6"
         onSubmit={handleSubmit((data) => {
@@ -158,104 +176,134 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
           </Button>
         </div>
       
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Property *</label>
-          <select
-            className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
-            {...register("propertyId")}
-            required
-          >
+        <FormField 
+          label="Property" 
+          required 
+          error={errors.propertyId?.message}
+        >
+          <SelectNative {...register("propertyId")} required>
             <option value="">Select property</option>
             {properties.map((p) => (
               <option key={p._id} value={p._id}>
                 {p.name} {p.address ? `- ${p.address}` : ''}
               </option>
             ))}
-          </select>
-          {errors.propertyId && <span className="text-sm text-destructive">{errors.propertyId.message}</span>}
-        </div>
+          </SelectNative>
+        </FormField>
 
-        {/* Unit Selection - Only show if property has units */}
+        {/* Unit Selection - Show if property has units */}
         {units && units.length > 0 && (
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Unit</label>
-            <select
-              className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
+          <FormField
+            label="Unit"
+            required={requiresUnitSelection}
+            error={errors.unitId?.message}
+            description={
+              requiresUnitSelection 
+                ? "Unit selection is required for multi-unit properties. Units marked as \"occupied\" already have active leases."
+                : "Select a specific unit for this lease. Units marked as \"occupied\" already have active leases."
+            }
+          >
+            <SelectNative
               value={selectedUnitId}
               onChange={(e) => {
                 setSelectedUnitId(e.target.value);
                 setValue("unitId" as any, e.target.value);
+                if (e.target.value && errors.unitId) {
+                  clearErrors("unitId");
+                }
               }}
+              required={requiresUnitSelection}
+              className={errors.unitId ? "border-destructive" : ""}
             >
-              <option value="">Select unit (optional)</option>
+              <option value="">
+                {requiresUnitSelection ? "Select unit (required)" : "Select unit (optional)"}
+              </option>
               {units.map((unit) => (
                 <option key={unit._id} value={unit._id} disabled={unit.status === "occupied"}>
                   {unit.unitIdentifier} - {unit.status}
                   {unit.bedrooms && ` (${unit.bedrooms}BR)`}
                 </option>
               ))}
-            </select>
-            <p className="text-xs text-muted-foreground mt-1">
-              Select a specific unit for this lease. Units marked as &quot;occupied&quot; already have active leases.
-            </p>
-          </div>
+            </SelectNative>
+            
+            {requiresUnitSelection && !selectedUnitId && (
+              <div className="flex items-center gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+                <span className="text-xs text-amber-700 dark:text-amber-300">
+                  ⚠️ This property requires unit assignment for proper utility billing and lease management.
+                </span>
+              </div>
+            )}
+          </FormField>
         )}
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Tenant Name *</label>
+        <FormField
+          label="Tenant Name"
+          required
+          error={errors.tenantName?.message}
+        >
           <Input
             placeholder="e.g., John Smith"
             {...register("tenantName")}
             required
           />
-          {errors.tenantName && <span className="text-sm text-destructive">{errors.tenantName.message}</span>}
-        </div>
+        </FormField>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Tenant Email (optional)</label>
+          <FormField
+            label="Tenant Email"
+            error={errors.tenantEmail?.message}
+          >
             <Input
               type="email"
               placeholder="tenant@email.com"
               {...register("tenantEmail")}
             />
-            {errors.tenantEmail && <span className="text-sm text-destructive">{errors.tenantEmail.message}</span>}
-          </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Tenant Phone (optional)</label>
+          </FormField>
+          
+          <FormField
+            label="Tenant Phone"
+            error={errors.tenantPhone?.message}
+          >
             <Input
               type="tel"
               placeholder="(555) 123-4567"
               {...register("tenantPhone")}
             />
-            {errors.tenantPhone && <span className="text-sm text-destructive">{errors.tenantPhone.message}</span>}
-          </div>
+          </FormField>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Start Date *</label>
+          <FormField
+            label="Start Date"
+            required
+            error={errors.startDate?.message}
+          >
             <Input
               type="date"
               {...register("startDate")}
               required
             />
-            {errors.startDate && <span className="text-sm text-destructive">{errors.startDate.message}</span>}
-          </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground dark:text-gray-200">End Date *</label>
+          </FormField>
+          
+          <FormField
+            label="End Date"
+            required
+            error={errors.endDate?.message}
+          >
             <Input
               type="date"
               {...register("endDate")}
               required
             />
-            {errors.endDate && <span className="text-sm text-destructive">{errors.endDate.message}</span>}
-          </div>
+          </FormField>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Monthly Rent ($) *</label>
+          <FormField
+            label="Monthly Rent ($)"
+            required
+            error={errors.rent?.message}
+          >
             <Input
               type="number"
               min={0}
@@ -264,10 +312,12 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
               {...register("rent", { valueAsNumber: true })}
               required
             />
-            {errors.rent && <span className="text-sm text-destructive">{errors.rent.message}</span>}
-          </div>
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Security Deposit ($)</label>
+          </FormField>
+          
+          <FormField
+            label="Security Deposit ($)"
+            error={errors.securityDeposit?.message}
+          >
             <Input
               type="number"
               min={0}
@@ -275,29 +325,26 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
               placeholder="0.00"
               {...register("securityDeposit", { valueAsNumber: true })}
             />
-            {errors.securityDeposit && <span className="text-sm text-destructive">{errors.securityDeposit.message}</span>}
-          </div>
+          </FormField>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="block text-sm font-medium text-foreground dark:text-gray-200">Status *</label>
-            <select
-              className="w-full h-10 px-3 rounded-md border transition-all outline-none bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary"
-              {...register("status")}
-              required
-            >
+          <FormField
+            label="Status"
+            required
+            error={errors.status?.message}
+          >
+            <SelectNative {...register("status")} required>
               <option value="pending">Pending</option>
               <option value="active">Active</option>
               <option value="expired">Expired</option>
-            </select>
+            </SelectNative>
             <div className="mt-1">
               {status === "active" && <Badge variant="default">Active Lease</Badge>}
               {status === "pending" && <Badge variant="secondary">Pending Lease</Badge>}
               {status === "expired" && <Badge variant="destructive">Expired Lease</Badge>}
             </div>
-            {errors.status && <span className="text-sm text-destructive">{errors.status.message}</span>}
-          </div>
+          </FormField>
         </div>
 
         <LeaseDocumentUpload
@@ -310,14 +357,16 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
           }}
         />
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-foreground dark:text-gray-200">Notes (optional)</label>
-          <textarea
-            className="w-full px-3 py-2 rounded-md border transition-all outline-none min-h-[80px] bg-background dark:bg-gray-900/50 border-input dark:border-gray-700 hover:border-gray-400 dark:hover:border-gray-600 focus:ring-2 focus:ring-primary/20 dark:focus:ring-primary/30 focus:border-primary dark:focus:border-primary resize-y"
+        <FormField
+          label="Notes"
+          error={errors.notes?.message}
+        >
+          <Textarea
             placeholder="Additional lease notes or terms"
+            rows={3}
             {...register("notes")}
           />
-        </div>
+        </FormField>
 
         <div className="flex gap-2 justify-end pt-4">
           {onCancel && (
@@ -330,6 +379,6 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
           </Button>
         </div>
       </form>
-    </div>
+    </FormContainer>
   );
 }
