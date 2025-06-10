@@ -133,106 +133,22 @@ export const createDefaultUtilityResponsibilities = mutation({
   },
 });
 
-// Migration: Update tenantUtilityCharges to use new unified payment fields
+// DEPRECATED: Migration for tenantUtilityCharges table (now removed)
 export const migrateTenantUtilityChargesPaymentFields = mutation({
   args: { 
     userId: v.string(),
     dryRun: v.optional(v.boolean())
   },
   handler: async (ctx, args) => {
-    const { userId, dryRun = true } = args;
-    
-    // Get all utility bills for this user
-    const bills = await ctx.db
-      .query("utilityBills")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .collect();
-
-    const billIds = bills.map(b => b._id);
-    
-    // Get all tenant charges for this user's bills
-    const allCharges = await ctx.db
-      .query("tenantUtilityCharges")
-      .collect();
-    
-    const userCharges = allCharges.filter(charge => 
-      billIds.includes(charge.utilityBillId)
-    );
-
-    // Filter charges that need migration (have old fields but not new ones)
-    const chargesToMigrate = userCharges.filter(charge => {
-      // Check if charge has old fields but missing new required fields
-      const hasOldFields = 'isPaid' in charge || 'paidDate' in charge;
-      const missingNewFields = !('fullyPaid' in charge) || !('tenantPaidAmount' in charge);
-      return hasOldFields || missingNewFields;
-    });
-
-    const summary = {
-      totalCharges: userCharges.length,
-      chargesToMigrate: chargesToMigrate.length,
-      chargesProcessed: 0,
-      errors: [] as string[],
-    };
-
-    if (dryRun) {
-      return {
-        ...summary,
-        message: `Dry run complete. ${chargesToMigrate.length} tenant charges would be migrated.`,
-        sampleCharge: chargesToMigrate.length > 0 ? {
-          id: chargesToMigrate[0]._id,
-          tenantName: chargesToMigrate[0].tenantName,
-          hasOldFields: {
-            isPaid: 'isPaid' in chargesToMigrate[0],
-            paidDate: 'paidDate' in chargesToMigrate[0]
-          },
-          missingNewFields: {
-            fullyPaid: !('fullyPaid' in chargesToMigrate[0]),
-            tenantPaidAmount: !('tenantPaidAmount' in chargesToMigrate[0]),
-            lastPaymentDate: !('lastPaymentDate' in chargesToMigrate[0])
-          }
-        } : null
-      };
-    }
-
-    // Actually migrate the charges if not a dry run
-    for (const charge of chargesToMigrate) {
-      try {
-        const updates: any = {};
-        
-        // Migrate old isPaid to fullyPaid
-        if ('isPaid' in charge && !('fullyPaid' in charge)) {
-          updates.fullyPaid = (charge as any).isPaid;
-        } else if (!('fullyPaid' in charge)) {
-          updates.fullyPaid = false; // Default value
-        }
-
-        // Set tenantPaidAmount based on old isPaid status
-        if (!('tenantPaidAmount' in charge)) {
-          if ((charge as any).isPaid || updates.fullyPaid) {
-            updates.tenantPaidAmount = (charge as any).chargedAmount;
-          } else {
-            updates.tenantPaidAmount = 0;
-          }
-        }
-
-        // Migrate old paidDate to lastPaymentDate
-        if ('paidDate' in charge && !('lastPaymentDate' in charge)) {
-          updates.lastPaymentDate = (charge as any).paidDate;
-        }
-
-        // Set updatedAt
-        updates.updatedAt = new Date().toISOString();
-
-        await ctx.db.patch(charge._id, updates);
-        summary.chargesProcessed++;
-      } catch (error) {
-        summary.errors.push(`Error migrating charge ${charge._id}: ${error}`);
-      }
-    }
-
+    // This migration is no longer needed since we've moved to on-demand calculation
+    // The tenantUtilityCharges table has been removed from the schema
     return {
-      ...summary,
-      message: `Migration complete. Updated ${summary.chargesProcessed} tenant charges with new payment fields.`
+      totalCharges: 0,
+      chargesToMigrate: 0,
+      chargesProcessed: 0,
+      errors: [],
+      message: "Migration is deprecated. The system now uses on-demand charge calculation instead of stored charges.",
+      _deprecated: true
     };
   },
 });

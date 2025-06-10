@@ -317,7 +317,7 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
               <option value="">Select a tenant...</option>
               {leases?.map((lease) => (
                 <option key={lease._id} value={lease._id}>
-                  {lease.tenantName} {lease.unit?.unitIdentifier ? `- ${lease.unit.unitIdentifier}` : ''}
+                  {lease.tenantName} {(lease as any).unit?.unitIdentifier ? `- ${(lease as any).unit.unitIdentifier}` : ''}
                 </option>
               ))}
             </select>

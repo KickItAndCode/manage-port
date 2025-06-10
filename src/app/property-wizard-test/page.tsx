@@ -49,7 +49,6 @@ export default function PropertyWizardTestPage() {
         units: data.units,
         
         // Utility setup
-        setupUtilities: data.setupUtilities,
         utilityPreset: data.utilityPreset,
         customSplit: data.customSplit,
       });

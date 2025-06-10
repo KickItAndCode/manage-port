@@ -31,7 +31,8 @@ interface PaymentHistoryProps {
 
 interface PaymentRecord {
   _id: Id<"utilityPayments">;
-  chargeId: Id<"tenantUtilityCharges">;
+  leaseId: Id<"leases">;
+  utilityBillId: Id<"utilityBills">;
   amountPaid: number;
   paymentDate: string;
   paymentMethod: string;
@@ -43,7 +44,7 @@ interface PaymentRecord {
   propertyName: string;
   utilityType: string;
   billMonth: string;
-  chargedAmount: number;
+  chargedAmount?: number;
 }
 
 export function PaymentHistory({

@@ -281,6 +281,15 @@ export const createPropertyWithUnits = mutation({
         monthlyMortgage: args.monthlyMortgage,
         monthlyCapEx: args.monthlyCapEx,
         propertyType: args.propertyType,
+        
+        // Save utility wizard settings as property defaults
+        utilityPreset: args.utilityPreset,
+        utilityDefaults: args.customSplit?.map(split => ({
+          unitIdentifier: split.unitId,
+          unitName: split.unitName,
+          percentage: split.percentage,
+        })),
+        
         createdAt: new Date().toISOString(),
       });
 
@@ -336,7 +345,7 @@ export const createPropertyWithUnits = mutation({
 async function calculateMonthlyRentFromLeases(ctx: any, propertyId: string, userId: string): Promise<number> {
   const activeLeases = await ctx.db
     .query("leases")
-    .filter((q) => 
+    .filter((q: any) => 
       q.and(
         q.eq(q.field("propertyId"), propertyId),
         q.eq(q.field("userId"), userId),
@@ -345,7 +354,7 @@ async function calculateMonthlyRentFromLeases(ctx: any, propertyId: string, user
     )
     .collect();
 
-  return activeLeases.reduce((total, lease) => total + (lease.rent || 0), 0);
+  return activeLeases.reduce((total: number, lease: any) => total + (lease.rent || 0), 0);
 }
 
 // Get all properties for the signed-in user with calculated monthly rent
@@ -579,27 +588,14 @@ export const deleteProperty = mutation({
           }
         }
         
-        // Delete utility charges for this lease
-        const utilityCharges = await ctx.db
-          .query("tenantUtilityCharges")
+        // Delete utility payments for this lease (no longer delete charges since they're calculated on-demand)
+        const utilityPayments = await ctx.db
+          .query("utilityPayments")
           .filter((q) => q.eq(q.field("leaseId"), lease._id))
           .collect();
         
-        // Delete utility payments for these charges first
-        for (const charge of utilityCharges) {
-          const payments = await ctx.db
-            .query("utilityPayments")
-            .filter((q) => q.eq(q.field("chargeId"), charge._id))
-            .collect();
-          
-          for (const payment of payments) {
-            await ctx.db.delete(payment._id);
-          }
-        }
-        
-        // Then delete the charges
-        for (const charge of utilityCharges) {
-          await ctx.db.delete(charge._id);
+        for (const payment of utilityPayments) {
+          await ctx.db.delete(payment._id);
         }
         
         // Delete lease utility settings for this lease

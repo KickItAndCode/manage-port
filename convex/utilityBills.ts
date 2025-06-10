@@ -37,7 +37,7 @@ async function calculateTenantCharges(
     utilityType: bill.utilityType,
     totalAmount: bill.totalAmount,
     activeLeasesCount: activeLeases.length,
-    activeLeases: activeLeases.map(l => ({
+    activeLeases: activeLeases.map((l: any) => ({
       id: l._id,
       tenantName: l.tenantName,
       status: l.status

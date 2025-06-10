@@ -62,7 +62,14 @@ export function UniversalUtilityAllocation({
     userId,
   });
 
+  // Get property information to check for utility defaults
+  const property = useQuery(api.properties.getProperty, {
+    id: propertyId,
+    userId,
+  });
+
   const saveUtilitySettings = useMutation(api.leaseUtilitySettings.setPropertyUtilityAllocations);
+  const applyPropertyDefaults = useMutation(api.leaseUtilitySettings.applyPropertyUtilityDefaults);
 
   // Initialize allocations when data loads
   useEffect(() => {
@@ -196,6 +203,26 @@ export function UniversalUtilityAllocation({
     }
   };
 
+  const handleApplyDefaults = async () => {
+    try {
+      const result = await applyPropertyDefaults({
+        propertyId,
+        userId,
+      });
+      
+      toast.success(result.message, {
+        description: `Created ${result.settingsCreated} utility settings using ${result.propertyPreset} preset`,
+      });
+      
+      // Refresh the component data
+      window.location.reload();
+    } catch (error: any) {
+      toast.error("Failed to apply property defaults", {
+        description: error.message || "Please try again or contact support",
+      });
+    }
+  };
+
   if (!leases || !utilitySettings || !units) {
     return (
       <Card>
@@ -261,15 +288,30 @@ export function UniversalUtilityAllocation({
             
             <div className={`flex gap-2 sm:gap-3 ${!isEditing ? 'ml-auto' : 'w-full justify-end'}`}>
               {!isEditing ? (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setIsEditing(true)}
-                  className="transition-all hover:scale-105 active:scale-95"
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit
-                </Button>
+                <>
+                  {/* Show Apply Defaults button if property has defaults but no utility settings exist */}
+                  {property && property.utilityDefaults && property.utilityDefaults.length > 0 && 
+                   utilitySettings && utilitySettings.length === 0 && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={handleApplyDefaults}
+                      className="transition-all hover:scale-105 active:scale-95"
+                    >
+                      <Home className="w-4 h-4 mr-2" />
+                      Apply Wizard Defaults
+                    </Button>
+                  )}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                    className="transition-all hover:scale-105 active:scale-95"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                </>
               ) : (
                 <>
                   <Button

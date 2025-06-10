@@ -493,7 +493,7 @@ export default function DashboardPage() {
                         </td>
                         <td className="py-2 sm:py-3 px-1 sm:px-0 text-right" role="cell">
                           <span className="font-medium text-sm sm:text-base">
-                            ${property.monthlyRent ? property.monthlyRent.toLocaleString() : '0'}
+                            ${(property as any).monthlyRent ? (property as any).monthlyRent.toLocaleString() : '0'}
                           </span>
                           <span className="text-xs text-muted-foreground sm:hidden block">/mo</span>
                         </td>
@@ -547,7 +547,6 @@ export default function DashboardPage() {
                   units: data.units,
                   
                   // Utility setup
-                  setupUtilities: data.setupUtilities,
                   utilityPreset: data.utilityPreset,
                   customSplit: data.customSplit,
                 });

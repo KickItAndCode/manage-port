@@ -536,3 +536,105 @@ export const setPropertyUtilityAllocations = mutation({
     };
   },
 });
+
+// Apply property utility defaults to existing leases
+export const applyPropertyUtilityDefaults = mutation({
+  args: {
+    propertyId: v.id("properties"),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Verify property ownership
+    const property = await ctx.db.get(args.propertyId);
+    if (!property || property.userId !== args.userId) {
+      throw new Error("Property not found or access denied");
+    }
+
+    // Check if property has utility defaults
+    if (!property.utilityDefaults || !property.utilityPreset) {
+      throw new Error("Property has no utility defaults to apply");
+    }
+
+    // Get all active leases for this property
+    const leases = await ctx.db
+      .query("leases")
+      .withIndex("by_property", (q: any) => q.eq("propertyId", args.propertyId))
+      .filter((q: any) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    if (leases.length === 0) {
+      return {
+        success: true,
+        message: "No active leases found to apply defaults to",
+        leasesProcessed: 0,
+      };
+    }
+
+    // Get all units for mapping
+    const units = await ctx.db
+      .query("units")
+      .withIndex("by_property", (q: any) => q.eq("propertyId", args.propertyId))
+      .collect();
+
+    let leasesProcessed = 0;
+    let settingsCreated = 0;
+
+    for (const lease of leases) {
+      // Find the utility default for this lease's unit
+      let unitDefault = null;
+      
+      if (lease.unitId) {
+        const unit = units.find(u => u._id === lease.unitId);
+        if (unit) {
+          unitDefault = property.utilityDefaults.find(d => d.unitIdentifier === unit.unitIdentifier);
+        }
+      }
+
+      // If no specific unit default found, use first available or determine by preset
+      if (!unitDefault && property.utilityDefaults.length > 0) {
+        if (property.utilityPreset === "owner-pays") {
+          unitDefault = { unitIdentifier: "", unitName: "", percentage: 0 };
+        } else if (property.utilityPreset === "tenant-pays") {
+          // For tenant-pays, split equally among all leases
+          const tenantPercentage = Math.round(100 / leases.length);
+          unitDefault = { unitIdentifier: "", unitName: "", percentage: tenantPercentage };
+        } else {
+          // Use first available default for custom
+          unitDefault = property.utilityDefaults[0];
+        }
+      }
+
+      if (unitDefault) {
+        // Check if utility settings already exist for this lease
+        const existingSettings = await ctx.db
+          .query("leaseUtilitySettings")
+          .withIndex("by_lease", (q: any) => q.eq("leaseId", lease._id))
+          .collect();
+
+        // Only create settings if none exist
+        if (existingSettings.length === 0) {
+          // Create utility settings for all utility types
+          for (const utilityType of UTILITY_TYPES) {
+            await ctx.db.insert("leaseUtilitySettings", {
+              leaseId: lease._id,
+              utilityType,
+              responsibilityPercentage: unitDefault.percentage,
+              notes: `Applied from property wizard defaults (${property.utilityPreset})`,
+              createdAt: new Date().toISOString(),
+            });
+            settingsCreated++;
+          }
+          leasesProcessed++;
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: `Applied utility defaults to ${leasesProcessed} leases`,
+      leasesProcessed,
+      settingsCreated,
+      propertyPreset: property.utilityPreset,
+    };
+  },
+});

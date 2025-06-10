@@ -15,6 +15,15 @@ export default defineSchema({
     monthlyMortgage: v.optional(v.number()), // Monthly mortgage payment
     monthlyCapEx: v.optional(v.number()), // Capital expenditure reserve (10% of mortgage)
     propertyType: v.optional(v.union(v.literal("single-family"), v.literal("multi-family"))), // New field
+    
+    // Utility defaults from property wizard
+    utilityPreset: v.optional(v.union(v.literal("owner-pays"), v.literal("tenant-pays"), v.literal("custom"))),
+    utilityDefaults: v.optional(v.array(v.object({
+      unitIdentifier: v.string(),
+      unitName: v.string(),
+      percentage: v.number(),
+    }))),
+    
     createdAt: v.string(),
   }),
   units: defineTable({

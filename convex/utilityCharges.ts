@@ -58,7 +58,7 @@ async function calculateChargesForBill(
         .filter((q: any) => q.eq(q.field("utilityBillId"), bill._id))
         .collect();
 
-      const paidAmount = payments.reduce((sum, payment) => sum + payment.amountPaid, 0);
+      const paidAmount = payments.reduce((sum: number, payment: any) => sum + payment.amountPaid, 0);
       const remainingAmount = Math.max(0, chargedAmount - paidAmount);
 
       // Get unit information if available
@@ -280,7 +280,7 @@ export const calculateTenantChargesForLease = query({
           .filter((q: any) => q.eq(q.field("utilityBillId"), bill._id))
           .collect();
 
-        const paidAmount = payments.reduce((sum, payment) => sum + payment.amountPaid, 0);
+        const paidAmount = payments.reduce((sum: number, payment: any) => sum + payment.amountPaid, 0);
         const remainingAmount = Math.max(0, chargedAmount - paidAmount);
 
         // Get unit information if available

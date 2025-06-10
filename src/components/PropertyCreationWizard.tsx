@@ -48,8 +48,7 @@ const propertyTypeSchema = z.object({
 });
 
 const utilitySetupSchema = z.object({
-  setupUtilities: z.boolean(),
-  utilityPreset: z.enum(["owner-pays", "tenant-pays", "custom"]).optional(),
+  utilityPreset: z.enum(["owner-pays", "tenant-pays", "custom"]),
   customSplit: z.array(z.object({
     unitId: z.string(),
     unitName: z.string(),
@@ -103,7 +102,6 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
     resolver: zodResolver(utilitySetupSchema),
     mode: "onBlur",
     defaultValues: {
-      setupUtilities: false,
       utilityPreset: "tenant-pays",
     },
   });
@@ -112,7 +110,6 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
   const propertyType = typeForm.watch("propertyType");
   const unitCount = typeForm.watch("unitCount");
   const units = typeForm.watch("units") || [];
-  const setupUtilities = utilityForm.watch("setupUtilities");
   const utilityPreset = utilityForm.watch("utilityPreset");
   const customSplit = utilityForm.watch("customSplit") || [];
 
@@ -156,7 +153,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
 
   // Generate custom split when preset changes or units change
   useEffect(() => {
-    if (setupUtilities && units.length > 0) {
+    if (units.length > 0) {
       let newCustomSplit;
       
       if (utilityPreset === "owner-pays") {
@@ -184,7 +181,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
       
       utilityForm.setValue("customSplit", newCustomSplit);
     }
-  }, [setupUtilities, utilityPreset, units, utilityForm]);
+  }, [utilityPreset, units, utilityForm]);
 
   const updateUnitName = (index: number, newName: string) => {
     const currentUnits = [...units];
@@ -334,31 +331,27 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
   };
 
   const generateUtilityDummyData = () => {
-    const shouldSetup = Math.random() > 0.3; // 70% chance to setup utilities
-    utilityForm.setValue("setupUtilities", shouldSetup);
+    // Always setup utilities since it's now required
+    const presets = ["owner-pays", "tenant-pays", "custom"] as const;
+    const preset = presets[randomInt(0, presets.length - 1)];
+    utilityForm.setValue("utilityPreset", preset);
     
-    if (shouldSetup) {
-      const presets = ["owner-pays", "tenant-pays", "custom"] as const;
-      const preset = presets[randomInt(0, presets.length - 1)];
-      utilityForm.setValue("utilityPreset", preset);
-      
-      // Get units from the form since state might not be updated yet
-      const formUnits = typeForm.getValues("units") || [];
-      
-      // If custom preset, generate custom split data
-      if (preset === "custom" && formUnits.length > 0) {
-        const customSplit = formUnits.map((unit, index) => {
-          // Generate random percentages that sum to 100
-          const basePercentage = Math.floor(100 / formUnits.length);
-          const remainder = 100 - (basePercentage * formUnits.length);
-          return {
-            unitId: unit.identifier,
-            unitName: unit.displayName,
-            percentage: index === 0 ? basePercentage + remainder : basePercentage,
-          };
-        });
-        utilityForm.setValue("customSplit", customSplit);
-      }
+    // Get units from the form since state might not be updated yet
+    const formUnits = typeForm.getValues("units") || [];
+    
+    // If custom preset, generate custom split data
+    if (preset === "custom" && formUnits.length > 0) {
+      const customSplit = formUnits.map((unit, index) => {
+        // Generate random percentages that sum to 100
+        const basePercentage = Math.floor(100 / formUnits.length);
+        const remainder = 100 - (basePercentage * formUnits.length);
+        return {
+          unitId: unit.identifier,
+          unitName: unit.displayName,
+          percentage: index === 0 ? basePercentage + remainder : basePercentage,
+        };
+      });
+      utilityForm.setValue("customSplit", customSplit);
     }
   };
 
@@ -826,198 +819,173 @@ function UtilitySetupStep({ form, units, onUpdatePercentage, isModal = false }: 
   isModal?: boolean;
 }) {
   const { register, watch, setValue } = form;
-  const setupUtilities = watch("setupUtilities");
   const utilityPreset = watch("utilityPreset");
   const customSplit = watch("customSplit") || [];
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold mb-2">Utility Setup (Optional)</h3>
+        <h3 className="text-lg font-semibold mb-2">Utility Setup</h3>
         <p className="text-muted-foreground text-sm">
-          Configure how utility bills will be split between units
+          Configure how utility bills will be split between units. This setup is required for utility charge calculations.
         </p>
       </div>
 
-      {/* Setup Toggle */}
-      <div className="flex items-center space-x-3">
-        <input
-          type="checkbox"
-          {...register("setupUtilities")}
-          id="setupUtilities"
-          className="rounded border-input"
-        />
-        <label htmlFor="setupUtilities" className="text-sm font-medium">
-          Set up utility bill splitting now
-        </label>
-      </div>
+      {/* Always show utility setup - no toggle */}
+      <div className="space-y-6">
+        {/* Quick Presets */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium">Quick Setup</label>
+          <div className={cn(
+            "grid gap-3",
+            isModal ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 md:grid-cols-3"
+          )}>
+            <Card 
+              className={cn(
+                "cursor-pointer transition-all hover:shadow-md",
+                utilityPreset === "owner-pays" ? "ring-2 ring-primary" : ""
+              )}
+              onClick={() => setValue("utilityPreset", "owner-pays")}
+            >
+              <CardContent className="p-4 text-center">
+                <input
+                  type="radio"
+                  {...register("utilityPreset")}
+                  value="owner-pays"
+                  className="sr-only"
+                />
+                <h4 className="font-medium">Owner Pays All</h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You pay all utilities
+                </p>
+              </CardContent>
+            </Card>
 
-      {setupUtilities && (
-        <div className="space-y-6">
-          {/* Quick Presets */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium">Quick Setup</label>
-            <div className={cn(
-              "grid gap-3",
-              isModal ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-1 md:grid-cols-3"
-            )}>
-              <Card 
-                className={cn(
-                  "cursor-pointer transition-all hover:shadow-md",
-                  utilityPreset === "owner-pays" ? "ring-2 ring-primary" : ""
-                )}
-                onClick={() => setValue("utilityPreset", "owner-pays")}
-              >
-                <CardContent className="p-4 text-center">
-                  <input
-                    type="radio"
-                    {...register("utilityPreset")}
-                    value="owner-pays"
-                    className="sr-only"
-                  />
-                  <h4 className="font-medium">Owner Pays All</h4>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    You pay all utilities
-                  </p>
-                </CardContent>
-              </Card>
+            <Card 
+              className={cn(
+                "cursor-pointer transition-all hover:shadow-md",
+                utilityPreset === "tenant-pays" ? "ring-2 ring-primary" : ""
+              )}
+              onClick={() => setValue("utilityPreset", "tenant-pays")}
+            >
+              <CardContent className="p-4 text-center">
+                <input
+                  type="radio"
+                  {...register("utilityPreset")}
+                  value="tenant-pays"
+                  className="sr-only"
+                />
+                <h4 className="font-medium">Tenants Pay All</h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Split equally among units
+                </p>
+              </CardContent>
+            </Card>
 
-              <Card 
-                className={cn(
-                  "cursor-pointer transition-all hover:shadow-md",
-                  utilityPreset === "tenant-pays" ? "ring-2 ring-primary" : ""
-                )}
-                onClick={() => setValue("utilityPreset", "tenant-pays")}
-              >
-                <CardContent className="p-4 text-center">
-                  <input
-                    type="radio"
-                    {...register("utilityPreset")}
-                    value="tenant-pays"
-                    className="sr-only"
-                  />
-                  <h4 className="font-medium">Tenants Pay All</h4>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Split equally among units
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card 
-                className={cn(
-                  "cursor-pointer transition-all hover:shadow-md",
-                  utilityPreset === "custom" ? "ring-2 ring-primary" : ""
-                )}
-                onClick={() => setValue("utilityPreset", "custom")}
-              >
-                <CardContent className="p-4 text-center">
-                  <input
-                    type="radio"
-                    {...register("utilityPreset")}
-                    value="custom"
-                    className="sr-only"
-                  />
-                  <h4 className="font-medium">Custom Split</h4>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Set custom percentages
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
+            <Card 
+              className={cn(
+                "cursor-pointer transition-all hover:shadow-md",
+                utilityPreset === "custom" ? "ring-2 ring-primary" : ""
+              )}
+              onClick={() => setValue("utilityPreset", "custom")}
+            >
+              <CardContent className="p-4 text-center">
+                <input
+                  type="radio"
+                  {...register("utilityPreset")}
+                  value="custom"
+                  className="sr-only"
+                />
+                <h4 className="font-medium">Custom Split</h4>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Set custom percentages
+                </p>
+              </CardContent>
+            </Card>
           </div>
+        </div>
 
-          {/* Custom Split Configuration */}
-          {utilityPreset === "custom" && customSplit.length > 0 && (
-            <div className="space-y-4">
-              <label className="block text-sm font-medium">Custom Split Configuration</label>
-              <p className="text-sm text-muted-foreground mb-4">
-                This split will apply to all utility types (Electric, Water, Gas, etc.)
-              </p>
-              <Card>
-                <CardContent className="p-6">
-                  <div className="space-y-6">
-                    {customSplit.map((unitSplit: any, unitIndex: number) => {
-                      const unit = units.find(u => u.identifier === unitSplit.unitId);
-                      return (
-                        <div key={unitSplit.unitId} className="space-y-3">
-                          <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium">
-                              {unit?.displayName || unitSplit.unitName}
-                            </label>
-                            <div className="flex items-center space-x-3">
-                              <span className="text-sm font-medium min-w-[40px] text-right">
-                                {unitSplit.percentage}%
-                              </span>
-                            </div>
+        {/* Custom Split Configuration */}
+        {utilityPreset === "custom" && customSplit.length > 0 && (
+          <div className="space-y-4">
+            <label className="block text-sm font-medium">Custom Split Configuration</label>
+            <p className="text-sm text-muted-foreground mb-4">
+              This split will apply to all utility types (Electric, Water, Gas, etc.)
+            </p>
+            <Card>
+              <CardContent className="p-6">
+                <div className="space-y-6">
+                  {customSplit.map((unitSplit: any, unitIndex: number) => {
+                    const unit = units.find(u => u.identifier === unitSplit.unitId);
+                    return (
+                      <div key={unitSplit.unitId} className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="text-sm font-medium">
+                            {unit?.displayName || unitSplit.unitName}
+                          </label>
+                          <div className="flex items-center space-x-3">
+                            <span className="text-sm font-medium min-w-[40px] text-right">
+                              {unitSplit.percentage}%
+                            </span>
                           </div>
-                          <Slider
-                            value={[unitSplit.percentage]}
-                            onValueChange={(value) => onUpdatePercentage(unitIndex, value[0])}
-                            max={100}
-                            min={0}
-                            step={1}
-                            className="w-full"
-                          />
                         </div>
-                      );
-                    })}
+                        <Slider
+                          value={[unitSplit.percentage]}
+                          onValueChange={(value) => onUpdatePercentage(unitIndex, value[0])}
+                          max={100}
+                          min={0}
+                          step={1}
+                          className="w-full"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Total Check */}
+                <div className="mt-6 pt-4 border-t">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm font-medium">Total Split:</span>
+                    <span className={cn(
+                      "text-lg font-bold",
+                      customSplit.reduce((sum: number, split: any) => sum + split.percentage, 0) === 100
+                        ? "text-green-600"
+                        : "text-red-600"
+                    )}>
+                      {customSplit.reduce((sum: number, split: any) => sum + split.percentage, 0)}%
+                    </span>
                   </div>
-                  
-                  {/* Total Check */}
-                  <div className="mt-6 pt-4 border-t">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium">Total Split:</span>
-                      <span className={cn(
-                        "text-lg font-bold",
-                        customSplit.reduce((sum: number, split: any) => sum + split.percentage, 0) === 100
-                          ? "text-green-600"
-                          : "text-red-600"
-                      )}>
-                        {customSplit.reduce((sum: number, split: any) => sum + split.percentage, 0)}%
-                      </span>
-                    </div>
-                    {customSplit.reduce((sum: number, split: any) => sum + split.percentage, 0) !== 100 && (
-                      <p className="text-xs text-red-600 mt-1">
-                        Total must equal 100% for all utilities
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {/* Preview */}
-          {utilityPreset && utilityPreset !== "custom" && (
-            <Card className="bg-muted/30">
-              <CardContent className="p-4">
-                <h5 className="font-medium mb-2">Preview</h5>
-                <div className="text-sm space-y-1">
-                  {utilityPreset === "owner-pays" && (
-                    <p>You will pay 100% of all utility bills for this property.</p>
-                  )}
-                  {utilityPreset === "tenant-pays" && units.length > 0 && (
-                    <p>
-                      Each tenant will pay {Math.round(100 / units.length)}% of utility bills 
-                      ({units.map(u => u.displayName).join(", ")}).
+                  {customSplit.reduce((sum: number, split: any) => sum + split.percentage, 0) !== 100 && (
+                    <p className="text-xs text-red-600 mt-1">
+                      Total must equal 100% for all utilities
                     </p>
                   )}
                 </div>
               </CardContent>
             </Card>
-          )}
-        </div>
-      )}
+          </div>
+        )}
 
-      {!setupUtilities && (
-        <Card className="bg-muted/30">
-          <CardContent className="p-4">
-            <p className="text-sm text-muted-foreground">
-              You can set up utility splitting later from the property dashboard.
-            </p>
-          </CardContent>
-        </Card>
-      )}
+        {/* Preview */}
+        {utilityPreset && utilityPreset !== "custom" && (
+          <Card className="bg-muted/30">
+            <CardContent className="p-4">
+              <h5 className="font-medium mb-2">Preview</h5>
+              <div className="text-sm space-y-1">
+                {utilityPreset === "owner-pays" && (
+                  <p>You will pay 100% of all utility bills for this property.</p>
+                )}
+                {utilityPreset === "tenant-pays" && units.length > 0 && (
+                  <p>
+                    Each tenant will pay {Math.round(100 / units.length)}% of utility bills 
+                    ({units.map(u => u.displayName).join(", ")}).
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
     </div>
   );
 }
