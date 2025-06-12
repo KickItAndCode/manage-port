@@ -1,14 +1,16 @@
 "use client";
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useMutation } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
-import { Doc } from "@/../convex/_generated/dataModel";
+import type { CalculatedTenantCharge } from "@/../convex/utilityCharges";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SelectNative } from "@/components/ui/select-native";
 import { UtilityBillForm } from "@/components/UtilityBillForm";
@@ -18,6 +20,7 @@ import { TenantStatementGenerator } from "@/components/TenantStatementGenerator"
 import { LoadingContent } from "@/components/LoadingContent";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ResponsiveTable, BulkActionsToolbar } from "@/components/ui/responsive-table";
+import { UnifiedFilterSystem, useUtilityBillFilters } from "@/components/ui/unified-filter-system";
 import { 
   createUtilityBillTableConfig, 
   UtilityBillMobileCard, 
@@ -29,41 +32,52 @@ import {
   Plus, 
   Receipt, 
   DollarSign,
+  Search,
+  Filter,
   CheckCircle,
   XCircle,
   AlertCircle,
+  Users,
+  Zap,
+  Droplets,
+  Flame,
+  Wifi,
+  Trash,
+  Trash2,
+  Edit,
+  Eye,
+  MoreHorizontal,
+  Building,
+  Calendar,
   TrendingUp,
   FileText,
+  RotateCcw,
   Download,
-  Trash2,
+  User,
+  Home
 } from "lucide-react";
 import { 
   DropdownMenu, 
   DropdownMenuContent, 
   DropdownMenuItem, 
   DropdownMenuTrigger,
+  DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu";
 
-// Import our new hooks and types
-import { useUtilityBillsData, useUtilityBillFilterOptions } from "@/hooks/useUtilityBillsData";
-import { UtilityBillFilters } from "@/types/utilityBills";
+type GroupingOption = "none" | "property" | "utility" | "month" | "status" | "tenant";
+type SortOption = "date" | "amount" | "utility" | "status";
 
 export default function UtilityBillsPage() {
   const { user } = useUser();
   
-  // Use the new unified data hook
-  const {
-    data,
-    filteredData,
-    filters,
-    loading,
-    error,
-    updateFilters,
-    resetFilters,
-  } = useUtilityBillsData();
-
-  // Get filter options based on current selection
-  const { properties, leases, utilityTypes } = useUtilityBillFilterOptions(filters.propertyId);
+  // State for filtering and searching - using unified filter system
+  const [internalFilteredData, setInternalFilteredData] = useState<UtilityBill[]>([]);
+  const [internalActiveFilters, setInternalActiveFilters] = useState<Record<string, any>>({});
+  const [selectedTenant, setSelectedTenant] = useState<string>("");
+  
+  // State for grouping and sorting
+  const [groupBy, setGroupBy] = useState<GroupingOption>("property");
+  const [sortBy, setSortBy] = useState<SortOption>("date");
   
   // Dialog states
   const [billDialogOpen, setBillDialogOpen] = useState(false);
@@ -71,11 +85,48 @@ export default function UtilityBillsPage() {
   const [statementDialogOpen, setStatementDialogOpen] = useState(false);
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [viewingBill, setViewingBill] = useState<any>(null);
-  const [selectedUtilityBills, setSelectedUtilityBills] = useState<Doc<"utilityBills">[]>([]);
-  const [sortKey, setSortKey] = useState<keyof Doc<"utilityBills">>("billMonth");
+  const [selectedUtilityBills, setSelectedUtilityBills] = useState<UtilityBill[]>([]);
+  const [sortKey, setSortKey] = useState<keyof UtilityBill>("billMonth");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
+
+  // Extract date filters from active filters
+  const [startMonth, setStartMonth] = useState<string | undefined>(undefined);
+  const [endMonth, setEndMonth] = useState<string | undefined>(undefined);
+
+  // Queries
+  const properties = useQuery(api.properties.getProperties, 
+    user ? { userId: user.id } : "skip"
+  );
+  
+  const leases = useQuery(api.leases.getActiveLeases,
+    user ? { userId: user.id } : "skip"
+  );
+  
+  // Get all calculated charges for the user
+  const allUserCharges = useQuery(api.utilityCharges.calculateAllTenantCharges,
+    user ? { 
+      userId: user.id,
+      propertyId: internalActiveFilters.propertyId ? internalActiveFilters.propertyId as any : undefined,
+      startMonth: startMonth || undefined,
+      endMonth: endMonth || undefined,
+    } : "skip"
+  );
+  
+  const bills = useQuery(
+    internalActiveFilters.propertyId 
+      ? api.utilityBills.getUtilityBillsByProperty 
+      : api.utilityBills.getUtilityBills, 
+    user ? (internalActiveFilters.propertyId ? {
+      userId: user.id,
+      propertyId: internalActiveFilters.propertyId as any,
+      startMonth: startMonth || undefined,
+      endMonth: endMonth || undefined,
+    } : {
+      userId: user.id,
+    }) : "skip"
+  );
 
   // Mutations
   const addBill = useMutation(api.utilityBills.addUtilityBill);
@@ -84,13 +135,13 @@ export default function UtilityBillsPage() {
   const bulkAddBills = useMutation(api.utilityBills.bulkAddUtilityBills);
 
   // Table sort handler
-  function handleSort(key: keyof Doc<"utilityBills">, direction: "asc" | "desc") {
+  function handleSort(key: keyof UtilityBill, direction: "asc" | "desc") {
     setSortKey(key);
     setSortDir(direction);
   }
 
   // Bulk operations handlers
-  const handleBulkDelete = async (billsToDelete: Doc<"utilityBills">[]) => {
+  const handleBulkDelete = async (billsToDelete: UtilityBill[]) => {
     if (billsToDelete.length === 0 || !user) return;
     confirm({
       title: "Delete Utility Bills",
@@ -112,7 +163,7 @@ export default function UtilityBillsPage() {
     });
   };
 
-  const handleBulkMarkPaid = async (billsToUpdate: Doc<"utilityBills">[]) => {
+  const handleBulkMarkPaid = async (billsToUpdate: UtilityBill[]) => {
     if (billsToUpdate.length === 0 || !user) return;
     try {
       await Promise.all(
@@ -132,7 +183,7 @@ export default function UtilityBillsPage() {
     }
   };
 
-  const handleBulkMarkUnpaid = async (billsToUpdate: Doc<"utilityBills">[]) => {
+  const handleBulkMarkUnpaid = async (billsToUpdate: UtilityBill[]) => {
     if (billsToUpdate.length === 0 || !user) return;
     try {
       await Promise.all(
@@ -151,6 +202,89 @@ export default function UtilityBillsPage() {
       toast.error(formatErrorForToast(error));
     }
   };
+
+  // Configure unified filter system
+  const { filterConfigs, searchConfig } = useUtilityBillFilters(
+    bills || [], 
+    properties || [], 
+    leases || []
+  );
+
+  // Process filtered data with tenant filtering and sorting
+  const processedData = useMemo(() => {
+    let data = internalFilteredData;
+    
+    // Apply tenant-specific filtering if needed
+    if (selectedTenant && allUserCharges) {
+      data = data.filter(bill =>
+        allUserCharges.some(charge => 
+          charge.utilityBillId === bill._id && charge.leaseId === selectedTenant
+        )
+      );
+    }
+
+    // Apply table sorting
+    const sortedData = [...data].sort((a, b) => {
+      const v1 = a[sortKey];
+      const v2 = b[sortKey];
+      
+      if (typeof v1 === "string" && typeof v2 === "string") {
+        return sortDir === "asc"
+          ? v1.localeCompare(v2)
+          : v2.localeCompare(v1);
+      }
+      if (typeof v1 === "number" && typeof v2 === "number") {
+        return sortDir === "asc" ? v1 - v2 : v2 - v1;
+      }
+      if (typeof v1 === "boolean" && typeof v2 === "boolean") {
+        return sortDir === "asc" 
+          ? Number(v1) - Number(v2) 
+          : Number(v2) - Number(v1);
+      }
+      return 0;
+    });
+
+    return sortedData;
+  }, [internalFilteredData, selectedTenant, allUserCharges, sortKey, sortDir]);
+
+  // Extract date filters from active filters
+  useEffect(() => {
+    if (internalActiveFilters.billMonth && Array.isArray(internalActiveFilters.billMonth)) {
+      const [start, end] = internalActiveFilters.billMonth;
+      setStartMonth(start);
+      setEndMonth(end);
+    } else {
+      setStartMonth(undefined);
+      setEndMonth(undefined);
+    }
+  }, [internalActiveFilters.billMonth]);
+
+  // No need to sync - using activeFilters.propertyId directly
+
+  // Calculate summary stats (tenant-aware when filtering by tenant)
+  const stats = useMemo(() => {
+    const total = processedData.length;
+    const unpaid = processedData.filter(b => !b.landlordPaidUtilityCompany).length;
+    
+    // If tenant is selected, calculate tenant-specific amounts from charges
+    if (selectedTenant && allUserCharges) {
+      const tenantBillIds = new Set(processedData.map(b => b._id));
+      const relevantCharges = allUserCharges.filter(c => 
+        tenantBillIds.has(c.utilityBillId) && c.leaseId === selectedTenant
+      );
+      
+      const totalAmount = relevantCharges.reduce((sum, c) => sum + c.chargedAmount, 0);
+      const unpaidAmount = relevantCharges.reduce((sum, c) => sum + c.remainingAmount, 0);
+      
+      return { total, unpaid, totalAmount, unpaidAmount };
+    } else {
+      // Standard calculation for all bills
+      const totalAmount = processedData.reduce((sum, b) => sum + b.totalAmount, 0);
+      const unpaidAmount = processedData.filter(b => !b.landlordPaidUtilityCompany).reduce((sum, b) => sum + b.totalAmount, 0);
+      
+      return { total, unpaid, totalAmount, unpaidAmount };
+    }
+  }, [processedData, selectedTenant, allUserCharges]);
 
   const handleDeleteBill = async (bill: any) => {
     confirm({
@@ -182,104 +316,49 @@ export default function UtilityBillsPage() {
     }
   };
 
-  // Get processed bills for display
-  const displayBills = useMemo(() => {
-    if (!filteredData) return [];
-    
-    // Apply table sorting
-    const sortedBills = [...filteredData.bills].sort((a, b) => {
-      const v1 = a[sortKey];
-      const v2 = b[sortKey];
-      
-      if (typeof v1 === "string" && typeof v2 === "string") {
-        return sortDir === "asc"
-          ? v1.localeCompare(v2)
-          : v2.localeCompare(v1);
-      }
-      if (typeof v1 === "number" && typeof v2 === "number") {
-        return sortDir === "asc" ? v1 - v2 : v2 - v1;
-      }
-      if (typeof v1 === "boolean" && typeof v2 === "boolean") {
-        return sortDir === "asc" 
-          ? Number(v1) - Number(v2) 
-          : Number(v2) - Number(v1);
-      }
-      return 0;
-    });
-
-    return sortedBills;
-  }, [filteredData, sortKey, sortDir]);
-
   // Create table configuration with stable callbacks
   const tableConfig = useMemo(() => {
-    const onEdit = (bill: Doc<"utilityBills">) => {
+    const onEdit = (bill: UtilityBill) => {
       setSelectedBill(bill);
       setBillDialogOpen(true);
     };
 
-    const onView = (bill: Doc<"utilityBills">) => setViewingBill(bill);
+    const onView = (bill: UtilityBill) => setViewingBill(bill);
 
-    const config = createUtilityBillTableConfig(
+    return createUtilityBillTableConfig(
       onEdit,
       handleDeleteBill,
       onView,
       handleTogglePaidStatus,
       properties as Property[] || []
     );
-
-    // Update bulk actions with actual handlers
-    config.bulkActions = [
-      {
-        id: 'mark-paid',
-        label: 'Mark as Paid',
-        icon: CheckCircle,
-        variant: 'default',
-        action: handleBulkMarkPaid
-      },
-      {
-        id: 'mark-unpaid',
-        label: 'Mark as Unpaid',
-        icon: XCircle,
-        variant: 'outline',
-        action: handleBulkMarkUnpaid
-      },
-      {
-        id: 'delete',
-        label: 'Delete',
-        icon: Trash2,
-        variant: 'destructive',
-        action: handleBulkDelete
-      }
-    ];
-
-    return config;
   }, [handleDeleteBill, handleTogglePaidStatus, properties]);
 
-  // Handle filter updates
-  const handlePropertyChange = useCallback((propertyId: string) => {
-    updateFilters({ 
-      propertyId: propertyId || undefined,
-      tenantId: undefined // Clear tenant when property changes
-    });
-  }, [updateFilters]);
+  // Update bulk actions with actual handlers
+  tableConfig.bulkActions = [
+    {
+      id: 'mark-paid',
+      label: 'Mark as Paid',
+      icon: CheckCircle,
+      variant: 'default',
+      action: handleBulkMarkPaid
+    },
+    {
+      id: 'mark-unpaid',
+      label: 'Mark as Unpaid',
+      icon: XCircle,
+      variant: 'outline',
+      action: handleBulkMarkUnpaid
+    },
+    {
+      id: 'delete',
+      label: 'Delete',
+      icon: Trash2,
+      variant: 'destructive',
+      action: handleBulkDelete
+    }
+  ];
 
-  const handleTenantChange = useCallback((tenantId: string) => {
-    updateFilters({ tenantId: tenantId || undefined });
-  }, [updateFilters]);
-
-  const handleDateRangeChange = useCallback((startMonth: string, endMonth: string) => {
-    updateFilters({ 
-      dateRange: startMonth && endMonth ? [startMonth, endMonth] : undefined 
-    });
-  }, [updateFilters]);
-
-  const handleUtilityTypesChange = useCallback((types: string[]) => {
-    updateFilters({ utilityTypes: types });
-  }, [updateFilters]);
-
-  const handlePaidStatusChange = useCallback((status: 'all' | 'paid' | 'unpaid') => {
-    updateFilters({ paidStatus: status });
-  }, [updateFilters]);
 
   if (!user) {
     return (
@@ -291,28 +370,7 @@ export default function UtilityBillsPage() {
     );
   }
 
-  if (loading) {
-    return <LoadingContent />;
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center text-destructive">
-          Error loading utility bills: {error}
-        </div>
-      </div>
-    );
-  }
-
-  const stats = filteredData?.stats || {
-    totalBills: 0,
-    unpaidBills: 0,
-    totalAmount: 0,
-    unpaidAmount: 0,
-  };
-
-  const selectedPropertyData = properties.find(p => p._id === filters.propertyId);
+  const selectedPropertyData = properties?.find(p => p._id === internalActiveFilters.propertyId);
 
   return (
     <div className="min-h-screen bg-background p-3 sm:p-4 lg:p-6">
@@ -326,7 +384,7 @@ export default function UtilityBillsPage() {
             </p>
           </div>
           <div className="flex flex-col sm:flex-row gap-2">
-            {filters.tenantId && filters.propertyId && (
+            {selectedTenant && internalActiveFilters.propertyId && (
               <Button 
                 variant="outline" 
                 onClick={() => setStatementDialogOpen(true)} 
@@ -366,7 +424,7 @@ export default function UtilityBillsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Total Bills</p>
-                  <p className="text-lg sm:text-2xl font-bold" data-testid="total-bills-count">{stats.totalBills}</p>
+                  <p className="text-lg sm:text-2xl font-bold" data-testid="total-bills-count">{stats.total}</p>
                 </div>
                 <Receipt className="w-6 h-6 sm:w-8 sm:h-8 text-muted-foreground flex-shrink-0" />
               </div>
@@ -377,7 +435,7 @@ export default function UtilityBillsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">Unpaid Bills</p>
-                  <p className="text-lg sm:text-2xl font-bold text-orange-600" data-testid="unpaid-bills-count">{stats.unpaidBills}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-orange-600" data-testid="unpaid-bills-count">{stats.unpaid}</p>
                 </div>
                 <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 flex-shrink-0" />
               </div>
@@ -388,7 +446,7 @@ export default function UtilityBillsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                    {filters.tenantId ? "Tenant Charges" : "Total Amount"}
+                    {selectedTenant ? "Tenant Charges" : "Total Amount"}
                   </p>
                   <p className="text-lg sm:text-2xl font-bold" data-testid="total-amount">${stats.totalAmount.toFixed(2)}</p>
                 </div>
@@ -401,7 +459,7 @@ export default function UtilityBillsPage() {
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex-1 min-w-0">
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">
-                    {filters.tenantId ? "Outstanding Balance" : "Unpaid Amount"}
+                    {selectedTenant ? "Outstanding Balance" : "Unpaid Amount"}
                   </p>
                   <p className="text-lg sm:text-2xl font-bold text-red-600" data-testid="unpaid-amount">${stats.unpaidAmount.toFixed(2)}</p>
                 </div>
@@ -411,90 +469,69 @@ export default function UtilityBillsPage() {
           </Card>
         </div>
 
-        {/* Simplified Filter System */}
-        <div className="bg-muted/50 rounded-lg border p-3 sm:p-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {/* Property Filter */}
-            <div>
-              <Label htmlFor="property" className="text-sm font-medium">Property</Label>
-              <SelectNative
-                id="property"
-                value={filters.propertyId || ""}
-                onChange={(e) => handlePropertyChange(e.target.value)}
-                className="text-sm"
-              >
-                <option value="">All Properties</option>
-                {properties.map((property) => (
-                  <option key={property._id} value={property._id}>
-                    {property.name}
-                  </option>
-                ))}
-              </SelectNative>
-            </div>
+        {/* Unified Filter System */}
+        <UnifiedFilterSystem
+          searchConfig={searchConfig}
+          filterConfigs={filterConfigs}
+          data={bills || []}
+          onFilteredDataChange={(filteredData, filters) => {
+            setInternalFilteredData(filteredData);
+            setInternalActiveFilters(filters);
+          }}
+          defaultCollapsed={false}
+          showActiveFilterBadges={true}
+          enableQuickFilters={true}
+        />
 
-            {/* Tenant Filter */}
-            <div>
-              <Label htmlFor="tenant" className="text-sm font-medium">Tenant</Label>
+        {/* Additional Tenant Filter - always visible but contextual */}
+        {leases && leases.length > 0 && (
+          <div className="bg-muted/50 rounded-lg border p-3 sm:p-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <Label htmlFor="tenant" className="text-sm font-medium text-muted-foreground min-w-fit">
+                Tenant Filter:
+              </Label>
               <SelectNative
                 id="tenant"
-                value={filters.tenantId || ""}
-                onChange={(e) => handleTenantChange(e.target.value)}
-                className={cn("text-sm", !filters.propertyId && "opacity-50")}
-                disabled={!filters.propertyId}
+                value={selectedTenant}
+                onChange={(e) => setSelectedTenant(e.target.value)}
+                className={cn(
+                  "flex-1 sm:max-w-xs text-sm",
+                  !internalActiveFilters.propertyId && "opacity-50"
+                )}
+                disabled={!internalActiveFilters.propertyId}
               >
                 <option value="">
-                  {!filters.propertyId 
+                  {!internalActiveFilters.propertyId 
                     ? "Select a property first" 
-                    : `All Tenants (${leases.length} available)`}
+                    : `All Tenants (${(leases || []).length} available)`}
                 </option>
-                {filters.propertyId && leases.map((lease) => (
+                {internalActiveFilters.propertyId && leases?.map((lease) => (
                   <option key={lease._id} value={lease._id}>
                     {lease.tenantName} {lease.unit?.unitIdentifier ? `- ${lease.unit.unitIdentifier}` : ''}
                   </option>
                 ))}
               </SelectNative>
-            </div>
-
-            {/* Paid Status Filter */}
-            <div>
-              <Label htmlFor="paidStatus" className="text-sm font-medium">Payment Status</Label>
-              <SelectNative
-                id="paidStatus"
-                value={filters.paidStatus || 'all'}
-                onChange={(e) => handlePaidStatusChange(e.target.value as 'all' | 'paid' | 'unpaid')}
-                className="text-sm"
-              >
-                <option value="all">All Bills</option>
-                <option value="paid">Paid Bills</option>
-                <option value="unpaid">Unpaid Bills</option>
-              </SelectNative>
-            </div>
-
-            {/* Reset Filters */}
-            <div className="flex items-end">
-              <Button 
-                variant="outline" 
-                onClick={resetFilters}
-                className="w-full text-sm"
-              >
-                Reset Filters
-              </Button>
+              {!internalActiveFilters.propertyId && (
+                <span className="text-xs text-muted-foreground hidden sm:block">
+                  Select a property to filter by tenant
+                </span>
+              )}
             </div>
           </div>
-        </div>
+        )}
 
         {/* Bills List with ResponsiveTable */}
         <div className="space-y-4">
           <ResponsiveTable
-            data={displayBills}
+            data={processedData}
             config={tableConfig}
-            loading={false}
+            loading={!bills}
             emptyState={
               <div className="text-center py-12">
                 <Receipt className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium mb-2">No Bills Found</h3>
                 <p className="text-muted-foreground mb-4">
-                  {Object.values(filters).some(v => v !== undefined && v !== '' && (!Array.isArray(v) || v.length > 0))
+                  {Object.keys(internalActiveFilters).length > 0 || selectedTenant
                     ? "Try adjusting your filters"
                     : "Start by adding your first utility bill"}
                 </p>
@@ -545,7 +582,7 @@ export default function UtilityBillsPage() {
             <DialogTitle className="text-lg md:text-xl">{selectedBill ? "Edit Bill" : "Add Utility Bill"}</DialogTitle>
           </DialogHeader>
           <UtilityBillForm
-            defaultMonth={filters.dateRange?.[1]}
+            defaultMonth={endMonth}
             initial={selectedBill}
             onSubmit={async (data) => {
               try {
@@ -653,9 +690,9 @@ export default function UtilityBillsPage() {
           <DialogHeader>
             <DialogTitle className="text-lg md:text-xl">Generate Tenant Statement</DialogTitle>
           </DialogHeader>
-          {filters.propertyId && (
+          {internalActiveFilters.propertyId && (
             <TenantStatementGenerator
-              propertyId={filters.propertyId as any}
+              propertyId={internalActiveFilters.propertyId as any}
               userId={user.id}
             />
           )}

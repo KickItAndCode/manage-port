@@ -2,6 +2,34 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 
+// Types for aggregated data
+export interface UtilityPageData {
+  properties: Array<Doc<"properties"> & { monthlyRent: number }>;
+  leases: Array<Doc<"leases"> & { unit?: Doc<"units"> }>;
+  bills: Array<Doc<"utilityBills">>;
+  charges: Array<{
+    leaseId: Id<"leases">;
+    unitId?: Id<"units">;
+    tenantName: string;
+    utilityBillId: Id<"utilityBills">;
+    utilityType: string;
+    billMonth: string;
+    totalBillAmount: number;
+    chargedAmount: number;
+    responsibilityPercentage: number;
+    dueDate: string;
+    paidAmount: number;
+    remainingAmount: number;
+    unitIdentifier?: string;
+  }>;
+  stats: {
+    totalBills: number;
+    unpaidBills: number;
+    totalAmount: number;
+    unpaidAmount: number;
+  };
+}
+
 // Helper to verify property ownership
 async function verifyPropertyOwnership(
   ctx: any,
@@ -909,6 +937,239 @@ export const getBillSplitPreview = query({
       totalUnits: allUnits.length,
       isValid,
       message,
+    };
+  },
+});
+
+// Helper function to calculate monthly rent from active leases
+async function calculateMonthlyRentFromLeases(ctx: any, propertyId: string, userId: string): Promise<number> {
+  const activeLeases = await ctx.db
+    .query("leases")
+    .filter((q: any) => 
+      q.and(
+        q.eq(q.field("propertyId"), propertyId),
+        q.eq(q.field("userId"), userId),
+        q.eq(q.field("status"), "active")
+      )
+    )
+    .collect();
+
+  return activeLeases.reduce((total: number, lease: any) => total + (lease.rent || 0), 0);
+}
+
+// Helper function to get bills with pre-calculated charges
+async function getBillsWithCharges(
+  ctx: any,
+  userId: string,
+  propertyId?: Id<"properties">,
+  startMonth?: string,
+  endMonth?: string
+): Promise<{
+  bills: Array<Doc<"utilityBills">>;
+  charges: Array<{
+    leaseId: Id<"leases">;
+    unitId?: Id<"units">;
+    tenantName: string;
+    utilityBillId: Id<"utilityBills">;
+    utilityType: string;
+    billMonth: string;
+    totalBillAmount: number;
+    chargedAmount: number;
+    responsibilityPercentage: number;
+    dueDate: string;
+    paidAmount: number;
+    remainingAmount: number;
+    unitIdentifier?: string;
+  }>;
+}> {
+  // Get bills with optimized query
+  let billsQuery = ctx.db
+    .query("utilityBills")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId));
+
+  if (propertyId && startMonth && endMonth) {
+    billsQuery = ctx.db
+      .query("utilityBills")
+      .withIndex("by_user_property_date", (q: any) => 
+        q.eq("userId", userId).eq("propertyId", propertyId).gte("billMonth", startMonth).lte("billMonth", endMonth)
+      );
+  } else if (propertyId) {
+    billsQuery = ctx.db
+      .query("utilityBills")
+      .withIndex("by_property", (q: any) => q.eq("propertyId", propertyId))
+      .filter((q: any) => q.eq(q.field("userId"), userId));
+  } else if (startMonth && endMonth) {
+    billsQuery = ctx.db
+      .query("utilityBills")
+      .withIndex("by_user_date_range", (q: any) => 
+        q.eq("userId", userId).gte("billMonth", startMonth).lte("billMonth", endMonth)
+      );
+  }
+
+  const bills = await billsQuery.collect();
+
+  // Calculate charges for all bills efficiently
+  const allCharges = [];
+  
+  for (const bill of bills) {
+    const charges = await calculateChargesForBill(ctx, bill);
+    allCharges.push(...charges);
+  }
+
+  return { bills, charges: allCharges };
+}
+
+// Helper function to calculate charges for a single bill (optimized)
+async function calculateChargesForBill(
+  ctx: any,
+  bill: Doc<"utilityBills">
+): Promise<Array<{
+  leaseId: Id<"leases">;
+  unitId?: Id<"units">;
+  tenantName: string;
+  utilityBillId: Id<"utilityBills">;
+  utilityType: string;
+  billMonth: string;
+  totalBillAmount: number;
+  chargedAmount: number;
+  responsibilityPercentage: number;
+  dueDate: string;
+  paidAmount: number;
+  remainingAmount: number;
+  unitIdentifier?: string;
+}>> {
+  // Get all active leases for the property
+  const activeLeases = await ctx.db
+    .query("leases")
+    .withIndex("by_property", (q: any) => q.eq("propertyId", bill.propertyId))
+    .filter((q: any) => q.eq(q.field("status"), "active"))
+    .collect();
+
+  if (activeLeases.length === 0) {
+    return [];
+  }
+
+  const charges = [];
+
+  // Calculate charges for each lease based on utility settings
+  for (const lease of activeLeases) {
+    // Get utility setting for this lease and utility type
+    const setting = await ctx.db
+      .query("leaseUtilitySettings")
+      .withIndex("by_lease", (q: any) => q.eq("leaseId", lease._id))
+      .filter((q: any) => q.eq(q.field("utilityType"), bill.utilityType))
+      .first();
+
+    if (setting && setting.responsibilityPercentage > 0) {
+      // Calculate the charged amount
+      const chargedAmount = Math.round((bill.totalAmount * setting.responsibilityPercentage) / 100 * 100) / 100;
+
+      // Get payments for this lease and bill using optimized index
+      const payments = await ctx.db
+        .query("utilityPayments")
+        .withIndex("by_lease_bill", (q: any) => q.eq("leaseId", lease._id).eq("utilityBillId", bill._id))
+        .collect();
+
+      const paidAmount = payments.reduce((sum: number, payment: any) => sum + payment.amountPaid, 0);
+      const remainingAmount = Math.max(0, chargedAmount - paidAmount);
+
+      // Get unit information if available
+      let unitIdentifier;
+      if (lease.unitId) {
+        const unit = await ctx.db.get(lease.unitId);
+        unitIdentifier = unit?.unitIdentifier;
+      }
+
+      charges.push({
+        leaseId: lease._id,
+        unitId: lease.unitId,
+        tenantName: lease.tenantName,
+        utilityBillId: bill._id,
+        utilityType: bill.utilityType,
+        billMonth: bill.billMonth,
+        totalBillAmount: bill.totalAmount,
+        chargedAmount,
+        responsibilityPercentage: setting.responsibilityPercentage,
+        dueDate: bill.dueDate,
+        paidAmount,
+        remainingAmount,
+        unitIdentifier,
+      });
+    }
+  }
+
+  return charges;
+}
+
+// Main aggregated query for utility bills page
+export const getUtilityPageData = query({
+  args: {
+    userId: v.string(),
+    propertyId: v.optional(v.id("properties")),
+    startMonth: v.optional(v.string()),
+    endMonth: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<UtilityPageData> => {
+    // Get properties with calculated monthly rent
+    const properties = await ctx.db
+      .query("properties")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .collect();
+
+    const propertiesWithRent = await Promise.all(
+      properties.map(async (property) => {
+        const monthlyRent = await calculateMonthlyRentFromLeases(ctx, property._id, args.userId);
+        return {
+          ...property,
+          monthlyRent
+        };
+      })
+    );
+
+    // Get active leases with unit information
+    const leases = await ctx.db
+      .query("leases")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    const leasesWithUnits = await Promise.all(
+      leases.map(async (lease) => {
+        let unit = null;
+        if (lease.unitId) {
+          unit = await ctx.db.get(lease.unitId);
+        }
+        return { ...lease, unit };
+      })
+    );
+
+    // Get bills and charges efficiently
+    const { bills, charges } = await getBillsWithCharges(
+      ctx,
+      args.userId,
+      args.propertyId,
+      args.startMonth,
+      args.endMonth
+    );
+
+    // Calculate aggregate stats
+    const stats = {
+      totalBills: bills.length,
+      unpaidBills: bills.filter(b => !b.landlordPaidUtilityCompany).length,
+      totalAmount: bills.reduce((sum, b) => sum + b.totalAmount, 0),
+      unpaidAmount: bills.filter(b => !b.landlordPaidUtilityCompany).reduce((sum, b) => sum + b.totalAmount, 0),
+    };
+
+    return {
+      properties: propertiesWithRent,
+      leases: leasesWithUnits,
+      bills: bills.sort((a, b) => {
+        const monthCompare = b.billMonth.localeCompare(a.billMonth);
+        if (monthCompare !== 0) return monthCompare;
+        return a.utilityType.localeCompare(b.utilityType);
+      }),
+      charges: charges.sort((a, b) => b.billMonth.localeCompare(a.billMonth)),
+      stats,
     };
   },
 });

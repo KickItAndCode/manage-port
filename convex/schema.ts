@@ -85,7 +85,10 @@ export default defineSchema({
     .index("by_month", ["billMonth"])
     .index("by_type", ["utilityType"])
     .index("by_paid_status", ["landlordPaidUtilityCompany"])
-    .index("by_property_month", ["propertyId", "billMonth"]),
+    .index("by_property_month", ["propertyId", "billMonth"])
+    .index("by_user_property_date", ["userId", "propertyId", "billMonth"])
+    .index("by_user_date_range", ["userId", "billMonth"])
+    .index("by_property_month_type", ["propertyId", "billMonth", "utilityType"]),
   leaseUtilitySettings: defineTable({
     leaseId: v.id("leases"), // Reference to lease
     utilityType: v.string(), // Must match utilityBills.utilityType
@@ -110,7 +113,8 @@ export default defineSchema({
     .index("by_lease", ["leaseId"])
     .index("by_bill", ["utilityBillId"])
     .index("by_date", ["paymentDate"])
-    .index("by_method", ["paymentMethod"]),
+    .index("by_method", ["paymentMethod"])
+    .index("by_lease_bill", ["leaseId", "utilityBillId"]),
   documentFolders: defineTable({
     userId: v.string(),
     name: v.string(),
