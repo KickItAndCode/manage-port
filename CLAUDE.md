@@ -118,13 +118,236 @@ When asked to analyze test results or fix test issues, Claude should:
 - `/src/components/` - React components
 - `/convex/` - Convex backend functions
 
-## Testing Best Practices
+## E2E Testing Guidelines
 
-1. Always take screenshots at key steps for debugging
-2. Use proper authentication flows for tests that require login
-3. Clean up test artifacts before each test run
-4. Use environment variables for test credentials
-5. Implement robust wait conditions and error handling
+### Test Architecture & Organization
+
+**Testing Strategy:**
+- **70% Component Testing**: Use Playwright component testing for isolated, fast feedback
+- **30% Page Testing**: Reserve for critical user journeys and integration scenarios
+- **Feature-based Organization**: Group tests by user workflows, not UI structure
+- **Test Isolation**: Each test must run independently and in parallel
+
+**File Structure:**
+```
+/tests/
+  helpers/
+    auth-helpers.ts        # Authentication utilities
+    form-helpers.ts        # Form interaction patterns
+    navigation-helpers.ts  # Page navigation utilities
+  components/              # Component-specific tests
+  workflows/              # End-to-end user journey tests
+  setup/
+    auth.setup.ts         # Global authentication setup
+```
+
+### Selector Strategy (Priority Order)
+
+**Priority 1: Role-based Selectors (Preferred)**
+```typescript
+// Best: Mirrors user interactions and accessibility
+await page.getByRole('button', { name: 'Add Property' }).click();
+await page.getByRole('textbox', { name: 'Property Name' }).fill('Test Property');
+await page.getByRole('combobox', { name: 'Utility Type' }).selectOption('Electric');
+```
+
+**Priority 2: Data-testid Attributes (Required for complex elements)**
+```typescript
+// Good: Stable and purpose-built for testing
+await page.getByTestId('utility-bill-form').isVisible();
+await page.getByTestId('property-wizard-step-2').click();
+```
+
+**Priority 3: Text-based Selectors (For content verification)**
+```typescript
+// Good for content verification
+await page.getByText('Total Bills: $150.00').isVisible();
+await page.getByLabel('Due Date').fill('2024-12-15');
+```
+
+**Priority 4: CSS Selectors (Last Resort Only)**
+```typescript
+// Use only when other options aren't viable
+await page.locator('.bill-item:first-child').click();
+```
+
+### Mandatory Data-testid Requirements
+
+**UI Component Standards:**
+- **ALL interactive elements** must have data-testid attributes
+- **Forms**: `[component]-form` (e.g., `property-form`, `utility-bill-form`)
+- **Buttons**: `[action]-[component]-button` (e.g., `add-property-button`, `save-bill-button`)
+- **Lists**: `[component]-list` and `[component]-item` (e.g., `properties-list`, `property-item`)
+- **Modals**: `[component]-modal` (e.g., `property-wizard-modal`)
+- **Steps**: `[component]-step-[number]` (e.g., `wizard-step-1`)
+
+**Naming Conventions:**
+- Use kebab-case: `add-property-button`
+- Be descriptive: `utility-bill-amount-input`
+- Include context: `property-wizard-next-button`
+
+**Implementation Example:**
+```tsx
+// React Component
+<Button data-testid="add-property-button" onClick={handleAdd}>
+  Add Property
+</Button>
+
+// Test Usage  
+await page.getByTestId('add-property-button').click();
+```
+
+### Authentication Testing Standards
+
+**Global Setup (Required):**
+```typescript
+// auth.setup.ts
+setup('authenticate', async ({ page }) => {
+  await page.goto('/sign-in');
+  await page.getByRole('textbox', { name: 'Email' }).fill(process.env.TEST_USER_EMAIL!);
+  await page.getByRole('textbox', { name: 'Password' }).fill(process.env.TEST_USER_PASSWORD!);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.context().storageState({ path: 'auth-state.json' });
+});
+```
+
+**Test Dependencies:**
+```typescript
+// Use authenticated state in tests
+test.use({ storageState: 'auth-state.json' });
+```
+
+### Wait Strategies & Error Handling
+
+**Intelligent Waiting (Required):**
+```typescript
+// Good: Wait for specific conditions
+await page.waitForResponse(response => 
+  response.url().includes('/api/properties') && response.status() === 200
+);
+
+// Good: Wait for elements with timeout
+await expect(page.getByTestId('properties-list')).toBeVisible({ timeout: 10000 });
+
+// Avoid: Hard timeouts
+await page.waitForTimeout(2000); // ❌ Never use this
+```
+
+**Error Recovery Patterns:**
+```typescript
+// Implement retry mechanisms
+async function withRetry<T>(operation: () => Promise<T>, maxRetries = 3): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error) {
+      if (i === maxRetries - 1) throw error;
+      await page.waitForTimeout(1000 * (i + 1)); // Exponential backoff
+    }
+  }
+}
+```
+
+### Performance Testing Standards
+
+**Test Execution Budgets:**
+- **Component tests**: < 5 seconds each
+- **Page tests**: < 30 seconds each  
+- **Full test suite**: < 10 minutes total
+
+**Screenshot Guidelines:**
+- **Development**: Take screenshots only on failure
+- **CI/CD**: Minimal screenshots to reduce execution time
+- **Debugging**: Full-page screenshots with descriptive names
+
+**Parallel Execution:**
+```typescript
+// playwright.config.ts
+export default defineConfig({
+  fullyParallel: true,
+  workers: process.env.CI ? 2 : '50%',
+  use: {
+    video: 'retain-on-failure',
+    screenshot: 'only-on-failure',
+  },
+});
+```
+
+### Mobile & Responsive Testing
+
+**Required Viewports:**
+- **Mobile**: iPhone 14 (390x844)
+- **Tablet**: iPad Pro (1024x1366)  
+- **Desktop**: 1280x720 minimum
+
+**Testing Patterns:**
+```typescript
+test.describe('Responsive behavior', () => {
+  test('Mobile shows card layout', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto('/properties');
+    await expect(page.getByTestId('properties-cards')).toBeVisible();
+    await expect(page.getByTestId('properties-table')).not.toBeVisible();
+  });
+});
+```
+
+### Test Data Management
+
+**Fixture-based Setup (Required):**
+```typescript
+// Create deterministic test data
+export const testData = {
+  property: {
+    name: 'Test Property 123',
+    address: '123 Test Street',
+    type: 'Single Family'
+  }
+};
+
+// Automatic cleanup
+test.afterEach(async ({ page }) => {
+  await cleanupTestData(page);
+});
+```
+
+**Multi-tenant Isolation:**
+```typescript
+// Ensure tenant data separation
+test('Tenant A cannot access Tenant B data', async ({ page }) => {
+  await page.goto('/properties?tenant=A');
+  const tenantAData = await page.getByTestId('properties-list').textContent();
+  
+  await page.goto('/properties?tenant=B');  
+  const tenantBData = await page.getByTestId('properties-list').textContent();
+  
+  expect(tenantAData).not.toEqual(tenantBData);
+});
+```
+
+### Accessibility Testing Integration
+
+**Automated A11y Scans (Required):**
+```typescript
+import { AxeBuilder } from '@axe-core/playwright';
+
+test('Properties page meets WCAG 2.1 AA standards', async ({ page }) => {
+  await page.goto('/properties');
+  
+  const accessibilityScanResults = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21aa'])
+    .analyze();
+    
+  expect(accessibilityScanResults.violations).toEqual([]);
+});
+```
+
+### Legacy Best Practices (Maintained)
+
+1. Use proper authentication flows for tests that require login
+2. Clean up test artifacts before each test run  
+3. Use environment variables for test credentials
+4. Take screenshots only on test failures for debugging
 
 ## Current Priorities
 
