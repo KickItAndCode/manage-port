@@ -19,7 +19,7 @@ import {
   DollarSign, 
   Users, 
   FileText, 
-  Zap, 
+ 
   Phone,
   Mail,
   ExternalLink,

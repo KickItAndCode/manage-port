@@ -72,8 +72,7 @@ export function UnifiedFilterSystem({
   className,
   collapsible = true,
   defaultCollapsed = false,
-  showActiveFilterBadges = true,
-  enableQuickFilters = true
+  showActiveFilterBadges = true
 }: UnifiedFilterSystemProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [filters, setFilters] = useState<Record<string, any>>(() => {
@@ -466,7 +465,7 @@ export function UnifiedFilterSystem({
 }
 
 // Utility hooks for common filter patterns
-export function useUtilityBillFilters(bills: any[], properties: any[], _leases: any[]) {
+export function useUtilityBillFilters(bills: any[], properties: any[]) {
   const propertyOptions = (properties || []).map(p => ({ value: p._id, label: p.name || 'Unnamed Property' }));
   
   // Debug logging for filter options

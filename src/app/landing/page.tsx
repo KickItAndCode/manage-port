@@ -1,3 +1,5 @@
+import Link from 'next/link';
+
 export default function LandingPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-8 transition-colors duration-300">
@@ -14,7 +16,7 @@ export default function LandingPage() {
           <li>Secure authentication powered by Clerk</li>
           <li>Real-time data with Convex</li>
         </ul>
-        <a href="/sign-in" className="px-6 py-3 bg-primary text-primary-foreground rounded shadow hover:bg-primary/90 transition-colors duration-200">Get Started</a>
+        <Link href="/sign-in" className="px-6 py-3 bg-primary text-primary-foreground rounded shadow hover:bg-primary/90 transition-colors duration-200">Get Started</Link>
       </div>
     </div>
   );

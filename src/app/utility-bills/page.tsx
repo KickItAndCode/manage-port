@@ -4,7 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
-import { Doc } from "@/../convex/_generated/dataModel";
+import { Doc, Id } from "@/../convex/_generated/dataModel";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -488,13 +488,13 @@ export default function UtilityBillsPage() {
   // Handle filter updates
   const handlePropertyChange = useCallback((propertyId: string) => {
     updateFilters({ 
-      propertyId: propertyId || undefined,
+      propertyId: (propertyId || undefined) as Id<"properties"> | undefined,
       tenantId: undefined // Clear tenant when property changes
     });
   }, [updateFilters]);
 
   const handleTenantChange = useCallback((tenantId: string) => {
-    updateFilters({ tenantId: tenantId || undefined });
+    updateFilters({ tenantId: (tenantId || undefined) as Id<"leases"> | undefined });
   }, [updateFilters]);
 
   const handleDateRangeChange = useCallback((startMonth: string, endMonth: string) => {

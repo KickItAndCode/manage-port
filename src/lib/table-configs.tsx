@@ -3,10 +3,10 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash2, Eye, CheckCircle, XCircle, AlertCircle, DollarSign, Building, Calendar, Zap, Droplets, Flame, Wifi, Receipt } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { MoreHorizontal, Edit, Trash2, Eye, CheckCircle, XCircle, AlertCircle, Building, Calendar, Zap, Droplets, Flame, Wifi, Receipt } from "lucide-react";
 import { TableConfig, ColumnDefinition, BulkAction } from "@/components/ui/responsive-table";
 import { cn } from "@/lib/utils";
+import { Id } from "@/../convex/_generated/dataModel";
 
 // Type definitions for our data models
 export interface Property {
@@ -25,8 +25,11 @@ export interface Property {
 }
 
 export interface UtilityBill {
-  _id: string;
-  propertyId: string;
+  _id: Id<"utilityBills">;
+  _creationTime: number;
+  userId: string;
+  createdAt: string;
+  propertyId: Id<"properties">;
   utilityType: string;
   provider: string;
   billMonth: string;
@@ -35,7 +38,8 @@ export interface UtilityBill {
   billDate: string;
   billingPeriod?: string;
   notes?: string;
-  landlordPaidUtilityCompany?: boolean;
+  updatedAt?: string;
+  landlordPaidUtilityCompany: boolean;
   landlordPaidDate?: string;
   property?: Property;
 }
@@ -279,7 +283,7 @@ export function createUtilityBillTableConfig(
       label: 'Property',
       priority: 'important',
       sortable: true,
-      render: (value, item) => {
+      render: (value, _item) => {
         const property = properties?.find(p => p._id === value);
         return property ? (
           <div className="flex items-center gap-1 text-sm">

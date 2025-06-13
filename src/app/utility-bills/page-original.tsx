@@ -206,8 +206,7 @@ export default function UtilityBillsPage() {
   // Configure unified filter system
   const { filterConfigs, searchConfig } = useUtilityBillFilters(
     bills || [], 
-    properties || [], 
-    leases || []
+    properties || []
   );
 
   // Process filtered data with tenant filtering and sorting

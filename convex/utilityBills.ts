@@ -1135,11 +1135,11 @@ export const getUtilityPageData = query({
 
     const leasesWithUnits = await Promise.all(
       leases.map(async (lease) => {
-        let unit = null;
+        let unit = undefined;
         if (lease.unitId) {
           unit = await ctx.db.get(lease.unitId);
         }
-        return { ...lease, unit };
+        return { ...lease, unit: unit || undefined };
       })
     );
 

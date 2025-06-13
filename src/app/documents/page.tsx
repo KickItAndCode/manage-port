@@ -23,7 +23,6 @@ import {
   Clock,
   X,
   Eye,
-  Settings,
   MoreHorizontal
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -42,18 +41,18 @@ import {
 } from "@/components/ui/dropdown-menu";
 
 // Document type icons
-const typeIcons: Record<string, any> = {
-  lease: FileText,
-  utility: FileText,
-  property: Home,
-  insurance: Shield,
-  tax: Receipt,
-  maintenance: Wrench,
-  other: FileText,
-};
+// const typeIcons: Record<string, any> = {
+//   lease: FileText,
+//   utility: FileText,
+//   property: Home,
+//   insurance: Shield,
+//   tax: Receipt,
+//   maintenance: Wrench,
+//   other: FileText,
+// };
 
 // Import icons that might be missing
-import { Home, Shield, Receipt, Wrench } from "lucide-react";
+// import { Home, Shield, Receipt, Wrench } from "lucide-react";
 
 // Comprehensive documents page loading skeleton
 const DocumentsLoadingSkeleton = () => (

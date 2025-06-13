@@ -2,10 +2,9 @@ import { useMemo, useReducer, useCallback } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { useQuery } from 'convex/react';
 import { api } from '@/../convex/_generated/api';
-import { Doc, Id } from '@/../convex/_generated/dataModel';
+import { Id } from '@/../convex/_generated/dataModel';
 import {
   UtilityBillFilters,
-  UtilityBillData,
   UseUtilityBillsDataReturn,
 } from '@/types/utilityBills';
 import {
