@@ -28,6 +28,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { DocumentForm } from "@/components/DocumentForm";
 import DocumentUploadForm from "@/components/DocumentUploadForm";
@@ -53,6 +54,230 @@ const typeIcons: Record<string, any> = {
 
 // Import icons that might be missing
 import { Home, Shield, Receipt, Wrench } from "lucide-react";
+
+// Comprehensive documents page loading skeleton
+const DocumentsLoadingSkeleton = () => (
+  <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+    {/* Header skeleton */}
+    <div className="mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <Skeleton className="h-10 w-40" />
+      </div>
+    </div>
+
+    {/* Stats Cards skeleton */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-6 w-16" />
+              </div>
+              <Skeleton className="h-8 w-8" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+
+    {/* Expiring Documents Alert skeleton */}
+    <Card className="mb-6 border-border">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-lg flex items-center gap-2">
+          <Skeleton className="h-5 w-5" />
+          <Skeleton className="h-5 w-48" />
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="space-y-2">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div key={i} className="flex items-center justify-between">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-6 w-24 rounded-full" />
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+
+    {/* Filters skeleton */}
+    <Card className="mb-6">
+      <CardContent className="p-4">
+        <div className="flex flex-col gap-4">
+          {/* Search skeleton */}
+          <div className="flex-1">
+            <Skeleton className="h-10 w-full" />
+          </div>
+
+          {/* Filters Row skeleton */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Skeleton key={i} className="h-10 flex-1" />
+            ))}
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+
+    {/* Documents Table skeleton */}
+    <Card>
+      <div className="overflow-x-auto">
+        <div className="min-w-[600px]">
+          {/* Table header skeleton */}
+          <div className="border-b p-2 sm:p-4">
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-5 w-5" />
+              <div className="flex-1 grid grid-cols-6 gap-4">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+            </div>
+          </div>
+          
+          {/* Table rows skeleton */}
+          {Array.from({ length: 8 }).map((_, i) => (
+            <div key={i} className="border-b p-2 sm:p-4">
+              <div className="flex items-center gap-4">
+                <Skeleton className="h-5 w-5" />
+                <div className="flex-1 grid grid-cols-6 gap-4 items-center">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-4 w-4" />
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                  <Skeleton className="h-4 w-24" />
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-8 w-8" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Card>
+  </div>
+);
+
+// Signed-out state skeleton with overlay
+const SignedOutSkeleton = () => (
+  <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+    {/* Header skeleton */}
+    <div className="mb-8">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <Skeleton className="h-10 w-40" />
+      </div>
+    </div>
+
+    {/* Stats Cards skeleton */}
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <Card key={i}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <Skeleton className="h-4 w-24 mb-2" />
+                <Skeleton className="h-6 w-16" />
+              </div>
+              <Skeleton className="h-8 w-8" />
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+
+    {/* Main content with authentication overlay */}
+    <div className="relative">
+      {/* Authentication overlay */}
+      <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded-lg z-10 flex items-center justify-center">
+        <div className="text-center space-y-3 p-6">
+          <div className="w-12 h-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+            <Skeleton className="h-6 w-6" />
+          </div>
+          <div className="space-y-2">
+            <Skeleton className="h-5 w-56 mx-auto" />
+            <Skeleton className="h-4 w-72 mx-auto" />
+          </div>
+          <Skeleton className="h-10 w-32 mx-auto" />
+        </div>
+      </div>
+
+      {/* Background content (dimmed) */}
+      <div className="opacity-30 space-y-6">
+        {/* Filters skeleton */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col gap-4">
+              <Skeleton className="h-10 w-full" />
+              <div className="flex flex-col sm:flex-row gap-3">
+                {Array.from({ length: 2 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 flex-1" />
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Documents Table skeleton */}
+        <Card>
+          <div className="overflow-x-auto">
+            <div className="min-w-[600px]">
+              <div className="border-b p-2 sm:p-4">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-5 w-5" />
+                  <div className="flex-1 grid grid-cols-6 gap-4">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <Skeleton key={i} className="h-4 w-16" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+              
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="border-b p-2 sm:p-4">
+                  <div className="flex items-center gap-4">
+                    <Skeleton className="h-5 w-5" />
+                    <div className="flex-1 grid grid-cols-6 gap-4 items-center">
+                      <div className="flex items-center gap-3">
+                        <Skeleton className="h-4 w-4" />
+                        <div className="space-y-1">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-48" />
+                        </div>
+                      </div>
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-8 w-8" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  </div>
+);
 
 export default function DocumentsPage() {
   const { user } = useUser();
@@ -162,17 +387,11 @@ export default function DocumentsPage() {
   };
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <Card className="max-w-md">
-          <CardContent className="pt-6">
-            <p className="text-center text-muted-foreground">
-              Please sign in to manage your documents.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return <SignedOutSkeleton />;
+  }
+
+  if (documents === undefined) {
+    return <DocumentsLoadingSkeleton />;
   }
 
   return (
@@ -401,11 +620,7 @@ export default function DocumentsPage() {
       )}
 
       {/* Documents List */}
-      {documents === undefined ? (
-        <div className="text-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
-        </div>
-      ) : documents.length === 0 ? (
+      {documents.length === 0 ? (
         <Card>
           <CardContent className="py-12">
             <div className="text-center">

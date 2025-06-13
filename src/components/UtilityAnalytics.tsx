@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
   Tooltip, ResponsiveContainer, PieChart, Pie, Cell 
@@ -132,16 +133,110 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
 
   const analyticsData = processAnalyticsData();
 
+  // Loading skeleton component
+  const LoadingSkeleton = () => (
+    <div className="space-y-6">
+      {/* Header skeleton */}
+      <div className="flex items-center justify-between">
+        <div>
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-64" />
+        </div>
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-4 w-20" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+      </div>
+
+      {/* Summary Cards skeleton */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-8 w-16" />
+                </div>
+                <Skeleton className="h-8 w-8 rounded-full" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Charts Grid skeleton */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Monthly Trends Chart skeleton */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-5" />
+              <Skeleton className="h-6 w-40" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[300px] w-full" />
+          </CardContent>
+        </Card>
+
+        {/* Utility Type Breakdown skeleton */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-5" />
+              <Skeleton className="h-6 w-36" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[300px] w-full" />
+          </CardContent>
+        </Card>
+
+        {/* Property Comparison skeleton */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-5" />
+              <Skeleton className="h-6 w-32" />
+            </div>
+          </CardHeader>
+          <CardContent>
+            <Skeleton className="h-[300px] w-full" />
+          </CardContent>
+        </Card>
+
+        {/* Top Utility Types skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-36" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="h-8 w-8" />
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-16" />
+                    </div>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-5 w-8" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+
   if (!analyticsData) {
-    return (
-      <Card>
-        <CardContent className="p-6">
-          <div className="text-center text-muted-foreground">
-            Loading analytics data...
-          </div>
-        </CardContent>
-      </Card>
-    );
+    return <LoadingSkeleton />;
   }
 
   return (

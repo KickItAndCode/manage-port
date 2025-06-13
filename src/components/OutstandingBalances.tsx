@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PaymentRecordForm } from "@/components/PaymentRecordForm";
 import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { 
   DollarSign, 
@@ -198,13 +199,103 @@ export function OutstandingBalances({
   if (!charges || !leases) {
     return (
       <Card>
-        <CardContent className="p-6">
-          <div className="animate-pulse space-y-4">
-            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
-            <div className="space-y-2">
-              <div className="h-20 bg-gray-200 rounded"></div>
-              <div className="h-20 bg-gray-200 rounded"></div>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-5 w-5" />
+              <Skeleton className="h-6 w-40" />
             </div>
+            <div className="flex items-center gap-4">
+              <Skeleton className="h-10 w-32" />
+              <div className="text-right space-y-1">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-6 w-20" />
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Tenant groups skeleton */}
+          {Array.from({ length: 2 }).map((_, i) => (
+            <div key={i} className="border rounded-lg">
+              {/* Tenant Header skeleton */}
+              <div className="p-4 border-b bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-lg bg-background">
+                      <Skeleton className="h-4 w-4" />
+                    </div>
+                    <div className="space-y-2">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-4 w-48" />
+                    </div>
+                  </div>
+                  <div className="text-right space-y-1">
+                    <Skeleton className="h-6 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Utilities skeleton */}
+              <div className="p-4 space-y-4">
+                {Array.from({ length: 2 }).map((_, j) => (
+                  <div key={j} className="space-y-2">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Skeleton className="h-4 w-4" />
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+                    
+                    <div className="space-y-1 ml-6">
+                      {Array.from({ length: 1 }).map((_, k) => (
+                        <div key={k} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                          <div className="flex items-center gap-4">
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-2">
+                                <Skeleton className="h-3 w-3" />
+                                <Skeleton className="h-4 w-16" />
+                                <Skeleton className="h-5 w-16" />
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <Skeleton className="h-3 w-24" />
+                                <Skeleton className="h-3 w-20" />
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-3">
+                            <div className="text-right space-y-1">
+                              <Skeleton className="h-5 w-16" />
+                              <Skeleton className="h-3 w-20" />
+                            </div>
+                            <Skeleton className="h-8 w-16" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Quick Actions skeleton */}
+              <div className="p-4 pt-0">
+                <div className="flex gap-2">
+                  <Skeleton className="h-8 w-24" />
+                  <Skeleton className="h-8 w-28" />
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {/* Summary Stats skeleton */}
+          <div className="bg-muted/30 rounded-lg p-4 grid grid-cols-2 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div key={i} className="space-y-1">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-6 w-12" />
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>

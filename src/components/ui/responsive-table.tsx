@@ -4,6 +4,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronUp, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -271,18 +272,92 @@ export function ResponsiveTable<T>({
     </div>
   );
 
-  // Loading state
+  // Enhanced loading state that matches actual table structure
   if (loading) {
     return (
-      <div className={cn("space-y-3", className)}>
-        {Array.from({ length: 3 }).map((_, i) => (
-          <Card key={i} className="p-4">
-            <div className="space-y-2">
-              <div className="h-4 bg-muted rounded animate-pulse" />
-              <div className="h-3 bg-muted rounded animate-pulse w-2/3" />
-            </div>
-          </Card>
-        ))}
+      <div className={cn("", className)}>
+        {/* Mobile Cards Loading */}
+        <div className="lg:hidden space-y-3">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <Card key={i} className="p-4">
+              <div className="space-y-3">
+                <div className="flex items-start gap-3">
+                  <Skeleton className="h-4 w-4 mt-1" />
+                  <div className="flex-1 space-y-3">
+                    {/* Essential info skeleton */}
+                    <div className="space-y-1">
+                      <Skeleton className="h-5 w-3/4" />
+                      <Skeleton className="h-4 w-full" />
+                    </div>
+                    
+                    {/* Important info grid skeleton */}
+                    <div className="grid grid-cols-2 gap-2">
+                      {Array.from({ length: 4 }).map((_, j) => (
+                        <div key={j} className="space-y-1">
+                          <Skeleton className="h-3 w-12" />
+                          <Skeleton className="h-4 w-20" />
+                        </div>
+                      ))}
+                    </div>
+                    
+                    {/* Actions skeleton */}
+                    <div className="flex justify-end gap-2 pt-2 border-t">
+                      {Array.from({ length: 3 }).map((_, k) => (
+                        <Skeleton key={k} className="h-8 w-16" />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        {/* Desktop Table Loading */}
+        <div className="hidden lg:block overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                {config.selectable !== false && (
+                  <TableHead className="w-8">
+                    <Skeleton className="h-4 w-4" />
+                  </TableHead>
+                )}
+                {visibleColumns.map((column, i) => (
+                  <TableHead key={i} className={column.className} style={{ width: column.width }}>
+                    <Skeleton className="h-4 w-20" />
+                  </TableHead>
+                ))}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.from({ length: 6 }).map((_, i) => (
+                <TableRow key={i}>
+                  {config.selectable !== false && (
+                    <TableCell className="w-8">
+                      <Skeleton className="h-4 w-4" />
+                    </TableCell>
+                  )}
+                  {visibleColumns.map((column, j) => (
+                    <TableCell key={j} className={column.className}>
+                      {/* Different skeleton sizes based on column priority */}
+                      {column.priority === 'essential' ? (
+                        <div className="space-y-1">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-48" />
+                        </div>
+                      ) : column.priority === 'important' ? (
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                      ) : (
+                        <Skeleton className="h-4 w-20" />
+                      )}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </div>
     );
   }

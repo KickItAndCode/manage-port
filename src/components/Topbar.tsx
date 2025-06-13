@@ -30,13 +30,18 @@ export function Topbar() {
             {resolvedTheme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
           </button>
         )}
-        {isLoaded && isSignedIn ? (
-          <UserButton afterSignOutUrl="/" />
+        {isLoaded ? (
+          isSignedIn ? (
+            <UserButton afterSignOutUrl="/" />
+          ) : (
+            <div className="flex gap-1 sm:gap-2">
+              <Link href="/sign-in" className="px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors duration-200 text-sm">Sign in</Link>
+              <Link href="/sign-up" className="px-3 sm:px-4 py-2 bg-muted text-foreground rounded border border-border hover:bg-muted/70 transition-colors duration-200 text-sm">Sign up</Link>
+            </div>
+          )
         ) : (
-          <div className="flex gap-1 sm:gap-2">
-            <Link href="/sign-in" className="px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors duration-200 text-sm">Sign in</Link>
-            <Link href="/sign-up" className="px-3 sm:px-4 py-2 bg-muted text-foreground rounded border border-border hover:bg-muted/70 transition-colors duration-200 text-sm">Sign up</Link>
-          </div>
+          // Show minimal placeholder when auth is loading
+          <div className="w-20 h-8" />
         )}
       </div>
     </header>

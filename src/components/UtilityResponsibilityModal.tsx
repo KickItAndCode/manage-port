@@ -11,6 +11,7 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
 import { UTILITY_TYPES } from "@/lib/constants";
 import { 
@@ -210,6 +211,91 @@ export function UtilityResponsibilityModal({
     setHasChanges(true);
   };
 
+  // Loading state component
+  const LoadingSkeleton = () => (
+    <div className="space-y-4">
+      {/* Property selection skeleton */}
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-20" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+      
+      {/* Property info card skeleton */}
+      <Card className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="space-y-2">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="h-4 w-64" />
+            <div className="flex items-center gap-2 mt-2">
+              <Skeleton className="h-6 w-24" />
+              <Skeleton className="h-6 w-20" />
+            </div>
+          </div>
+          <div className="text-right space-y-2">
+            <Skeleton className="h-4 w-32" />
+            <div className="flex gap-1">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-4 w-4 rounded-full" />
+              ))}
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Templates skeleton */}
+      <div className="space-y-2">
+        <Skeleton className="h-4 w-32" />
+        <div className="flex flex-wrap gap-2">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton key={i} className="h-8 w-24" />
+          ))}
+        </div>
+      </div>
+
+      {/* Progress skeleton */}
+      <div className="space-y-2">
+        <div className="flex justify-between">
+          <Skeleton className="h-4 w-40" />
+          <Skeleton className="h-4 w-12" />
+        </div>
+        <Skeleton className="h-3 w-full" />
+      </div>
+
+      {/* Tenant allocations skeleton */}
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex items-center justify-between p-4 border rounded-lg">
+            <div className="flex items-center gap-3">
+              <Skeleton className="h-4 w-4" />
+              <div className="space-y-1">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-8 w-20" />
+              <Skeleton className="h-4 w-4" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Info alert skeleton */}
+      <div className="p-4 border rounded-lg">
+        <div className="flex gap-3">
+          <Skeleton className="h-4 w-4 flex-shrink-0 mt-0.5" />
+          <div className="space-y-2 flex-1">
+            <Skeleton className="h-4 w-full" />
+            <Skeleton className="h-4 w-3/4" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Check if all required data is loaded
+  const isLoading = !properties || !allLeases || (selectedPropertyId && !utilitySettings);
+
   const handleSave = async () => {
     setSaving(true);
     try {
@@ -277,7 +363,9 @@ export function UtilityResponsibilityModal({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-4">
-          {propertiesWithLeases.length === 0 ? (
+          {isLoading ? (
+            <LoadingSkeleton />
+          ) : propertiesWithLeases.length === 0 ? (
             <Alert>
               <AlertTriangle className="h-4 w-4" />
               <AlertDescription>

@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { useUser } from "@clerk/nextjs";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { PropertyCreationWizard, type PropertyWizardData } from "@/components/PropertyCreationWizard";
@@ -61,16 +61,227 @@ export default function DashboardPage() {
   // Check if user has no properties
   const hasNoProperties = properties && properties.length === 0;
 
-  if (!user || !metrics || !userSettings) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="space-y-3">
-          <Skeleton className="h-12 w-48" />
-          <Skeleton className="h-32 w-full max-w-md" />
-          <Skeleton className="h-32 w-full max-w-md" />
-        </div>
+  // Comprehensive dashboard loading skeleton that matches the actual layout
+  const DashboardLoadingSkeleton = () => (
+    <main className="min-h-screen bg-background text-foreground p-3 sm:p-6 lg:p-8 transition-colors duration-300" role="main">
+      <div className="max-w-7xl mx-auto">
+        {/* Header skeleton */}
+        <header className="mb-4 sm:mb-8">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+            <div className="min-w-0">
+              <Skeleton className="h-8 sm:h-9 w-48" />
+              <Skeleton className="h-4 w-80 mt-1" />
+            </div>
+            <div className="flex justify-end items-center sm:flex-col sm:items-end gap-2">
+              <div className="text-right space-y-1">
+                <Skeleton className="h-3 w-24" />
+                <Skeleton className="h-5 sm:h-6 w-20" />
+              </div>
+            </div>
+          </div>
+        </header>
+
+        {/* Stat Cards skeleton */}
+        <section className="mb-4 sm:mb-8">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+            {Array.from({ length: 4 }).map((_, index) => (
+              <Card key={index} className="p-3 sm:p-6 border-l-4 border-border">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                  <div className="min-w-0 flex-1">
+                    <Skeleton className="h-3 w-20 mb-1" />
+                    <Skeleton className="h-6 sm:h-8 w-16 mb-2" />
+                    <Skeleton className="h-5 w-24" />
+                  </div>
+                  <Skeleton className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl self-end sm:self-auto" />
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        {/* Quick Actions skeleton */}
+        <section className="mb-4 sm:mb-8">
+          <Card className="p-3 sm:p-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Skeleton className="h-5 sm:h-6 w-32" />
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg border border-border min-h-[80px] sm:min-h-[100px]">
+                  <Skeleton className="h-6 w-6 rounded" />
+                  <div className="text-center space-y-1">
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </section>
+
+        {/* Outstanding Balances skeleton */}
+        <section className="mb-4 sm:mb-8">
+          <Card>
+            <CardContent className="p-6">
+              <div className="animate-pulse space-y-4">
+                <div className="flex items-center justify-between mb-4">
+                  <Skeleton className="h-6 w-40" />
+                  <Skeleton className="h-10 w-32" />
+                </div>
+                <div className="space-y-2">
+                  <Skeleton className="h-20 w-full" />
+                  <Skeleton className="h-20 w-full" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Charts Grid skeleton */}
+        <section className="mb-4 sm:mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
+            {/* Monthly Revenue Trend skeleton */}
+            <Card className="p-3 sm:p-6">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Skeleton className="h-5 sm:h-6 w-44" />
+              </div>
+              <Skeleton className="h-[200px] sm:h-[300px] w-full" />
+            </Card>
+
+            {/* Properties by Type skeleton */}
+            <Card className="p-3 sm:p-6">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Skeleton className="h-5 sm:h-6 w-40" />
+              </div>
+              <Skeleton className="h-[200px] sm:h-[300px] w-full" />
+            </Card>
+          </div>
+        </section>
+
+        {/* Additional Charts skeleton */}
+        <section className="mb-4 sm:mb-8">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
+            {/* Properties by Status skeleton */}
+            <Card className="p-3 sm:p-6">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Skeleton className="h-5 sm:h-6 w-44" />
+              </div>
+              <Skeleton className="h-[200px] sm:h-[300px] w-full" />
+            </Card>
+
+            {/* Financial Summary skeleton */}
+            <Card className="p-3 sm:p-6">
+              <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Skeleton className="h-5 sm:h-6 w-36" />
+              </div>
+              <div className="space-y-2 sm:space-y-4">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-4 rounded-lg gap-1 sm:gap-0">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-4 sm:h-5 w-20" />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </section>
+
+        {/* Utility Analytics skeleton */}
+        <section className="mb-6 sm:mb-8">
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="flex items-center justify-between">
+              <div>
+                <Skeleton className="h-8 w-48 mb-2" />
+                <Skeleton className="h-4 w-64" />
+              </div>
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-10 w-32" />
+              </div>
+            </div>
+
+            {/* Summary Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <Card key={i}>
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-20" />
+                        <Skeleton className="h-8 w-16" />
+                      </div>
+                      <Skeleton className="h-8 w-8 rounded-full" />
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Recent Properties skeleton */}
+        <section>
+          <Card className="p-3 sm:p-6">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
+                <Skeleton className="h-5 sm:h-6 w-36" />
+              </div>
+              <Skeleton className="h-4 w-16" />
+            </div>
+            <div className="overflow-x-auto -mx-1 sm:mx-0">
+              <div className="w-full min-w-[500px] sm:min-w-0">
+                {/* Table header skeleton */}
+                <div className="flex text-left text-xs pb-2 sm:pb-3">
+                  <div className="flex-1 px-1 sm:px-0"><Skeleton className="h-3 w-16" /></div>
+                  <div className="flex-1 px-1 sm:px-0 hidden sm:block"><Skeleton className="h-3 w-12" /></div>
+                  <div className="flex-1 px-1 sm:px-0 hidden sm:block"><Skeleton className="h-3 w-16" /></div>
+                  <div className="w-20 px-1 sm:px-0 text-right"><Skeleton className="h-3 w-12" /></div>
+                  <div className="w-8 px-1 sm:px-0"></div>
+                </div>
+                
+                {/* Table rows skeleton */}
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex border-t py-2 sm:py-3">
+                    <div className="flex-1 px-1 sm:px-0">
+                      <Skeleton className="h-4 w-32 mb-1" />
+                      <Skeleton className="h-3 w-48" />
+                      <div className="flex items-center gap-2 mt-1 sm:hidden">
+                        <Skeleton className="h-3 w-16" />
+                        <span className="text-xs">•</span>
+                        <Skeleton className="h-4 w-12" />
+                      </div>
+                    </div>
+                    <div className="flex-1 px-1 sm:px-0 hidden sm:block">
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                    <div className="flex-1 px-1 sm:px-0 hidden sm:block">
+                      <Skeleton className="h-6 w-16" />
+                    </div>
+                    <div className="w-20 px-1 sm:px-0 text-right">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-3 w-8 mt-1 sm:hidden" />
+                    </div>
+                    <div className="w-8 px-1 sm:px-0">
+                      <Skeleton className="h-3 w-3 ml-1 sm:ml-2" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </Card>
+        </section>
       </div>
-    );
+    </main>
+  );
+
+  if (!user || !metrics || !userSettings) {
+    return <DashboardLoadingSkeleton />;
   }
 
   const statCards = [

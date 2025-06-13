@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Building, ArrowRight, LogOut, FileText, Zap } from "lucide-react";
 import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Home() {
   const { signOut } = useClerk();
@@ -13,8 +14,22 @@ export default function Home() {
 
   if (!isLoaded) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+      <div className="min-h-screen bg-gradient-to-br from-background to-muted flex flex-col items-center justify-center p-4">
+        <div className="w-full max-w-2xl space-y-8">
+          {/* Minimal header skeleton */}
+          <div className="text-center">
+            <Skeleton className="h-12 w-64 mx-auto" />
+          </div>
+
+          {/* Single card skeleton */}
+          <Card className="border-0 shadow-2xl bg-card/50 backdrop-blur-sm">
+            <CardContent className="p-8 text-center space-y-4">
+              <Skeleton className="h-8 w-48 mx-auto" />
+              <Skeleton className="h-4 w-96 mx-auto" />
+              <Skeleton className="h-12 w-40 mx-auto" />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     );
   }

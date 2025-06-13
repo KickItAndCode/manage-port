@@ -25,6 +25,7 @@ import {
   type Property
 } from "@/lib/table-configs";
 import { cn } from "@/lib/utils";
+import { Skeleton } from "@/components/ui/skeleton";
 import { 
   Plus, 
   Receipt, 
@@ -47,6 +48,235 @@ import {
 // Import our new hooks and types
 import { useUtilityBillsData, useUtilityBillFilterOptions } from "@/hooks/useUtilityBillsData";
 import { UtilityBillFilters } from "@/types/utilityBills";
+
+// Comprehensive utility bills page loading skeleton
+const UtilityBillsLoadingSkeleton = () => (
+  <div className="min-h-screen bg-background p-3 sm:p-4 lg:p-6">
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-5">
+      {/* Header skeleton */}
+      <div className="flex flex-col gap-4">
+        <div>
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Skeleton className="h-10 w-32" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+      </div>
+
+      {/* Stats Cards skeleton */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <Skeleton className="h-4 w-20 mb-2" />
+                  <Skeleton className="h-6 w-12" />
+                </div>
+                <Skeleton className="h-6 w-6 rounded" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Filters skeleton */}
+      <div className="bg-muted/50 rounded-lg border p-3 sm:p-4 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i}>
+              <Skeleton className="h-4 w-16 mb-2" />
+              <Skeleton className="h-10 w-full" />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Bills Table skeleton */}
+      <Card>
+        <CardContent className="p-3 sm:p-6">
+          {/* Mobile Cards skeleton */}
+          <div className="lg:hidden space-y-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Card key={i} className="p-4">
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <Skeleton className="h-4 w-4 mt-1" />
+                    <div className="flex-1 space-y-3">
+                      {/* Essential info */}
+                      <div className="space-y-1">
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-4 w-48" />
+                      </div>
+                      
+                      {/* Important info grid */}
+                      <div className="grid grid-cols-2 gap-2">
+                        {Array.from({ length: 4 }).map((_, j) => (
+                          <div key={j} className="space-y-1">
+                            <Skeleton className="h-3 w-12" />
+                            <Skeleton className="h-4 w-16" />
+                          </div>
+                        ))}
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="flex justify-end gap-2 pt-2 border-t">
+                        <Skeleton className="h-8 w-16" />
+                        <Skeleton className="h-8 w-16" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+
+          {/* Desktop Table skeleton */}
+          <div className="hidden lg:block">
+            <div className="space-y-4">
+              {/* Table header */}
+              <div className="flex border-b pb-3">
+                <div className="w-8 mr-4">
+                  <Skeleton className="h-4 w-4" />
+                </div>
+                <div className="flex-1 grid grid-cols-7 gap-4">
+                  {Array.from({ length: 7 }).map((_, i) => (
+                    <Skeleton key={i} className="h-4 w-16" />
+                  ))}
+                </div>
+              </div>
+              
+              {/* Table rows */}
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="flex py-4 border-b border-border/50">
+                  <div className="w-8 mr-4">
+                    <Skeleton className="h-4 w-4" />
+                  </div>
+                  <div className="flex-1 grid grid-cols-7 gap-4 items-center">
+                    <div className="space-y-1">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-3 w-32" />
+                    </div>
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-4 w-20" />
+                    <Skeleton className="h-6 w-16 rounded-full" />
+                    <Skeleton className="h-4 w-16" />
+                    <div className="flex gap-1">
+                      <Skeleton className="h-8 w-8" />
+                      <Skeleton className="h-8 w-8" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  </div>
+);
+
+// Signed-out state skeleton with overlay
+const SignedOutSkeleton = () => (
+  <div className="min-h-screen bg-background p-3 sm:p-4 lg:p-6">
+    <div className="max-w-7xl mx-auto space-y-4 sm:space-y-5">
+      {/* Header skeleton */}
+      <div className="flex flex-col gap-4">
+        <div>
+          <Skeleton className="h-8 w-64 mb-2" />
+          <Skeleton className="h-4 w-96" />
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Skeleton className="h-10 w-32" />
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+      </div>
+
+      {/* Stats Cards skeleton */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i}>
+            <CardContent className="p-3">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <Skeleton className="h-4 w-20 mb-2" />
+                  <Skeleton className="h-6 w-12" />
+                </div>
+                <Skeleton className="h-6 w-6 rounded" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Main content with authentication overlay */}
+      <div className="relative">
+        {/* Authentication overlay */}
+        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded-lg z-10 flex items-center justify-center">
+          <div className="text-center space-y-3 p-6">
+            <div className="w-12 h-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+              <Skeleton className="h-6 w-6" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-48 mx-auto" />
+              <Skeleton className="h-4 w-64 mx-auto" />
+            </div>
+            <Skeleton className="h-10 w-32 mx-auto" />
+          </div>
+        </div>
+
+        {/* Background content (dimmed) */}
+        <div className="opacity-30 space-y-4">
+          {/* Filters skeleton */}
+          <div className="bg-muted/50 rounded-lg border p-3 sm:p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i}>
+                  <Skeleton className="h-4 w-16 mb-2" />
+                  <Skeleton className="h-10 w-full" />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Bills Table skeleton */}
+          <Card>
+            <CardContent className="p-3 sm:p-6">
+              <div className="lg:hidden space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Card key={i} className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex items-start gap-3">
+                        <Skeleton className="h-4 w-4 mt-1" />
+                        <div className="flex-1 space-y-2">
+                          <Skeleton className="h-5 w-32" />
+                          <Skeleton className="h-4 w-48" />
+                          <div className="grid grid-cols-2 gap-2">
+                            {Array.from({ length: 4 }).map((_, j) => (
+                              <div key={j} className="space-y-1">
+                                <Skeleton className="h-3 w-12" />
+                                <Skeleton className="h-4 w-16" />
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  </div>
+);
 
 export default function UtilityBillsPage() {
   const { user } = useUser();
@@ -282,17 +512,11 @@ export default function UtilityBillsPage() {
   }, [updateFilters]);
 
   if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center text-muted-foreground">
-          Sign in to manage utility bills.
-        </div>
-      </div>
-    );
+    return <SignedOutSkeleton />;
   }
 
   if (loading) {
-    return <LoadingContent />;
+    return <UtilityBillsLoadingSkeleton />;
   }
 
   if (error) {

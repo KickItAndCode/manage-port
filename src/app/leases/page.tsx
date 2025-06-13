@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { LeaseForm } from "@/components/LeaseForm";
 import { Card } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
@@ -138,8 +139,183 @@ function LeasesPageContent() {
     }
   }
 
-  if (!user) return <div className="text-center text-muted-foreground">Sign in to manage leases.</div>;
-  if (!properties) return <div className="text-center text-muted-foreground">Loading properties...</div>;
+  // Comprehensive leases page loading skeleton
+  const LeasesLoadingSkeleton = () => (
+    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8 transition-colors duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+        <Skeleton className="h-8 sm:h-9 w-24" />
+        <Skeleton className="h-10 w-32" />
+      </div>
+      
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 items-start sm:items-end">
+        <Skeleton className="h-10 w-full sm:max-w-xs" />
+        <Skeleton className="h-10 w-full sm:w-auto" />
+        
+        {/* Expired Leases Toggle skeleton */}
+        <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 rounded-lg border border-border">
+          <div className="flex items-center gap-2 text-sm">
+            <Skeleton className="h-4 w-4" />
+            <Skeleton className="h-4 w-16" />
+            <Skeleton className="h-5 w-6 rounded-full" />
+          </div>
+          <Skeleton className="h-6 w-11 rounded-full" />
+          <div className="flex items-center gap-1">
+            <Skeleton className="h-3 w-3" />
+            <Skeleton className="h-3 w-12" />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-6">
+        {/* Active & Pending Leases skeleton */}
+        <Card className="p-4 sm:p-6">
+          <Skeleton className="h-6 w-48 mb-4" />
+          
+          {/* Mobile Card View skeleton */}
+          <div className="lg:hidden space-y-4">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <Card key={i} className="p-4 border">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-5 w-32" />
+                        <Skeleton className="h-5 w-12 rounded-full" />
+                      </div>
+                      <Skeleton className="h-4 w-48" />
+                    </div>
+                    <div className="text-right space-y-1">
+                      <Skeleton className="h-5 w-24" />
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-12" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-8" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                    <div className="space-y-1">
+                      <Skeleton className="h-3 w-16" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-end pt-2 border-t">
+                    <Skeleton className="h-8 w-24" />
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+          
+          {/* Desktop Table View skeleton */}
+          <div className="hidden lg:block overflow-x-auto">
+            <div className="space-y-4">
+              {/* Table header */}
+              <div className="grid grid-cols-7 gap-4 pb-3 border-b">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-14" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+              
+              {/* Table rows */}
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="grid grid-cols-7 gap-4 py-4 border-b border-border/50">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-4 w-8 rounded" />
+                    </div>
+                    <Skeleton className="h-3 w-32" />
+                    <Skeleton className="h-3 w-28" />
+                  </div>
+                  <Skeleton className="h-4 w-20" />
+                  <div className="space-y-1">
+                    <Skeleton className="h-4 w-16" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                  <Skeleton className="h-4 w-16" />
+                  <Skeleton className="h-4 w-12" />
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                  <Skeleton className="h-8 w-8" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </Card>
+      </div>
+    </div>
+  );
+
+  // Signed-out state skeleton with overlay
+  const SignedOutSkeleton = () => (
+    <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8 transition-colors duration-300">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
+        <Skeleton className="h-8 sm:h-9 w-24" />
+        <Skeleton className="h-10 w-32" />
+      </div>
+      
+      <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 items-start sm:items-end">
+        <Skeleton className="h-10 w-full sm:max-w-xs" />
+        <Skeleton className="h-10 w-full sm:w-auto" />
+        <div className="flex items-center gap-3 px-4 py-2 bg-muted/30 rounded-lg border border-border">
+          <Skeleton className="h-4 w-16" />
+          <Skeleton className="h-6 w-11 rounded-full" />
+        </div>
+      </div>
+
+      <Card className="p-4 sm:p-6 relative">
+        {/* Authentication overlay */}
+        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded-lg z-10 flex items-center justify-center">
+          <div className="text-center space-y-3 p-6">
+            <div className="w-12 h-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+              <Skeleton className="h-6 w-6" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-40 mx-auto" />
+              <Skeleton className="h-4 w-56 mx-auto" />
+            </div>
+            <Skeleton className="h-10 w-28 mx-auto" />
+          </div>
+        </div>
+
+        {/* Background content (dimmed) */}
+        <div className="opacity-30">
+          <Skeleton className="h-6 w-48 mb-4" />
+          <div className="lg:hidden space-y-4">
+            {Array.from({ length: 2 }).map((_, i) => (
+              <Card key={i} className="p-4 border">
+                <div className="space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div className="space-y-2">
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-4 w-48" />
+                    </div>
+                    <div className="text-right space-y-1">
+                      <Skeleton className="h-5 w-24" />
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                    </div>
+                  </div>
+                </div>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
+
+  if (!user) return <SignedOutSkeleton />;
+  if (!properties) return <LeasesLoadingSkeleton />;
 
   const LeaseTable = ({ leases: leaseList, title }: { leases: any[], title: string }) => {
     return (

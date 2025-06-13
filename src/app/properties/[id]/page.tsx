@@ -143,13 +143,207 @@ export default function PropertyDetailsPage() {
     return leases.filter((lease: any) => lease.status !== "expired");
   };
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center text-muted-foreground">Sign in to view property details.</div>
+  // Comprehensive property detail loading skeleton
+  const PropertyDetailLoadingSkeleton = () => (
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-64" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-10 w-24" />
+            <Skeleton className="h-10 w-32" />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            {/* Property Image */}
+            <Card className="overflow-hidden">
+              <Skeleton className="h-64 w-full" />
+            </Card>
+
+            {/* Property Details */}
+            <Card className="p-6">
+              <div className="space-y-4">
+                <Skeleton className="h-6 w-32" />
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div key={i} className="space-y-2">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-5 w-20" />
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+
+            {/* Units & Leases */}
+            <Card className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <Skeleton className="h-6 w-48" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-8 w-24" />
+                </div>
+              </div>
+              
+              {/* Mobile Cards */}
+              <div className="lg:hidden space-y-4">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <Card key={i} className="p-4">
+                    <div className="space-y-3">
+                      <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                          <Skeleton className="h-5 w-24" />
+                          <Skeleton className="h-4 w-32" />
+                        </div>
+                        <Skeleton className="h-6 w-16 rounded-full" />
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Skeleton className="h-3 w-12" />
+                          <Skeleton className="h-4 w-16" />
+                        </div>
+                        <div className="space-y-1">
+                          <Skeleton className="h-3 w-10" />
+                          <Skeleton className="h-4 w-20" />
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden lg:block">
+                <div className="space-y-4">
+                  <div className="grid grid-cols-6 gap-4 pb-3 border-b">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <Skeleton key={i} className="h-4 w-16" />
+                    ))}
+                  </div>
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <div key={i} className="grid grid-cols-6 gap-4 py-3 border-b border-border/50">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-4 w-24" />
+                      <Skeleton className="h-6 w-16 rounded-full" />
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-20" />
+                      <div className="flex gap-1">
+                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-8 w-8" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Sidebar */}
+          <div className="space-y-6">
+            {/* Financial Summary */}
+            <Card className="p-6">
+              <Skeleton className="h-6 w-32 mb-4" />
+              <div className="space-y-3">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div key={i} className="flex justify-between items-center">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-4 w-16" />
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Quick Actions */}
+            <Card className="p-6">
+              <Skeleton className="h-6 w-28 mb-4" />
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <Skeleton key={i} className="h-10 w-full" />
+                ))}
+              </div>
+            </Card>
+
+            {/* Documents */}
+            <Card className="p-6">
+              <Skeleton className="h-6 w-24 mb-4" />
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <Skeleton className="h-8 w-8" />
+                    <div className="flex-1 space-y-1">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+        </div>
       </div>
-    );
-  }
+    </div>
+  );
+
+  // Signed-out state with overlay
+  const SignedOutSkeleton = () => (
+    <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+      <div className="max-w-6xl mx-auto space-y-6 relative">
+        {/* Authentication overlay */}
+        <div className="absolute inset-0 bg-background/50 backdrop-blur-sm rounded-lg z-10 flex items-center justify-center">
+          <div className="text-center space-y-3 p-6">
+            <div className="w-12 h-12 mx-auto bg-primary/10 rounded-full flex items-center justify-center">
+              <Skeleton className="h-6 w-6" />
+            </div>
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-48 mx-auto" />
+              <Skeleton className="h-4 w-64 mx-auto" />
+            </div>
+            <Skeleton className="h-10 w-32 mx-auto" />
+          </div>
+        </div>
+
+        {/* Background content (dimmed) */}
+        <div className="opacity-30">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-64" />
+              <Skeleton className="h-4 w-96" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+            <div className="lg:col-span-2 space-y-6">
+              <Card className="overflow-hidden">
+                <Skeleton className="h-64 w-full" />
+              </Card>
+              <Card className="p-6">
+                <Skeleton className="h-32 w-full" />
+              </Card>
+            </div>
+            <div className="space-y-6">
+              <Card className="p-6">
+                <Skeleton className="h-48 w-full" />
+              </Card>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (!user) return <SignedOutSkeleton />;
 
   if (!isValidPropertyId) {
     return (
@@ -175,23 +369,7 @@ export default function PropertyDetailsPage() {
   }
 
   if (property === undefined) {
-    return (
-      <div className="min-h-screen bg-background p-8">
-        <div className="max-w-6xl mx-auto space-y-6">
-          <Skeleton className="h-8 w-64" />
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Skeleton className="h-64 w-full" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-            <div className="space-y-6">
-              <Skeleton className="h-48 w-full" />
-              <Skeleton className="h-32 w-full" />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    return <PropertyDetailLoadingSkeleton />;
   }
 
   if (property === null) {
