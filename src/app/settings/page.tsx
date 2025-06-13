@@ -26,10 +26,8 @@ import {
   RotateCcw,
   Palette,
   Layout,
-  Globe,
-  Database
+  Globe
 } from "lucide-react";
-import { UnifiedPaymentMigrationPanel } from "@/components/UnifiedPaymentMigrationPanel";
 
 export default function SettingsPage() {
   const { user } = useUser();
@@ -344,21 +342,6 @@ export default function SettingsPage() {
             </CardContent>
           </Card>
 
-          {/* Data Migration */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Database className="h-5 w-5" />
-                Data Migration
-              </CardTitle>
-              <p className="text-sm text-muted-foreground">
-                Update your data to use the latest unified payment system
-              </p>
-            </CardHeader>
-            <CardContent>
-              <UnifiedPaymentMigrationPanel />
-            </CardContent>
-          </Card>
 
           {/* Future Settings Placeholder */}
           <Card className="opacity-60">

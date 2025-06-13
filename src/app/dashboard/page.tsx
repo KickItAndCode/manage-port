@@ -224,58 +224,6 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        {/* Recent Properties skeleton */}
-        <section>
-          <Card className="p-3 sm:p-6">
-            <div className="flex items-center justify-between mb-3 sm:mb-4">
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
-                <Skeleton className="h-5 sm:h-6 w-36" />
-              </div>
-              <Skeleton className="h-4 w-16" />
-            </div>
-            <div className="overflow-x-auto -mx-1 sm:mx-0">
-              <div className="w-full min-w-[500px] sm:min-w-0">
-                {/* Table header skeleton */}
-                <div className="flex text-left text-xs pb-2 sm:pb-3">
-                  <div className="flex-1 px-1 sm:px-0"><Skeleton className="h-3 w-16" /></div>
-                  <div className="flex-1 px-1 sm:px-0 hidden sm:block"><Skeleton className="h-3 w-12" /></div>
-                  <div className="flex-1 px-1 sm:px-0 hidden sm:block"><Skeleton className="h-3 w-16" /></div>
-                  <div className="w-20 px-1 sm:px-0 text-right"><Skeleton className="h-3 w-12" /></div>
-                  <div className="w-8 px-1 sm:px-0"></div>
-                </div>
-                
-                {/* Table rows skeleton */}
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <div key={i} className="flex border-t py-2 sm:py-3">
-                    <div className="flex-1 px-1 sm:px-0">
-                      <Skeleton className="h-4 w-32 mb-1" />
-                      <Skeleton className="h-3 w-48" />
-                      <div className="flex items-center gap-2 mt-1 sm:hidden">
-                        <Skeleton className="h-3 w-16" />
-                        <span className="text-xs">•</span>
-                        <Skeleton className="h-4 w-12" />
-                      </div>
-                    </div>
-                    <div className="flex-1 px-1 sm:px-0 hidden sm:block">
-                      <Skeleton className="h-4 w-20" />
-                    </div>
-                    <div className="flex-1 px-1 sm:px-0 hidden sm:block">
-                      <Skeleton className="h-6 w-16" />
-                    </div>
-                    <div className="w-20 px-1 sm:px-0 text-right">
-                      <Skeleton className="h-4 w-16" />
-                      <Skeleton className="h-3 w-8 mt-1 sm:hidden" />
-                    </div>
-                    <div className="w-8 px-1 sm:px-0">
-                      <Skeleton className="h-3 w-3 ml-1 sm:ml-2" />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </Card>
-        </section>
       </div>
     </main>
   );
@@ -395,12 +343,6 @@ export default function DashboardPage() {
           <Card className="p-3 sm:p-6">
             <div className="flex items-center gap-2 mb-3 sm:mb-4">
               <h3 className="text-base sm:text-lg font-semibold text-foreground">Quick Actions</h3>
-              {hasNoProperties && (
-                <div className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full animate-pulse">
-                  <Sparkles className="h-3 w-3" />
-                  <span>Start here!</span>
-                </div>
-              )}
             </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
               <button 
@@ -646,86 +588,6 @@ export default function DashboardPage() {
             </section>
           )}
 
-          {/* Recent Properties */}
-          {userSettings.dashboardComponents.showRecentProperties && (
-            <section aria-labelledby="recent-properties-heading">
-            <Card className="p-3 sm:p-6">
-              <div className="flex items-center justify-between mb-3 sm:mb-4">
-                <h3 id="recent-properties-heading" className="text-sm sm:text-lg font-semibold flex items-center gap-2">
-                  <Building2 className="h-4 w-4 sm:h-5 sm:w-5 text-indigo-600" aria-hidden="true" />
-                  Recent Properties
-                </h3>
-                <button 
-                  onClick={() => router.push('/properties')}
-                  className="text-xs sm:text-sm text-primary hover:underline flex items-center gap-1"
-                >
-                  View all
-                  <ArrowRight className="h-3 w-3" />
-                </button>
-              </div>
-              <div className="overflow-x-auto -mx-1 sm:mx-0">
-                <table className="w-full min-w-[500px] sm:min-w-0" role="table" aria-label="Recent properties overview">
-                  <thead>
-                    <tr className="text-left text-xs text-muted-foreground">
-                      <th className="pb-2 sm:pb-3 px-1 sm:px-0" scope="col">Property</th>
-                      <th className="pb-2 sm:pb-3 px-1 sm:px-0 hidden sm:table-cell" scope="col">Type</th>
-                      <th className="pb-2 sm:pb-3 px-1 sm:px-0 hidden sm:table-cell" scope="col">Status</th>
-                      <th className="pb-2 sm:pb-3 text-right px-1 sm:px-0" scope="col">Rent</th>
-                      <th className="pb-2 sm:pb-3 px-1 sm:px-0" scope="col"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {metrics.recentProperties.map((property) => (
-                      <tr 
-                        key={property.id} 
-                        className={cn(
-                          "border-t group cursor-pointer hover:bg-muted/50 transition-colors"
-                        )}
-                        role="row"
-                        onClick={() => router.push(`/properties/${property.id}`)}
-                      >
-                        <td className="py-2 sm:py-3 px-1 sm:px-0" role="cell">
-                          <div>
-                            <p className="font-medium text-sm sm:text-base">{property.name}</p>
-                            <p className="text-xs sm:text-sm text-muted-foreground">{property.address}</p>
-                            {/* Show type and status on mobile as additional info */}
-                            <div className="flex items-center gap-2 mt-1 sm:hidden">
-                              <span className="text-xs text-muted-foreground">{property.type}</span>
-                              <span className="text-xs">•</span>
-                              <StatusBadge status={property.status as any} variant="compact" />
-                            </div>
-                          </div>
-                        </td>
-                        <td className="py-2 sm:py-3 px-1 sm:px-0 hidden sm:table-cell" role="cell">
-                          <span className="text-sm">{property.type}</span>
-                        </td>
-                        <td className="py-2 sm:py-3 px-1 sm:px-0 hidden sm:table-cell" role="cell">
-                          <StatusBadge status={property.status as any} />
-                        </td>
-                        <td className="py-2 sm:py-3 px-1 sm:px-0 text-right" role="cell">
-                          <span className="font-medium text-sm sm:text-base">
-                            ${(property as any).monthlyRent ? (property as any).monthlyRent.toLocaleString() : '0'}
-                          </span>
-                          <span className="text-xs text-muted-foreground sm:hidden block">/mo</span>
-                        </td>
-                        <td className="py-2 sm:py-3 px-1 sm:px-0" role="cell">
-                          <ArrowRight className="h-3 w-3 sm:h-4 sm:w-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity ml-1 sm:ml-2 flex-shrink-0" />
-                        </td>
-                      </tr>
-                    ))}
-                    {metrics.recentProperties.length === 0 && (
-                      <tr role="row">
-                        <td colSpan={5} className="py-4 sm:py-6 text-center text-muted-foreground text-xs sm:text-sm" role="cell">
-                          No properties found. Add your first property to get started.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-            </section>
-          )}
         </>
       )}
       

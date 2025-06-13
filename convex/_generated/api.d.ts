@@ -20,7 +20,6 @@ import type * as documents from "../documents.js";
 import type * as leaseUtilitySettings from "../leaseUtilitySettings.js";
 import type * as leases from "../leases.js";
 import type * as migrate from "../migrate.js";
-import type * as migrations from "../migrations.js";
 import type * as properties from "../properties.js";
 import type * as propertyImages from "../propertyImages.js";
 import type * as storage from "../storage.js";
@@ -46,7 +45,6 @@ declare const fullApi: ApiFromModules<{
   leaseUtilitySettings: typeof leaseUtilitySettings;
   leases: typeof leases;
   migrate: typeof migrate;
-  migrations: typeof migrations;
   properties: typeof properties;
   propertyImages: typeof propertyImages;
   storage: typeof storage;
