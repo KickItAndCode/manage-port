@@ -215,10 +215,10 @@ export const createAnimationEventHandlers = (
   onAnimationStart?: () => void,
   onAnimationEnd?: () => void
 ) => ({
-  onAnimationStart: (e: React.AnimationEvent) => {
+  onAnimationStart: () => {
     onAnimationStart?.();
   },
-  onAnimationEnd: (e: React.AnimationEvent) => {
+  onAnimationEnd: () => {
     onAnimationEnd?.();
   }
 });

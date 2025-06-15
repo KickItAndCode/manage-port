@@ -20,9 +20,9 @@ import {
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
   XAxis, YAxis, CartesianGrid, Tooltip
 } from "recharts";
-import { InteractiveChart, useChartDrillDown } from "@/components/charts/InteractiveChart";
+import { InteractiveChart } from "@/components/charts/InteractiveChart";
 import { createEnhancedTooltip } from "@/components/charts/AdvancedTooltip";
-import { formatCurrency, calculateChange } from "@/utils/chartUtils";
+import { formatCurrency } from "@/utils/chartUtils";
 import { 
   Home, DollarSign, Percent, TrendingUp, 
   Building2, Receipt, Calendar, Users, Sparkles, Wand2 
@@ -333,7 +333,7 @@ export default function DashboardPage() {
 
   // Enhanced tooltip configurations
   const revenueTooltipConfig = createEnhancedTooltip({
-    getLabel: (payload, label) => 'Monthly Revenue',
+    getLabel: () => 'Monthly Revenue',
     formatValue: (value) => {
       if (typeof value === 'number') {
         return formatCurrency(value);

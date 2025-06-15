@@ -1,6 +1,6 @@
 "use client";
 import { SignUp } from "@clerk/nextjs";
-import { Building2, BarChart3, Clock, Shield, Star, Zap } from "lucide-react";
+import { Building2, BarChart3, Shield, Star, Zap } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 

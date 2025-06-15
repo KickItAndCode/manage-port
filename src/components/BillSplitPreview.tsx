@@ -222,7 +222,6 @@ export function BillSplitPreview({
       ownerPortion, 
       totalTenantPercentage, 
       vacantUnits = [], 
-      totalUnits = 0,
       isValid, 
       message 
     } = splitPreview;

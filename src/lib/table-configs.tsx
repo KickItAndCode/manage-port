@@ -283,7 +283,7 @@ export function createUtilityBillTableConfig(
       label: 'Property',
       priority: 'important',
       sortable: true,
-      render: (value, _item) => {
+      render: (value) => {
         const property = properties?.find(p => p._id === value);
         return property ? (
           <div className="flex items-center gap-1 text-sm">

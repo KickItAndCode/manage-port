@@ -1,6 +1,6 @@
 "use client";
 import { SignIn } from "@clerk/nextjs";
-import { Building2, Home, Key, Shield, Sparkles } from "lucide-react";
+import { Building2, Home, Shield, Sparkles } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useState, useEffect } from "react";
 

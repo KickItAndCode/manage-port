@@ -8,7 +8,6 @@ import { api } from "@/../convex/_generated/api";
 import { PropertyCreationWizard, type PropertyWizardData } from "@/components/PropertyCreationWizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { ArrowLeft, Wrench } from "lucide-react";
 import { formatErrorForToast } from "@/lib/error-handling";
 import Link from "next/link";

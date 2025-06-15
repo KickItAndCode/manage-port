@@ -20,8 +20,7 @@ export const calculateBillStats = (bills: Array<Doc<"utilityBills">>): UtilityBi
 
 // Pure function for grouping bills by property
 export const groupBillsByProperty = (
-  bills: Array<Doc<"utilityBills">>,
-  _properties: Array<Doc<"properties"> & { monthlyRent: number }>
+  bills: Array<Doc<"utilityBills">>
 ): Record<string, Array<Doc<"utilityBills">>> => {
   const grouped: Record<string, Array<Doc<"utilityBills">>> = {};
   

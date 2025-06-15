@@ -1,23 +1,19 @@
 "use client";
-import React, { useState, useMemo, useCallback, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
-import type { CalculatedTenantCharge } from "@/../convex/utilityCharges";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SelectNative } from "@/components/ui/select-native";
 import { UtilityBillForm } from "@/components/UtilityBillForm";
 import { BulkUtilityBillEntry } from "@/components/BulkUtilityBillEntry";
 import { BillSplitPreview } from "@/components/BillSplitPreview";
 import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
-import { LoadingContent } from "@/components/LoadingContent";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ResponsiveTable, BulkActionsToolbar } from "@/components/ui/responsive-table";
 import { UnifiedFilterSystem, useUtilityBillFilters } from "@/components/ui/unified-filter-system";
@@ -32,26 +28,12 @@ import {
   Plus, 
   Receipt, 
   DollarSign,
-  Search,
-  Filter,
   CheckCircle,
   XCircle,
   AlertCircle,
-  Users,
-  Zap,
-  Droplets,
-  Flame,
-  Wifi,
-  Trash,
   Trash2,
-  Edit,
-  Eye,
-  MoreHorizontal,
-  Building,
-  Calendar,
   TrendingUp,
   FileText,
-  RotateCcw,
   Download,
   User,
   Home

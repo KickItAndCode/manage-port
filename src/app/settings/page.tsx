@@ -31,7 +31,7 @@ import {
 
 export default function SettingsPage() {
   const { user } = useUser();
-  const { setTheme, resolvedTheme } = useTheme();
+  const { setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
 
@@ -42,7 +42,6 @@ export default function SettingsPage() {
   const userSettings = useQuery(api.userSettings.getUserSettings, 
     user ? { userId: user.id } : "skip"
   );
-  const updateSettings = useMutation(api.userSettings.updateUserSettings);
   const updateDashboardComponents = useMutation(api.userSettings.updateDashboardComponents);
   const updateThemeMutation = useMutation(api.userSettings.updateTheme);
 
@@ -382,7 +381,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3">
                 <div className="flex-1">
                   <p className="text-sm font-medium">You have unsaved changes</p>
-                  <p className="text-xs text-muted-foreground">Don't forget to save your settings</p>
+                  <p className="text-xs text-muted-foreground">Don&apos;t forget to save your settings</p>
                 </div>
                 <Button onClick={handleSaveChanges} size="sm">
                   <Save className="h-4 w-4 mr-2" />

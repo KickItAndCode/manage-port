@@ -3,7 +3,7 @@ import { cn } from "@/lib/utils"
 
 export interface SelectNativeProps
   extends React.SelectHTMLAttributes<HTMLSelectElement> {
-  // Add specific props if needed
+  placeholder?: string;
 }
 
 const SelectNative = React.forwardRef<HTMLSelectElement, SelectNativeProps>(
