@@ -1,6 +1,6 @@
 # Claude Project Guidelines
 
-## Recent Major Accomplishments (December 2024)
+## Recent Major Accomplishments (June 2025)
 
 ### 🎨 **UI/UX Enhancements Completed**
 1. **Document Management System Overhaul**
@@ -40,27 +40,32 @@
    - ✅ Enhanced dashboard mobile responsiveness for iPhone 14 resolution
    - ✅ Fixed JSX syntax errors causing parsing issues
 
-### 🏗️ **Utility Responsibility System**
-1. **Core Functionality**
-   - ✅ Fixed utility bill calculation to allow 50% tenant + 50% owner splits
+### 🏗️ **Utility Responsibility System - MAJOR OVERHAUL**
+1. **Core Functionality - FULLY REBUILT**
+   - ✅ **FIXED CRITICAL BUG**: Eliminated utility percentage over-allocation when adding leases sequentially
+   - ✅ **Intelligent recalculation system**: All active leases recalculated when any lease becomes active
+   - ✅ **Perfect mathematics**: Ensures exactly 100% allocation with smart remainder distribution
+   - ✅ **Owner logic fixed**: Owner percentage only applies when units are vacant (as intended)
+   - ✅ **Auto-apply utility defaults**: Seamless inheritance from property wizard settings
    - ✅ Updated validation logic to prevent over-allocation (>100%) while allowing owner coverage
    - ✅ Resolved unit identifier display issues (no more raw Convex IDs)
-   - ✅ Enhanced UtilityResponsibilityOverview component for mobile responsiveness
 
-2. **User Experience Improvements**
-   - ✅ Created comprehensive UniversalUtilityAllocation component with:
-     - Real-time progress feedback with color-coded status
-     - Enhanced editing experience with visual state changes
-     - Smart quick actions with percentage buttons (25%, 50%, 75%, 100%)
-     - Smooth animations and micro-interactions
-     - Improved information architecture
-   - ✅ Shortened and clarified utility text descriptions
-   - ✅ Added proper overflow handling and layout constraints
+2. **User Experience Improvements - COMPLETELY REDESIGNED**
+   - ✅ **Removed hanging button**: Eliminated problematic "Apply Wizard Defaults" button
+   - ✅ **Renamed component**: UniversalUtilityAllocation → PropertyUtilityAllocation for clarity
+   - ✅ **Smart contextual design**: Preset buttons (25%, 50%, 75%, 100%) only show for single tenants
+   - ✅ **Enhanced responsive design**: Proper grid layouts and mobile-friendly interactions
+   - ✅ **Improved visual hierarchy**: Gradient backgrounds, better spacing, and clear typography
+   - ✅ **Contextual guidance**: Helpful text for multi-tenant vs single-tenant scenarios
+   - ✅ Real-time progress feedback with color-coded status
+   - ✅ Enhanced editing experience with visual state changes
+   - ✅ Smooth animations and micro-interactions
 
-3. **Bug Fixes**
-   - ✅ Fixed missing `cn` function import causing component crashes
-   - ✅ Resolved unit identifier resolution to show proper names instead of IDs
-   - ✅ Enhanced mobile layout with proper spacing and touch targets
+3. **Backend Architecture Improvements**
+   - ✅ **Comprehensive auto-apply system**: Modified addLease, updateLease, updateLeaseStatuses mutations
+   - ✅ **Migration support**: Added applyDefaultsToExistingLeases function for existing data
+   - ✅ **Atomic operations**: All utility settings updated together for consistency
+   - ✅ **Error handling**: Robust validation and rollback mechanisms
 
 ### 📱 **Mobile Responsiveness Achievements**
 1. **Cross-Platform Optimization**
@@ -349,15 +354,68 @@ test('Properties page meets WCAG 2.1 AA standards', async ({ page }) => {
 3. Use environment variables for test credentials
 4. Take screenshots only on test failures for debugging
 
-## Current Priorities
+## 🎯 **CRITICAL PRIORITIES (June 2025)**
 
-### High Priority Remaining Tasks
-1. **Complete utility bill auto-charge generation** - Implement automatic tenant charge creation when bills are saved
-2. **Update lease creation for unit assignment** - Enforce unit selection for multi-unit properties
-3. **Standardize form design system** - Create consistent form styling with design tokens
-4. **Create mobile-responsive table system** - Implement card view for mobile devices
+Based on comprehensive application audit, these issues require immediate attention:
 
-### Medium Priority Tasks
-5. **Implement bulk charge management interface** - Build comprehensive bulk operations for utility charges
-6. **Build utility split testing suite** - Create comprehensive test coverage for utility functionality
-7. **Update project documentation** - Maintain current documentation with recent changes
+### **🚨 URGENT - Critical System Issues**
+1. **FIX TESTING INFRASTRUCTURE** ⚠️ **(Timeline: 1-2 weeks)**
+   - **446 failing tests** with authentication and page loading timeouts  
+   - **Broken test authentication flow** preventing proper E2E testing
+   - **Missing data-testid attributes** on interactive elements
+   - **Impact**: Blocks safe development and deployment confidence
+
+2. **COMPLETE UTILITY CHARGE AUTO-GENERATION** ⚠️ **(Timeline: 1-2 weeks)**
+   - **Charges calculated on-demand** instead of stored when bills created
+   - **Performance issues** and data consistency problems
+   - **Missing automated tenant notifications** for new charges
+   - **Impact**: Core functionality gap affecting bill management workflow
+
+3. **FINISH PROPERTY CREATION WIZARD** ⚠️ **(Timeline: 1-2 weeks)**
+   - **No unit assignment enforcement** for multi-unit properties
+   - **Incomplete utility responsibility setup** during creation
+   - **Missing lease creation integration** after property setup
+   - **Impact**: Broken user onboarding flow for new landlords
+
+### **⭐ HIGH-VALUE OPPORTUNITIES**
+4. **PROPERTY IMAGE GALLERY SYSTEM** **(Timeline: 3-4 weeks)**
+   - **Business Value: VERY HIGH** - Professional photos attract better tenants
+   - **Higher rents** - Quality images justify premium pricing
+   - **Competitive advantage** - Professional credibility vs larger companies
+
+5. **SMART NOTIFICATION SYSTEM** **(Timeline: 2-3 weeks)**  
+   - **Prevent lost income** - Automated lease renewal reminders (90, 60, 30 days)
+   - **Avoid late fees** - Utility payment deadline alerts
+   - **Peace of mind** - Automated oversight of critical deadlines
+
+6. **ENHANCED SEARCH AND FILTERING** **(Timeline: 2-3 weeks)**
+   - **Global search** across properties, tenants, documents
+   - **Advanced filtering** by multiple criteria  
+   - **Essential** as portfolio grows beyond 10-15 properties
+
+### **🔧 TECHNICAL DEBT**
+7. **Mobile responsiveness gaps** - Utility bills table, property wizard modal sizing
+8. **Performance optimization** - N+1 queries, image optimization, bundle size
+9. **Document management improvements** - Categories, search, expiration tracking
+
+### **📈 FUTURE FEATURES**  
+10. **Advanced analytics dashboard** - Financial performance tracking, utility trends
+11. **Bulk operations system** - Multiple property updates, batch operations
+12. **Integration possibilities** - Accounting software, payment processors
+
+## 🎯 **RECOMMENDED EXECUTION PLAN**
+
+### **Phase 1: Critical Fixes (Weeks 1-4)**
+- Fix testing infrastructure (Week 1-2)
+- Complete utility charge auto-generation (Week 2-3) 
+- Finish property creation wizard (Week 3-4)
+
+### **Phase 2: High-Value Features (Weeks 5-8)**
+- Property image gallery system (Week 5-7)
+- Smart notification system (Week 6-7)
+- Enhanced search and filtering (Week 8)
+
+### **Phase 3: Scale and Polish (Weeks 9-16)**
+- Mobile responsiveness improvements
+- Performance optimizations
+- Document management enhancements
