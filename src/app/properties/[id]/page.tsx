@@ -45,7 +45,7 @@ import { PropertyImageUpload } from "@/components/PropertyImageUpload";
 import { UnitList } from "@/components/UnitList";
 import { UnitForm } from "@/components/UnitForm";
 import { BulkUnitCreator } from "@/components/BulkUnitCreator";
-import { UniversalUtilityAllocation } from "@/components/UniversalUtilityAllocation";
+import { PropertyUtilityAllocation } from "@/components/PropertyUtilityAllocation";
 import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
 
 export default function PropertyDetailsPage() {
@@ -1138,9 +1138,9 @@ export default function PropertyDetailsPage() {
               </CardContent>
             </Card>
 
-            {/* Universal Utility Allocation */}
+            {/* Property Utility Allocation */}
             {property && (property.propertyType === "multi-family" || (propertyWithUnits?.units && propertyWithUnits.units.length > 0)) && (
-              <UniversalUtilityAllocation
+              <PropertyUtilityAllocation
                 propertyId={property._id as any}
                 userId={user!.id}
               />

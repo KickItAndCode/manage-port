@@ -16,14 +16,14 @@ import { cn } from "@/lib/utils";
 import { 
   Percent,
   Users,
-  Home,
   AlertTriangle,
   CheckCircle,
   Save,
-  Edit
+  Edit,
+  Home
 } from "lucide-react";
 
-interface UniversalUtilityAllocationProps {
+interface PropertyUtilityAllocationProps {
   propertyId: Id<"properties">;
   userId: string;
 }
@@ -35,10 +35,10 @@ interface LeaseAllocation {
   percentage: number;
 }
 
-export function UniversalUtilityAllocation({ 
+export function PropertyUtilityAllocation({ 
   propertyId, 
   userId 
-}: UniversalUtilityAllocationProps) {
+}: PropertyUtilityAllocationProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [allocations, setAllocations] = useState<LeaseAllocation[]>([]);
   const [saving, setSaving] = useState(false);
@@ -69,7 +69,6 @@ export function UniversalUtilityAllocation({
   });
 
   const saveUtilitySettings = useMutation(api.leaseUtilitySettings.setPropertyUtilityAllocations);
-  const applyPropertyDefaults = useMutation(api.leaseUtilitySettings.applyPropertyUtilityDefaults);
 
   // Initialize allocations when data loads
   useEffect(() => {
@@ -203,25 +202,6 @@ export function UniversalUtilityAllocation({
     }
   };
 
-  const handleApplyDefaults = async () => {
-    try {
-      const result = await applyPropertyDefaults({
-        propertyId,
-        userId,
-      });
-      
-      toast.success(result.message, {
-        description: `Created ${result.settingsCreated} utility settings using ${result.propertyPreset} preset`,
-      });
-      
-      // Refresh the component data
-      window.location.reload();
-    } catch (error: any) {
-      toast.error("Failed to apply property defaults", {
-        description: error.message || "Please try again or contact support",
-      });
-    }
-  };
 
   if (!leases || !utilitySettings || !units) {
     return (
@@ -261,16 +241,16 @@ export function UniversalUtilityAllocation({
   }
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
       <CardHeader className="pb-4">
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 w-full">
           <CardTitle className="flex items-center gap-2 text-lg sm:text-xl">
             <Percent className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
             Utility Responsibilities
           </CardTitle>
           
           {/* Status and Actions Row */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 w-full">
             {!isEditing && (
               <Badge 
                 variant="outline" 
@@ -286,28 +266,14 @@ export function UniversalUtilityAllocation({
               </Badge>
             )}
             
-            <div className="flex gap-2 w-full sm:w-auto justify-end">
+            <div className="flex gap-2 w-full sm:w-auto justify-end flex-shrink-0 max-w-full overflow-hidden">
               {!isEditing ? (
                 <>
-                  {/* Show Apply Defaults button if property has defaults but no utility settings exist */}
-                  {property && property.utilityDefaults && property.utilityDefaults.length > 0 && 
-                   utilitySettings && utilitySettings.length === 0 && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={handleApplyDefaults}
-                      className="transition-all hover:scale-105 active:scale-95 text-xs px-3"
-                    >
-                      <Home className="w-4 h-4 mr-1 sm:mr-2" />
-                      <span className="hidden sm:inline">Apply Wizard Defaults</span>
-                      <span className="sm:hidden">Apply Defaults</span>
-                    </Button>
-                  )}
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={() => setIsEditing(true)}
-                    className="transition-all hover:scale-105 active:scale-95 text-xs px-3"
+                    className="transition-all hover:scale-105 active:scale-95 text-xs px-3 flex-shrink-0"
                   >
                     <Edit className="w-4 h-4 mr-1 sm:mr-2" />
                     Edit
@@ -389,6 +355,7 @@ export function UniversalUtilityAllocation({
             Applies to all utility types
           </AlertDescription>
         </Alert>
+
 
         {/* Progress Bar */}
         {isOverAllocated && (
@@ -490,16 +457,17 @@ export function UniversalUtilityAllocation({
 
         {/* Quick Actions */}
         {isEditing && (
-          <div className="bg-muted/30 rounded-lg p-3 border-t">
-            <div className="flex flex-col gap-3">
-              <div className="flex gap-2">
+          <div className="bg-gradient-to-r from-muted/20 to-muted/40 rounded-lg p-4 border border-border/50">
+            <div className="space-y-4">
+              {/* Main Action Buttons */}
+              <div className="grid grid-cols-2 gap-3">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={handleEqualSplit}
-                  className="flex-1 transition-all hover:scale-105 active:scale-95 text-xs"
+                  className="transition-all hover:scale-105 active:scale-95 text-xs font-medium"
                 >
-                  <Users className="w-4 h-4 mr-1 sm:mr-2" />
+                  <Users className="w-4 h-4 mr-2" />
                   <span className="hidden sm:inline">Equal Split</span>
                   <span className="sm:hidden">Equal</span>
                 </Button>
@@ -516,36 +484,49 @@ export function UniversalUtilityAllocation({
                     });
                     setInputValues(clearedInputs);
                   }}
-                  className="flex-1 transition-all hover:scale-105 active:scale-95 text-xs"
+                  className="transition-all hover:scale-105 active:scale-95 text-xs font-medium"
                 >
-                  <AlertTriangle className="w-4 h-4 mr-1 sm:mr-2" />
+                  <AlertTriangle className="w-4 h-4 mr-2" />
                   <span className="hidden sm:inline">Clear All</span>
                   <span className="sm:hidden">Clear</span>
                 </Button>
               </div>
               
-              {/* Quick percentage buttons */}
-              <div className="flex gap-1 justify-center">
-                {[25, 50, 75, 100].map((percent) => (
-                  <Button
-                    key={percent}
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => {
-                      if (allocations.length === 1) {
-                        const newAllocations = allocations.map(a => ({ ...a, percentage: percent }));
-                        setAllocations(newAllocations);
-                        setInputValues({ [allocations[0].leaseId]: percent.toString() });
-                      }
-                    }}
-                    disabled={allocations.length !== 1}
-                    className="text-xs px-3 py-1 h-auto min-w-[45px] flex-1 transition-all hover:scale-105 active:scale-95"
-                    title={allocations.length !== 1 ? "Only available with single tenant" : `Set to ${percent}%`}
-                  >
-                    {percent}%
-                  </Button>
-                ))}
-              </div>
+              {/* Quick Preset Buttons - Only show for single tenant */}
+              {allocations.length === 1 && (
+                <div className="space-y-2">
+                  <div className="text-xs text-muted-foreground text-center font-medium">
+                    Quick Presets for Single Tenant
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                    {[25, 50, 75, 100].map((percent) => (
+                      <Button
+                        key={percent}
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => {
+                          const newAllocations = allocations.map(a => ({ ...a, percentage: percent }));
+                          setAllocations(newAllocations);
+                          setInputValues({ [allocations[0].leaseId]: percent.toString() });
+                        }}
+                        className="text-xs font-semibold h-8 transition-all hover:scale-105 active:scale-95 bg-primary/10 hover:bg-primary/20 border-primary/20"
+                        title={`Set tenant to ${percent}%, owner pays ${100 - percent}%`}
+                      >
+                        {percent}%
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Multi-tenant helper */}
+              {allocations.length > 1 && (
+                <div className="text-center">
+                  <div className="text-xs text-muted-foreground">
+                    Use <span className="font-semibold">Equal Split</span> for {allocations.length} tenants or adjust percentages manually
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}

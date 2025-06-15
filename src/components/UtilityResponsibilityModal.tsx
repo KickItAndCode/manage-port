@@ -352,7 +352,7 @@ export function UtilityResponsibilityModal({
       onOpenChange(openState);
     }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+        <DialogHeader className="flex-shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <Percent className="w-5 h-5" />
             Manage Utility Responsibilities
@@ -362,7 +362,7 @@ export function UtilityResponsibilityModal({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto space-y-4">
+        <div className="flex-1 overflow-y-auto space-y-4 px-1">
           {isLoading ? (
             <LoadingSkeleton />
           ) : propertiesWithLeases.length === 0 ? (
@@ -533,7 +533,7 @@ export function UtilityResponsibilityModal({
           )}
         </div>
 
-        <div className="flex justify-end gap-3 pt-4 border-t">
+        <div className="flex-shrink-0 flex justify-end gap-3 pt-4 border-t mt-4 px-1">
           <Button variant="outline" onClick={() => {
             setSelectedPropertyId(null);
             setHasChanges(false);

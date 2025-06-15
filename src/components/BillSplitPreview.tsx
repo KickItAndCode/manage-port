@@ -6,8 +6,9 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle, Home, DollarSign, Percent, XCircle, Info, AlertTriangle, Building2 } from "lucide-react";
+import { AlertCircle, CheckCircle, Home, DollarSign, Percent, XCircle, Info, AlertTriangle, Building2, HelpCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
@@ -166,11 +167,11 @@ export function BillSplitPreview({
         </div>
 
         {/* Bill Breakdown Summary */}
-        <Card className="p-4 bg-muted/50">
+        <Card className="p-4 bg-gradient-to-br from-blue-50/80 to-green-50/80 dark:from-blue-950/40 dark:to-green-950/40 border-blue-200/50 dark:border-blue-800/50">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Bill Breakdown</p>
-              <Badge variant="outline" className="text-xs">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Bill Breakdown</p>
+              <Badge variant="outline" className="text-xs border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300">
                 {utilityType}
               </Badge>
             </div>
@@ -178,31 +179,31 @@ export function BillSplitPreview({
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Bill:</span>
-                  <span className="font-medium">${totalAmount.toFixed(2)}</span>
+                  <span className="text-blue-700/70 dark:text-blue-300/70">Total Bill:</span>
+                  <span className="font-medium text-blue-900 dark:text-blue-100">${totalAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tenant Charges:</span>
-                  <span className="font-medium text-blue-600">${totalCharged.toFixed(2)}</span>
+                  <span className="text-blue-700/70 dark:text-blue-300/70">Tenant Charges:</span>
+                  <span className="font-medium text-blue-600 dark:text-blue-400">${totalCharged.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Owner Portion:</span>
-                  <span className="font-medium text-green-600">${(totalAmount - totalCharged).toFixed(2)}</span>
+                  <span className="text-blue-700/70 dark:text-blue-300/70">Owner Portion:</span>
+                  <span className="font-medium text-green-600 dark:text-green-400">${(totalAmount - totalCharged).toFixed(2)}</span>
                 </div>
               </div>
               
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tenant %:</span>
-                  <span className="font-medium">{((totalCharged / totalAmount) * 100).toFixed(1)}%</span>
+                  <span className="text-blue-700/70 dark:text-blue-300/70">Tenant %:</span>
+                  <span className="font-medium text-blue-900 dark:text-blue-100">{((totalCharged / totalAmount) * 100).toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Owner %:</span>
-                  <span className="font-medium">{(((totalAmount - totalCharged) / totalAmount) * 100).toFixed(1)}%</span>
+                  <span className="text-blue-700/70 dark:text-blue-300/70">Owner %:</span>
+                  <span className="font-medium text-blue-900 dark:text-blue-100">{(((totalAmount - totalCharged) / totalAmount) * 100).toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Payment Status:</span>
-                  <span className="font-medium">
+                  <span className="text-blue-700/70 dark:text-blue-300/70">Payment Status:</span>
+                  <span className="font-medium text-blue-900 dark:text-blue-100">
                     {charges.filter((c: any) => c.isPaid).length} of {charges.length} paid
                   </span>
                 </div>
@@ -227,7 +228,8 @@ export function BillSplitPreview({
     } = splitPreview;
 
     return (
-      <div className="space-y-4">
+      <TooltipProvider>
+        <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Real-Time Bill Split</h3>
           <Badge 
@@ -249,7 +251,7 @@ export function BillSplitPreview({
 
         {/* Status Alert */}
         <Alert className={cn(
-          isValid ? "border-green-200 bg-green-50" : "border-orange-200 bg-orange-50"
+          isValid ? "border-green-200 bg-green-50 dark:border-green-800 dark:bg-green-950/20" : "border-orange-200 bg-orange-50 dark:border-orange-800 dark:bg-orange-950/20"
         )}>
           {isValid ? (
             <Info className="h-4 w-4 text-green-600" />
@@ -257,7 +259,7 @@ export function BillSplitPreview({
             <AlertCircle className="h-4 w-4 text-orange-600" />
           )}
           <AlertDescription className={cn(
-            isValid ? "text-green-700" : "text-orange-700"
+            isValid ? "text-green-700 dark:text-green-300" : "text-orange-700 dark:text-orange-300"
           )}>
             {message}
           </AlertDescription>
@@ -265,34 +267,37 @@ export function BillSplitPreview({
 
         {/* Vacant Units Information */}
         {vacantUnits.length > 0 && (
-          <Card className="p-4 border-blue-200 bg-blue-50">
+          <Card className="p-4 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/20">
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-blue-600" />
-                <h4 className="font-medium text-blue-800">
+                <h4 className="font-medium text-blue-800 dark:text-blue-200">
                   {vacantUnits.length} Vacant Unit{vacantUnits.length !== 1 ? 's' : ''}
                 </h4>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <HelpCircle className="w-4 h-4 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-200 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent className="max-w-64">
+                    <p className="text-sm">
+                      Vacant units are charged to owner automatically.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                 {vacantUnits.map((unit) => (
                   <div 
                     key={unit.unitId}
-                    className="flex items-center gap-2 p-2 bg-white/60 rounded border border-blue-200"
+                    className="flex items-center gap-2 p-2 bg-card/60 rounded border border-blue-200 dark:border-blue-800"
                   >
                     <Building2 className="w-3 h-3 text-blue-500" />
-                    <span className="text-sm text-blue-700">
+                    <span className="text-sm text-blue-700 dark:text-blue-300">
                       Unit {unit.unitIdentifier}
                     </span>
                   </div>
                 ))}
               </div>
-              <Alert className="border-blue-200 bg-blue-50/50">
-                <Info className="h-4 w-4 text-blue-600" />
-                <AlertDescription className="text-blue-700">
-                  Vacant units have no utility charges. Their portion ({totalUnits > 0 ? ((vacantUnits.length / totalUnits) * 100).toFixed(1) : '0'}% of property) 
-                  is automatically assigned to the owner.
-                </AlertDescription>
-              </Alert>
             </div>
           </Card>
         )}
@@ -304,7 +309,7 @@ export function BillSplitPreview({
               key={charge.leaseId} 
               className={cn(
                 "p-4",
-                !charge.hasUtilitySettings && "border-orange-200 bg-orange-50/50"
+                !charge.hasUtilitySettings && "border-orange-200 bg-orange-50/50 dark:border-orange-800 dark:bg-orange-950/30"
               )}
             >
               <div className="flex items-start justify-between">
@@ -349,11 +354,11 @@ export function BillSplitPreview({
         </div>
 
         {/* Bill Breakdown Summary */}
-        <Card className="p-4 bg-muted/50">
+        <Card className="p-4 bg-gradient-to-br from-blue-50/80 to-green-50/80 dark:from-blue-950/40 dark:to-green-950/40 border-blue-200/50 dark:border-blue-800/50">
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <p className="text-sm font-medium">Bill Breakdown</p>
-              <Badge variant="outline" className="text-xs">
+              <p className="text-sm font-medium text-blue-900 dark:text-blue-100">Bill Breakdown</p>
+              <Badge variant="outline" className="text-xs border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300">
                 {utilityType}
               </Badge>
             </div>
@@ -361,35 +366,35 @@ export function BillSplitPreview({
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Bill:</span>
-                  <span className="font-medium">${totalAmount.toFixed(2)}</span>
+                  <span className="text-blue-700/70 dark:text-blue-300/70">Total Bill:</span>
+                  <span className="font-medium text-blue-900 dark:text-blue-100">${totalAmount.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tenant Charges:</span>
-                  <span className="font-medium text-blue-600">
+                  <span className="text-blue-700/70 dark:text-blue-300/70">Tenant Charges:</span>
+                  <span className="font-medium text-blue-600 dark:text-blue-400">
                     ${(totalAmount - ownerPortion).toFixed(2)}
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Owner Portion:</span>
-                  <span className="font-medium text-green-600">${ownerPortion.toFixed(2)}</span>
+                  <span className="text-blue-700/70 dark:text-blue-300/70">Owner Portion:</span>
+                  <span className="font-medium text-green-600 dark:text-green-400">${ownerPortion.toFixed(2)}</span>
                 </div>
               </div>
               
               <div className="space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Tenant %:</span>
-                  <span className="font-medium">{totalTenantPercentage.toFixed(1)}%</span>
+                  <span className="text-blue-700/70 dark:text-blue-300/70">Tenant %:</span>
+                  <span className="font-medium text-blue-900 dark:text-blue-100">{totalTenantPercentage.toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Owner %:</span>
-                  <span className="font-medium">{(100 - totalTenantPercentage).toFixed(1)}%</span>
+                  <span className="text-blue-700/70 dark:text-blue-300/70">Owner %:</span>
+                  <span className="font-medium text-blue-900 dark:text-blue-100">{(100 - totalTenantPercentage).toFixed(1)}%</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Status:</span>
+                  <span className="text-blue-700/70 dark:text-blue-300/70">Status:</span>
                   <span className={cn(
                     "font-medium text-xs",
-                    isValid ? "text-green-600" : "text-orange-600"
+                    isValid ? "text-green-600 dark:text-green-400" : "text-orange-600 dark:text-orange-400"
                   )}>
                     {isValid ? "Valid" : "Invalid"}
                   </span>
@@ -398,7 +403,8 @@ export function BillSplitPreview({
             </div>
           </div>
         </Card>
-      </div>
+        </div>
+      </TooltipProvider>
     );
   }
 

@@ -18,17 +18,26 @@ import { UtilityAnalytics } from "@/components/UtilityAnalytics";
 import { UtilityResponsibilityModal } from "@/components/UtilityResponsibilityModal";
 import { 
   BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, 
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+  XAxis, YAxis, CartesianGrid, Tooltip
 } from "recharts";
+import { InteractiveChart, useChartDrillDown } from "@/components/charts/InteractiveChart";
+import { createEnhancedTooltip } from "@/components/charts/AdvancedTooltip";
+import { formatCurrency, calculateChange } from "@/utils/chartUtils";
 import { 
   Home, DollarSign, Percent, TrendingUp, 
-  Building2, Receipt, Calendar, Users, ArrowRight, Sparkles, Wand2 
+  Building2, Receipt, Calendar, Users, Sparkles, Wand2 
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
-import { StatusBadge } from "@/components/ui/status-badge";
 
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+
+// Status-specific colors for better semantic meaning
+const STATUS_COLORS = {
+  'Occupied': '#10b981',    // Green - positive/active
+  'Vacant': '#f59e0b',      // Amber - attention needed
+  'Under Maintenance': '#ef4444', // Red - issue/work needed
+  'Other': '#6b7280'        // Gray - neutral
+};
 
 export default function DashboardPage() {
   const { user } = useUser();
@@ -285,6 +294,64 @@ export default function DashboardPage() {
     value: count,
   }));
 
+  // Chart drill-down handlers with pre-selected filters
+  const handlePropertyTypeDrillDown = (data?: any) => {
+    const propertyType = data?.name || data?.activeLabel;
+    const params = new URLSearchParams();
+    if (propertyType) {
+      params.set('type', propertyType);
+    }
+    const url = `/properties${params.toString() ? `?${params.toString()}` : ''}`;
+    router.push(url);
+    // Scroll to top after navigation
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+  };
+
+  const handlePropertyStatusDrillDown = (data?: any) => {
+    const status = data?.name || data?.activeLabel;
+    const params = new URLSearchParams();
+    if (status) {
+      params.set('status', status);
+    }
+    const url = `/properties${params.toString() ? `?${params.toString()}` : ''}`;
+    router.push(url);
+    // Scroll to top after navigation
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+  };
+
+  const handleRevenueDrillDown = (data?: any) => {
+    const month = data?.month || data?.activeLabel;
+    const params = new URLSearchParams();
+    if (month) {
+      params.set('month', month);
+    }
+    const url = `/properties${params.toString() ? `?${params.toString()}` : ''}`;
+    router.push(url);
+    // Scroll to top after navigation
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+  };
+
+  // Enhanced tooltip configurations
+  const revenueTooltipConfig = createEnhancedTooltip({
+    getLabel: (payload, label) => 'Monthly Revenue',
+    formatValue: (value) => {
+      if (typeof value === 'number') {
+        return formatCurrency(value);
+      }
+      return value?.toString() || 'N/A';
+    }
+  });
+
+  const propertyTooltipConfig = createEnhancedTooltip({
+    getLabel: (payload, label) => `${label || 'Property'} Properties`,
+    formatValue: (value) => {
+      if (typeof value === 'number') {
+        return `${value} ${value === 1 ? 'property' : 'properties'}`;
+      }
+      return value?.toString() || 'N/A';
+    }
+  });
+
   return (
     <main className="min-h-screen bg-background text-foreground p-3 sm:p-6 lg:p-8 transition-colors duration-300" role="main">
       <div className="max-w-7xl mx-auto">
@@ -417,78 +484,71 @@ export default function DashboardPage() {
               <h2 id="charts-heading" className="sr-only">Analytics Charts</h2>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
               {/* Monthly Revenue Trend */}
-              <Card className="p-3 sm:p-6">
-                <h3 className="text-sm sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" aria-hidden="true" />
-                  Monthly Revenue Trend
-                </h3>
-                <div className="h-[200px] sm:h-[300px]" role="img" aria-label="Line chart showing monthly revenue trend over time">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={metrics.monthlyIncome}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis 
-                        dataKey="month" 
-                        fontSize={12}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <YAxis 
-                        fontSize={12}
-                        tick={{ fontSize: 12 }}
-                      />
-                      <Tooltip 
-                        formatter={(value) => `$${value}`} 
-                        contentStyle={{ 
-                          backgroundColor: 'var(--background)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '6px'
-                        }}
-                      />
-                      <Line 
-                        type="monotone" 
-                        dataKey="income" 
-                        stroke="#10b981" 
-                        strokeWidth={2}
-                        dot={{ fill: '#10b981' }}
-                      />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </Card>
+              <InteractiveChart
+                title="Monthly Revenue Trend"
+                icon={<TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />}
+                onDrillDown={handleRevenueDrillDown}
+                height={300}
+                showNavigationHint={true}
+                drillDownPath="/properties"
+                onNavigate={(path) => router.push(path)}
+              >
+                <LineChart data={metrics.monthlyIncome} onClick={(data) => handleRevenueDrillDown(data)}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis 
+                    dataKey="month" 
+                    fontSize={12}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <YAxis 
+                    fontSize={12}
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip content={revenueTooltipConfig} />
+                  <Line 
+                    type="monotone" 
+                    dataKey="income" 
+                    stroke="#10b981" 
+                    strokeWidth={2}
+                    dot={{ fill: '#10b981', strokeWidth: 0, r: 4 }}
+                    activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2, fill: '#fff' }}
+                  />
+                </LineChart>
+              </InteractiveChart>
 
               {/* Properties by Type */}
-              <Card className="p-3 sm:p-6">
-                <h3 className="text-sm sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-                  <Home className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" aria-hidden="true" />
-                  Properties by Type
-                </h3>
-                <div className="h-[200px] sm:h-[300px]" role="img" aria-label="Pie chart showing distribution of properties by type">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={typeData}
-                        cx="50%"
-                        cy="50%"
-                        labelLine={false}
-                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                        outerRadius="80%"
-                        fill="#8884d8"
-                        dataKey="value"
-                      >
-                        {typeData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        contentStyle={{ 
-                          backgroundColor: 'var(--background)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '6px'
-                        }}
+              <InteractiveChart
+                title="Properties by Type"
+                icon={<Home className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />}
+                onDrillDown={handlePropertyTypeDrillDown}
+                height={300}
+                showNavigationHint={true}
+                drillDownPath="/properties"
+                onNavigate={(path) => router.push(path)}
+              >
+                <PieChart>
+                  <Pie
+                    data={typeData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius="80%"
+                    fill="#8884d8"
+                    dataKey="value"
+                    onClick={(data) => handlePropertyTypeDrillDown(data)}
+                  >
+                    {typeData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={COLORS[index % COLORS.length]}
+                        className="cursor-pointer hover:opacity-80 transition-opacity"
                       />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              </Card>
+                    ))}
+                  </Pie>
+                  <Tooltip content={propertyTooltipConfig} />
+                </PieChart>
+              </InteractiveChart>
               </div>
             </section>
           )}
@@ -500,36 +560,42 @@ export default function DashboardPage() {
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
                 {/* Properties by Status */}
                 {userSettings.dashboardComponents.showCharts && (
-                  <Card className="p-3 sm:p-6">
-                    <h3 className="text-sm sm:text-lg font-semibold mb-3 sm:mb-4 flex items-center gap-2">
-                      <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" aria-hidden="true" />
-                      Properties by Status
-                    </h3>
-                    <div className="h-[200px] sm:h-[300px]" role="img" aria-label="Bar chart showing properties grouped by status">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={statusData}>
-                          <CartesianGrid strokeDasharray="3 3" />
-                          <XAxis 
-                            dataKey="name" 
-                            fontSize={12}
-                            tick={{ fontSize: 12 }}
+                  <InteractiveChart
+                    title="Properties by Status"
+                    icon={<Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />}
+                    onDrillDown={handlePropertyStatusDrillDown}
+                    height={300}
+                    showNavigationHint={true}
+                    drillDownPath="/properties"
+                    onNavigate={(path) => router.push(path)}
+                  >
+                    <BarChart data={statusData} onClick={(data) => handlePropertyStatusDrillDown(data)}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis 
+                        dataKey="name" 
+                        fontSize={12}
+                        tick={{ fontSize: 12 }}
+                      />
+                      <YAxis 
+                        fontSize={12}
+                        tick={{ fontSize: 12 }}
+                        allowDecimals={false}
+                        domain={[0, (dataMax: number) => Math.max(dataMax * 2, 1)]}
+                      />
+                      <Tooltip content={propertyTooltipConfig} />
+                      <Bar 
+                        dataKey="value" 
+                        className="cursor-pointer hover:opacity-80 transition-opacity"
+                      >
+                        {statusData.map((entry, index) => (
+                          <Cell 
+                            key={`cell-${index}`} 
+                            fill={STATUS_COLORS[entry.name as keyof typeof STATUS_COLORS] || STATUS_COLORS.Other}
                           />
-                          <YAxis 
-                            fontSize={12}
-                            tick={{ fontSize: 12 }}
-                          />
-                          <Tooltip 
-                            contentStyle={{ 
-                              backgroundColor: 'var(--background)',
-                              border: '1px solid var(--border)',
-                              borderRadius: '6px'
-                            }}
-                          />
-                          <Bar dataKey="value" fill="#8b5cf6" />
-                        </BarChart>
-                      </ResponsiveContainer>
-                    </div>
-                  </Card>
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </InteractiveChart>
                 )}
 
                 {/* Financial Summary */}

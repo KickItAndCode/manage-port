@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { UTILITY_TYPES } from "../src/lib/constants";
 
 // Get a single lease by ID
 export const getLease = query({
@@ -124,6 +125,76 @@ export const getActiveLeases = query({
   },
 });
 
+// Helper function to recalculate utility defaults for ALL active leases in a property
+async function applyUtilityDefaults(ctx: any, leaseId: string, property: any, unitId?: string) {
+  // Skip if property has no utility defaults
+  if (!property.utilityDefaults || !property.utilityPreset) {
+    return;
+  }
+
+  // Get ALL active leases for this property (including the new one)
+  const activeLeases = await ctx.db
+    .query("leases")
+    .withIndex("by_property", (q: any) => q.eq("propertyId", property._id))
+    .filter((q: any) => q.eq(q.field("status"), "active"))
+    .collect();
+
+  if (activeLeases.length === 0) return;
+
+  // Delete ALL existing utility settings for ALL active leases
+  for (const lease of activeLeases) {
+    const existingSettings = await ctx.db
+      .query("leaseUtilitySettings")
+      .withIndex("by_lease", (q: any) => q.eq("leaseId", lease._id))
+      .collect();
+    
+    for (const setting of existingSettings) {
+      await ctx.db.delete(setting._id);
+    }
+  }
+
+  // Recalculate percentages for ALL active leases
+  for (const lease of activeLeases) {
+    let utilityPercentage = 0;
+
+    if (property.utilityPreset === "owner-pays") {
+      utilityPercentage = 0; // Owner pays all utilities
+    } else if (property.utilityPreset === "tenant-pays") {
+      // Equal split among ALL active leases
+      utilityPercentage = Math.floor(100 / activeLeases.length);
+      // Give remainder to first lease to ensure exactly 100%
+      if (lease._id === activeLeases[0]._id) {
+        utilityPercentage += 100 - (Math.floor(100 / activeLeases.length) * activeLeases.length);
+      }
+    } else if (property.utilityPreset === "custom") {
+      // Find the specific unit default if unit-based lease
+      if (lease.unitId && property.utilityDefaults.length > 0) {
+        const unit = await ctx.db.get(lease.unitId);
+        if (unit) {
+          const unitDefault = property.utilityDefaults.find(
+            (d: any) => d.unitIdentifier === unit.unitIdentifier
+          );
+          utilityPercentage = unitDefault ? unitDefault.percentage : 0;
+        }
+      } else if (property.utilityDefaults.length > 0) {
+        // Use first available default for non-unit-based leases
+        utilityPercentage = property.utilityDefaults[0].percentage;
+      }
+    }
+
+    // Create utility settings for all utility types for this lease
+    for (const utilityType of UTILITY_TYPES) {
+      await ctx.db.insert("leaseUtilitySettings", {
+        leaseId: lease._id,
+        utilityType,
+        responsibilityPercentage: utilityPercentage,
+        notes: `Auto-applied from property wizard (${property.utilityPreset})`,
+        createdAt: new Date().toISOString(),
+      });
+    }
+  }
+}
+
 // Add a lease for a property (enforce only one active lease per property/unit)
 export const addLease = mutation({
   args: {
@@ -225,6 +296,11 @@ export const addLease = mutation({
       });
     }
     
+    // Auto-apply property utility defaults for active leases
+    if (args.status === "active") {
+      await applyUtilityDefaults(ctx, lease, property, args.unitId);
+    }
+    
     return lease;
   },
 });
@@ -324,6 +400,11 @@ export const updateLease = mutation({
       } else if (args.status !== "active" && lease.status === "active") {
         await ctx.db.patch(args.unitId, { status: "available" });
       }
+    }
+    
+    // Auto-apply property utility defaults when lease becomes active
+    if (args.status === "active" && lease.status !== "active") {
+      await applyUtilityDefaults(ctx, args.id, property, args.unitId);
     }
     
     // Update or create document record if lease document is provided
@@ -470,10 +551,83 @@ export const updateLeaseStatuses = mutation({
           status: newStatus,
           updatedAt: new Date().toISOString(),
         });
+        
+        // Auto-apply utility defaults when lease becomes active
+        if (newStatus === "active") {
+          const property = await ctx.db.get(lease.propertyId);
+          if (property) {
+            await applyUtilityDefaults(ctx, lease._id, property, lease.unitId);
+          }
+        }
+        
         updated++;
       }
     }
     
     return { updated };
+  },
+});
+
+// Migration: Apply utility defaults to existing active leases without utility settings
+export const applyDefaultsToExistingLeases = mutation({
+  args: { 
+    userId: v.string(),
+    propertyId: v.optional(v.id("properties")) // Optional - if provided, only process this property
+  },
+  handler: async (ctx, args) => {
+    // Get properties to process
+    let properties;
+    if (args.propertyId) {
+      const property = await ctx.db.get(args.propertyId);
+      if (!property || property.userId !== args.userId) {
+        throw new Error("Property not found or access denied");
+      }
+      properties = [property];
+    } else {
+      properties = await ctx.db
+        .query("properties")
+        .filter((q) => q.eq(q.field("userId"), args.userId))
+        .collect();
+    }
+
+    let leasesProcessed = 0;
+    let settingsCreated = 0;
+
+    for (const property of properties) {
+      // Skip properties without utility defaults
+      if (!property.utilityDefaults || !property.utilityPreset) {
+        continue;
+      }
+
+      // Get active leases for this property
+      const activeLeases = await ctx.db
+        .query("leases")
+        .withIndex("by_property", (q: any) => q.eq("propertyId", property._id))
+        .filter((q: any) => q.eq(q.field("status"), "active"))
+        .collect();
+
+      for (const lease of activeLeases) {
+        // Check if this lease already has utility settings
+        const existingSettings = await ctx.db
+          .query("leaseUtilitySettings")
+          .withIndex("by_lease", (q: any) => q.eq("leaseId", lease._id))
+          .collect();
+
+        // Only apply defaults if no settings exist
+        if (existingSettings.length === 0) {
+          await applyUtilityDefaults(ctx, lease._id, property, lease.unitId);
+          leasesProcessed++;
+          settingsCreated += UTILITY_TYPES.length; // One setting per utility type
+        }
+      }
+    }
+
+    return {
+      success: true,
+      message: `Applied utility defaults to ${leasesProcessed} existing leases`,
+      leasesProcessed,
+      settingsCreated,
+      propertiesProcessed: properties.length,
+    };
   },
 });

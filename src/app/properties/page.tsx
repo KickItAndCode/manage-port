@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, Suspense } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
@@ -12,15 +12,16 @@ import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ImageIcon, Wand2, Trash2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ResponsiveTable, BulkActionsToolbar } from "@/components/ui/responsive-table";
 import { createPropertyTableConfig, PropertyMobileCard, type Property } from "@/lib/table-configs";
 
 
-export default function PropertiesPage() {
+function PropertiesContent() {
   const { user } = useUser();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
   const updateProperty = useMutation(api.properties.updateProperty);
   const deleteProperty = useMutation(api.properties.deleteProperty);
@@ -33,6 +34,32 @@ export default function PropertiesPage() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  
+  // Handle URL parameters on mount
+  useEffect(() => {
+    if (!searchParams) return;
+    
+    // Check for type filter from URL
+    const urlType = searchParams.get('type');
+    if (urlType && propertyTypes.includes(urlType)) {
+      setTypeFilter(urlType);
+    }
+    
+    // Check for status filter from URL
+    const urlStatus = searchParams.get('status');
+    if (urlStatus && statusOptions.includes(urlStatus)) {
+      setStatusFilter(urlStatus);
+    }
+    
+    // Check for search query from URL
+    const urlSearch = searchParams.get('search');
+    if (urlSearch) {
+      setSearch(urlSearch);
+    }
+    
+    // Scroll to top when page loads from navigation
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [searchParams]);
   const [sortKey, setSortKey] = useState<keyof Property>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [selectedProperties, setSelectedProperties] = useState<Property[]>([]);
@@ -572,5 +599,22 @@ export default function PropertiesPage() {
       </Dialog>
       {confirmDialog}
     </div>
+  );
+}
+
+export default function PropertiesPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+        <div className="flex items-center justify-center h-64">
+          <div className="flex items-center gap-2">
+            <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            Loading properties...
+          </div>
+        </div>
+      </div>
+    }>
+      <PropertiesContent />
+    </Suspense>
   );
 } 

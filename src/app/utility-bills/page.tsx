@@ -1,7 +1,8 @@
 "use client";
-import React, { useState, useMemo, useCallback } from "react";
+import React, { useState, useMemo, useCallback, useEffect, Suspense } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation } from "convex/react";
+import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { Doc, Id } from "@/../convex/_generated/dataModel";
@@ -278,8 +279,9 @@ const SignedOutSkeleton = () => (
   </div>
 );
 
-export default function UtilityBillsPage() {
+function UtilityBillsContent() {
   const { user } = useUser();
+  const searchParams = useSearchParams();
   
   // Use the new unified data hook
   const {
@@ -291,6 +293,39 @@ export default function UtilityBillsPage() {
     updateFilters,
     resetFilters,
   } = useUtilityBillsData();
+  
+  // Handle URL parameters on mount
+  useEffect(() => {
+    if (!searchParams) return;
+    
+    const urlParams: any = {};
+    
+    // Check for property filter from URL
+    const propertyId = searchParams.get('propertyId');
+    if (propertyId) {
+      urlParams.propertyId = propertyId;
+    }
+    
+    // Check for utility type filter from URL
+    const utilityType = searchParams.get('utilityType');
+    if (utilityType) {
+      urlParams.utilityTypes = [utilityType];
+    }
+    
+    // Check for month filter from URL
+    const month = searchParams.get('month');
+    if (month) {
+      urlParams.dateRange = [month, month];
+    }
+    
+    // Apply URL parameters if any exist
+    if (Object.keys(urlParams).length > 0) {
+      updateFilters(urlParams);
+    }
+    
+    // Scroll to top when page loads
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [searchParams, updateFilters]);
 
   // Get filter options based on current selection
   const { properties, leases, utilityTypes } = useUtilityBillFilterOptions(filters.propertyId);
@@ -637,7 +672,7 @@ export default function UtilityBillsPage() {
 
         {/* Simplified Filter System */}
         <div className="bg-muted/50 rounded-lg border p-3 sm:p-4 space-y-3">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             {/* Property Filter */}
             <div>
               <Label htmlFor="property" className="text-sm font-medium">Property</Label>
@@ -674,6 +709,24 @@ export default function UtilityBillsPage() {
                 {filters.propertyId && leases.map((lease) => (
                   <option key={lease._id} value={lease._id}>
                     {lease.tenantName} {lease.unit?.unitIdentifier ? `- ${lease.unit.unitIdentifier}` : ''}
+                  </option>
+                ))}
+              </SelectNative>
+            </div>
+
+            {/* Utility Type Filter */}
+            <div>
+              <Label htmlFor="utilityType" className="text-sm font-medium">Utility Type</Label>
+              <SelectNative
+                id="utilityType"
+                value={filters.utilityTypes?.[0] || ""}
+                onChange={(e) => handleUtilityTypesChange(e.target.value ? [e.target.value] : [])}
+                className="text-sm"
+              >
+                <option value="">All Types</option>
+                {utilityTypes.map((type) => (
+                  <option key={type} value={type}>
+                    {type}
                   </option>
                 ))}
               </SelectNative>
@@ -889,5 +942,13 @@ export default function UtilityBillsPage() {
       {confirmDialog}
       
     </div>
+  );
+}
+
+export default function UtilityBillsPage() {
+  return (
+    <Suspense fallback={<UtilityBillsLoadingSkeleton />}>
+      <UtilityBillsContent />
+    </Suspense>
   );
 }

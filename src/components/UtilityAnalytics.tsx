@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useQuery } from "convex/react";
+import { useRouter } from "next/navigation";
 import { api } from "@/../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -18,9 +19,11 @@ import {
   Droplets, 
   Flame,
   Calendar,
-  BarChart3,
   PieChart as PieChartIcon
 } from "lucide-react";
+import { InteractiveChart } from "./charts/InteractiveChart";
+import { createEnhancedTooltip } from "./charts/AdvancedTooltip";
+import { formatCurrency, calculateChange } from "@/utils/chartUtils";
 
 interface UtilityAnalyticsProps {
   userId: string;
@@ -30,6 +33,7 @@ const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
   const [timeframe, setTimeframe] = useState("6"); // months
+  const router = useRouter();
 
   // Get utility bills
   const utilityBills = useQuery(api.utilityBills.getUtilityBills, {
@@ -99,17 +103,6 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value);
 
-    // Property comparison
-    const propertyTotals: Record<string, number> = {};
-    recentBills.forEach(bill => {
-      const property = properties.find(p => p._id === bill.propertyId);
-      const propertyName = property?.name || "Unknown Property";
-      propertyTotals[propertyName] = (propertyTotals[propertyName] || 0) + bill.totalAmount;
-    });
-
-    const propertyComparison = Object.entries(propertyTotals)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
 
     // Summary stats
     const totalCost = recentBills.reduce((sum, bill) => sum + bill.totalAmount, 0);
@@ -120,7 +113,6 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
     return {
       monthlyTrends,
       utilityBreakdown,
-      propertyComparison,
       summary: {
         totalCost,
         averageMonthly,
@@ -132,6 +124,53 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
   };
 
   const analyticsData = processAnalyticsData();
+
+  // Chart drill-down handlers with pre-selected filters
+  const handleUtilityTrendDrillDown = (data?: any) => {
+    const month = data?.month || data?.activeLabel;
+    const params = new URLSearchParams();
+    if (month) {
+      params.set('month', month);
+    }
+    const url = `/utility-bills${params.toString() ? `?${params.toString()}` : ''}`;
+    router.push(url);
+    // Scroll to top after navigation
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+  };
+
+  const handleUtilityTypeDrillDown = (data?: any) => {
+    const utilityType = data?.name || data?.activeLabel;
+    const params = new URLSearchParams();
+    if (utilityType) {
+      params.set('utilityType', utilityType);
+    }
+    const url = `/utility-bills${params.toString() ? `?${params.toString()}` : ''}`;
+    router.push(url);
+    // Scroll to top after navigation
+    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+  };
+
+
+  // Enhanced tooltip configurations
+  const utilityTrendTooltipConfig = createEnhancedTooltip({
+    getLabel: (payload, label) => 'Monthly Utility Cost',
+    formatValue: (value) => {
+      if (typeof value === 'number') {
+        return formatCurrency(value);
+      }
+      return value?.toString() || 'N/A';
+    }
+  });
+
+  const utilityTypeTooltipConfig = createEnhancedTooltip({
+    getLabel: (payload, label) => `${label || 'Utility'} Cost`,
+    formatValue: (value) => {
+      if (typeof value === 'number') {
+        return formatCurrency(value);
+      }
+      return value?.toString() || 'N/A';
+    }
+  });
 
   // Loading skeleton component
   const LoadingSkeleton = () => (
@@ -296,7 +335,7 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
                 <p className="text-sm text-muted-foreground">Total Bills</p>
                 <p className="text-2xl font-bold">{analyticsData.summary.billCount}</p>
               </div>
-              <BarChart3 className="w-8 h-8 text-purple-600" />
+              <TrendingUp className="w-8 h-8 text-purple-600" />
             </div>
           </CardContent>
         </Card>
@@ -317,102 +356,69 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Monthly Trends */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Monthly Cost Trends
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={analyticsData.monthlyTrends}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="month" 
-                    fontSize={12}
-                    tickFormatter={(value) => value.slice(5)} // Show MM only
-                  />
-                  <YAxis fontSize={12} />
-                  <Tooltip 
-                    formatter={(value) => [`$${value}`, 'Total Cost']}
-                    labelFormatter={(label) => `Month: ${label}`}
-                  />
-                  <Line 
-                    type="monotone" 
-                    dataKey="total" 
-                    stroke="#10b981" 
-                    strokeWidth={2}
-                    dot={{ fill: '#10b981' }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <InteractiveChart
+          title="Monthly Cost Trends"
+          icon={<TrendingUp className="w-5 h-5" />}
+          onDrillDown={handleUtilityTrendDrillDown}
+          height={300}
+          showNavigationHint={true}
+          drillDownPath="/utility-bills"
+          onNavigate={(path) => router.push(path)}
+        >
+          <LineChart data={analyticsData.monthlyTrends} onClick={(data) => handleUtilityTrendDrillDown(data)}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis 
+              dataKey="month" 
+              fontSize={12}
+              tickFormatter={(value) => value.slice(5)} // Show MM only
+            />
+            <YAxis fontSize={12} />
+            <Tooltip content={utilityTrendTooltipConfig} />
+            <Line 
+              type="monotone" 
+              dataKey="total" 
+              stroke="#10b981" 
+              strokeWidth={2}
+              dot={{ fill: '#10b981', strokeWidth: 0, r: 4 }}
+              activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2, fill: '#fff' }}
+            />
+          </LineChart>
+        </InteractiveChart>
 
         {/* Utility Type Breakdown */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <PieChartIcon className="w-5 h-5" />
-              Cost by Utility Type
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={analyticsData.utilityBreakdown}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={false}
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                    outerRadius={80}
-                    fill="#8884d8"
-                    dataKey="value"
-                  >
-                    {analyticsData.utilityBreakdown.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => [`$${value}`, 'Cost']} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+        <InteractiveChart
+          title="Cost by Utility Type"
+          icon={<PieChartIcon className="w-5 h-5" />}
+          onDrillDown={handleUtilityTypeDrillDown}
+          height={300}
+          showNavigationHint={true}
+          drillDownPath="/utility-bills"
+          onNavigate={(path) => router.push(path)}
+        >
+          <PieChart>
+            <Pie
+              data={analyticsData.utilityBreakdown}
+              cx="50%"
+              cy="50%"
+              labelLine={false}
+              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+              outerRadius={80}
+              fill="#8884d8"
+              dataKey="value"
+              onClick={(data) => handleUtilityTypeDrillDown(data)}
+            >
+              {analyticsData.utilityBreakdown.map((entry, index) => (
+                <Cell 
+                  key={`cell-${index}`} 
+                  fill={COLORS[index % COLORS.length]}
+                  className="cursor-pointer hover:opacity-80 transition-opacity"
+                />
+              ))}
+            </Pie>
+            <Tooltip content={utilityTypeTooltipConfig} />
+          </PieChart>
+        </InteractiveChart>
 
-        {/* Property Comparison */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              Cost by Property
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={analyticsData.propertyComparison}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis 
-                    dataKey="name" 
-                    fontSize={12}
-                    angle={-45}
-                    textAnchor="end"
-                    height={80}
-                  />
-                  <YAxis fontSize={12} />
-                  <Tooltip formatter={(value) => [`$${value}`, 'Total Cost']} />
-                  <Bar dataKey="value" fill="#3b82f6" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
 
         {/* Top Utility Types */}
         <Card>
