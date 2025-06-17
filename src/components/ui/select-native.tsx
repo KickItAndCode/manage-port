@@ -4,10 +4,11 @@ import { cn } from "@/lib/utils"
 export interface SelectNativeProps
   extends React.SelectHTMLAttributes<HTMLSelectElement> {
   placeholder?: string;
+  "data-testid"?: string;
 }
 
 const SelectNative = React.forwardRef<HTMLSelectElement, SelectNativeProps>(
-  ({ className, children, ...props }, ref) => {
+  ({ className, children, "data-testid": dataTestId, ...props }, ref) => {
     return (
       <select
         className={cn(
@@ -22,6 +23,7 @@ const SelectNative = React.forwardRef<HTMLSelectElement, SelectNativeProps>(
           "focus:border-primary dark:focus:border-primary",
           className
         )}
+        data-testid={dataTestId}
         ref={ref}
         {...props}
       >

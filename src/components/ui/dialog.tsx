@@ -7,9 +7,12 @@ import { XIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 function Dialog({
+  "data-testid": dataTestId,
   ...props
-}: React.ComponentProps<typeof DialogPrimitive.Root>) {
-  return <DialogPrimitive.Root data-slot="dialog" {...props} />
+}: React.ComponentProps<typeof DialogPrimitive.Root> & {
+  "data-testid"?: string
+}) {
+  return <DialogPrimitive.Root data-slot="dialog" data-testid={dataTestId} {...props} />
 }
 
 function DialogTrigger({
@@ -50,15 +53,18 @@ function DialogContent({
   className,
   children,
   showCloseButton = true,
+  "data-testid": dataTestId,
   ...props
 }: React.ComponentProps<typeof DialogPrimitive.Content> & {
   showCloseButton?: boolean
+  "data-testid"?: string
 }) {
   return (
     <DialogPortal data-slot="dialog-portal">
       <DialogOverlay />
       <DialogPrimitive.Content
         data-slot="dialog-content"
+        data-testid={dataTestId}
         className={cn(
           "bg-white dark:bg-gray-900/95 dark:backdrop-blur-xl border border-gray-200 dark:border-gray-800 dark:shadow-[0_0_50px_rgba(0,221,235,0.1)] data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-xl p-6 shadow-2xl duration-200 sm:max-w-lg",
           className
@@ -69,6 +75,7 @@ function DialogContent({
         {showCloseButton && (
           <DialogPrimitive.Close
             data-slot="dialog-close"
+            data-testid={dataTestId ? `${dataTestId}-close` : undefined}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 absolute top-4 right-4 rounded-lg p-1 transition-colors hover:bg-gray-100 dark:hover:bg-gray-800 focus:ring-2 focus:ring-primary focus:outline-hidden disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
           >
             <XIcon />

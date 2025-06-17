@@ -79,7 +79,7 @@ export function UnitForm({ propertyId, initial, onSubmit, onCancel, loading }: U
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
+    <form onSubmit={handleSubmit} className="space-y-4" data-testid="unit-form">
       <div>
         <Label htmlFor="unitIdentifier">Unit Identifier *</Label>
         <Input
@@ -89,6 +89,7 @@ export function UnitForm({ propertyId, initial, onSubmit, onCancel, loading }: U
           placeholder="e.g., Unit A, Apt 1, Suite 101"
           disabled={loading}
           className={errors.unitIdentifier ? "border-red-500" : ""}
+          data-testid="unit-identifier-input"
         />
         {errors.unitIdentifier && (
           <p className="text-sm text-red-500 mt-1">{errors.unitIdentifier}</p>
@@ -97,21 +98,21 @@ export function UnitForm({ propertyId, initial, onSubmit, onCancel, loading }: U
 
       <div>
         <Label>Status</Label>
-        <RadioGroup value={status} onValueChange={(value: any) => setStatus(value)}>
+        <RadioGroup value={status} onValueChange={(value: any) => setStatus(value)} data-testid="unit-status-radio-group">
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="available" id="available" disabled={loading || (initial && initial.status === "occupied")} />
+            <RadioGroupItem value="available" id="available" disabled={loading || (initial && initial.status === "occupied")} data-testid="unit-status-available" />
             <Label htmlFor="available" className="font-normal cursor-pointer">
               Available
             </Label>
           </div>
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="occupied" id="occupied" disabled={loading || (initial && initial.status === "occupied")} />
+            <RadioGroupItem value="occupied" id="occupied" disabled={loading || (initial && initial.status === "occupied")} data-testid="unit-status-occupied" />
             <Label htmlFor="occupied" className="font-normal cursor-pointer">
               Occupied {initial && initial.status === "occupied" && "(managed by lease)"}
             </Label>
           </div>
           <div className="flex items-center space-x-2">
-            <RadioGroupItem value="maintenance" id="maintenance" disabled={loading} />
+            <RadioGroupItem value="maintenance" id="maintenance" disabled={loading} data-testid="unit-status-maintenance" />
             <Label htmlFor="maintenance" className="font-normal cursor-pointer">
               Under Maintenance
             </Label>
@@ -132,6 +133,7 @@ export function UnitForm({ propertyId, initial, onSubmit, onCancel, loading }: U
             placeholder="e.g., 2"
             disabled={loading}
             className={errors.bedrooms ? "border-red-500" : ""}
+            data-testid="unit-bedrooms-input"
           />
           {errors.bedrooms && (
             <p className="text-sm text-red-500 mt-1">{errors.bedrooms}</p>
@@ -150,6 +152,7 @@ export function UnitForm({ propertyId, initial, onSubmit, onCancel, loading }: U
             placeholder="e.g., 1.5"
             disabled={loading}
             className={errors.bathrooms ? "border-red-500" : ""}
+            data-testid="unit-bathrooms-input"
           />
           {errors.bathrooms && (
             <p className="text-sm text-red-500 mt-1">{errors.bathrooms}</p>
@@ -168,6 +171,7 @@ export function UnitForm({ propertyId, initial, onSubmit, onCancel, loading }: U
           placeholder="e.g., 850"
           disabled={loading}
           className={errors.squareFeet ? "border-red-500" : ""}
+          data-testid="unit-square-feet-input"
         />
         {errors.squareFeet && (
           <p className="text-sm text-red-500 mt-1">{errors.squareFeet}</p>
@@ -183,15 +187,26 @@ export function UnitForm({ propertyId, initial, onSubmit, onCancel, loading }: U
           placeholder="Any additional information about this unit..."
           rows={3}
           disabled={loading}
+          data-testid="unit-notes-textarea"
         />
       </div>
 
       <div className="flex gap-3 pt-4">
-        <Button type="submit" disabled={loading}>
+        <Button 
+          type="submit" 
+          disabled={loading}
+          data-testid="save-unit-button"
+        >
           {loading ? "Saving..." : initial ? "Update Unit" : "Add Unit"}
         </Button>
         {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onCancel} 
+            disabled={loading}
+            data-testid="cancel-unit-button"
+          >
             Cancel
           </Button>
         )}

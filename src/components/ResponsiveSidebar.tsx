@@ -87,6 +87,7 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
             const linkContent = (
               <Link
                 href={href}
+                data-testid={`sidebar-${label.toLowerCase().replace(/\s+/g, '-').replace('&', 'and')}-link`}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sidebar-foreground",
                   "hover:bg-primary hover:text-primary-foreground hover:bg-primary/90",
@@ -128,6 +129,7 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
           variant="ghost"
           size="sm"
           onClick={() => setIsCollapsed(!isCollapsed)}
+          data-testid="sidebar-collapse-toggle"
           className={cn(
             "mt-auto mx-2 hover:bg-primary/10",
             isCollapsed && "justify-center"
@@ -154,6 +156,7 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
       onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       className="fixed top-4 left-4 z-50 md:hidden"
       aria-label="Toggle menu"
+      data-testid="mobile-menu-toggle"
     >
       {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
     </Button>

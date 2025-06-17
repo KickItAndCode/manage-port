@@ -26,6 +26,7 @@ export function Topbar() {
             className="p-2 rounded-full hover:bg-muted/60 text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors duration-200"
             aria-label="Toggle theme"
             onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+            data-testid="theme-toggle-button"
           >
             {resolvedTheme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
           </button>
@@ -35,8 +36,8 @@ export function Topbar() {
             <UserButton afterSignOutUrl="/" />
           ) : (
             <div className="flex gap-1 sm:gap-2">
-              <Link href="/sign-in" className="px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors duration-200 text-sm">Sign in</Link>
-              <Link href="/sign-up" className="px-3 sm:px-4 py-2 bg-muted text-foreground rounded border border-border hover:bg-muted/70 transition-colors duration-200 text-sm">Sign up</Link>
+              <Link href="/sign-in" className="px-3 sm:px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors duration-200 text-sm" data-testid="sign-in-link">Sign in</Link>
+              <Link href="/sign-up" className="px-3 sm:px-4 py-2 bg-muted text-foreground rounded border border-border hover:bg-muted/70 transition-colors duration-200 text-sm" data-testid="sign-up-link">Sign up</Link>
             </div>
           )
         ) : (

@@ -285,7 +285,7 @@ export function UtilityBillForm({
 
   return (
     <TooltipProvider>
-      <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto">
+      <form onSubmit={handleSubmit} className="space-y-6 max-w-4xl mx-auto" data-testid="utility-bill-form">
       {/* Basic Information Section */}
       <div className="bg-slate-50 dark:bg-slate-900 rounded-lg border p-6 space-y-4">
         <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
@@ -305,6 +305,7 @@ export function UtilityBillForm({
                 onClick={handleSeedData}
                 disabled={seeding || !propertyId || loading}
                 className="gap-2 text-xs"
+                data-testid="generate-years-bills-button"
               >
                 <Sparkles className={cn("w-4 h-4", seeding && "animate-spin")} />
                 {seeding ? "Generating..." : "Generate Year's Bills"}
@@ -317,6 +318,7 @@ export function UtilityBillForm({
               value={propertyId}
               onChange={(e) => setPropertyId(e.target.value)}
               disabled={loading}
+              data-testid="property-select"
             >
               <option value="">Select a property</option>
               {properties?.map((property) => (
@@ -338,6 +340,7 @@ export function UtilityBillForm({
               if (!initial) setProvider("");
             }}
             disabled={loading}
+            data-testid="utility-type-select"
           >
             <option value="">Select utility type</option>
             {UTILITY_TYPES.map((type) => (
@@ -376,6 +379,7 @@ export function UtilityBillForm({
               placeholder="e.g., City Electric Company"
               disabled={loading}
               className={errors.provider ? "border-destructive" : ""}
+              data-testid="provider-input"
             />
             {suggestedProviders.length > 0 && !provider && (
               <div className="space-y-2">
@@ -438,6 +442,7 @@ export function UtilityBillForm({
             onChange={(e) => setBillMonth(e.target.value)}
             disabled={loading}
             className={errors.billMonth ? "border-destructive" : ""}
+            data-testid="bill-month-input"
           />
           {errors.billMonth && (
             <p className="text-sm text-destructive mt-1">{errors.billMonth}</p>
@@ -451,6 +456,7 @@ export function UtilityBillForm({
             value={billingPeriod}
             onChange={(e) => setBillingPeriod(e.target.value)}
             disabled={loading}
+            data-testid="billing-period-select"
           >
             {BILLING_PERIODS.map((period) => (
               <option key={period.value} value={period.value}>
@@ -492,6 +498,7 @@ export function UtilityBillForm({
                 onChange={(e) => setTotalAmount(e.target.value)}
                 placeholder="0.00"
                 className={`pl-9 text-lg h-12 ${errors.totalAmount ? "border-destructive" : ""}`}
+                data-testid="total-amount-input"
                 disabled={loading}
               />
             </div>
@@ -573,6 +580,7 @@ export function UtilityBillForm({
             placeholder="Any additional information..."
             rows={3}
             disabled={loading}
+            data-testid="bill-notes-textarea"
           />
         </div>
 
@@ -591,7 +599,7 @@ export function UtilityBillForm({
                 uploading && "opacity-50 cursor-not-allowed"
               )}
             >
-              <input {...getInputProps()} />
+              <input {...getInputProps()} data-testid="document-upload-input" />
               <Upload className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
               {uploading ? (
                 <div>
@@ -647,6 +655,7 @@ export function UtilityBillForm({
             type="submit" 
             disabled={loading}
             className="flex-1 h-12 text-base font-medium"
+            data-testid="save-bill-button"
           >
             {loading ? "Saving..." : initial ? "Update Bill" : "Add Bill"}
           </Button>
@@ -657,6 +666,7 @@ export function UtilityBillForm({
               onClick={onCancel} 
               disabled={loading}
               className="flex-1 sm:flex-none h-12 text-base"
+              data-testid="cancel-bill-button"
             >
               Cancel
             </Button>

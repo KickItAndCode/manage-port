@@ -451,7 +451,7 @@ function PropertiesContent() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
           <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
             <DialogTrigger asChild>
-              <Button className="gap-2">
+              <Button className="gap-2" data-testid="add-property-button">
                 <Wand2 className="w-4 h-4" />
                 Property Wizard
               </Button>
@@ -476,12 +476,14 @@ function PropertiesContent() {
             className="bg-input text-foreground px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-64 transition-colors duration-200"
             value={search}
             onChange={e => setSearch(e.target.value)}
+            data-testid="properties-search-input"
           />
           <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
             <select
               className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200 flex-1 sm:flex-none"
               value={typeFilter}
               onChange={e => setTypeFilter(e.target.value)}
+              data-testid="property-type-filter"
             >
               <option value="">All Types</option>
               {propertyTypes.map((t) => (
@@ -492,6 +494,7 @@ function PropertiesContent() {
               className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200 flex-1 sm:flex-none"
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
+              data-testid="property-status-filter"
             >
               <option value="">All Statuses</option>
               {statusOptions.map((s) => (

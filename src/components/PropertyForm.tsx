@@ -122,12 +122,14 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
       <form
         className="space-y-6"
         onSubmit={handleSubmit(onSubmit)}
+        data-testid="property-form"
       >
       <Button
         type="button"
         variant="outline"
         size="sm"
         onClick={fillWithDummyData}
+        data-testid="fill-dummy-data-button"
       >
         Fill with Dummy Data
       </Button>
@@ -139,6 +141,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
         <Input
           {...register("name")}
           placeholder="Enter property name"
+          data-testid="property-name-input"
         />
       </FormField>
       <FormField
@@ -149,6 +152,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
         <Input
           {...register("address")}
           placeholder="Enter property address"
+          data-testid="property-address-input"
         />
       </FormField>
       <div className="grid grid-cols-2 gap-4">
@@ -157,7 +161,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
           required
           error={errors.type?.message}
         >
-          <SelectNative {...register("type")}>
+          <SelectNative {...register("type")} data-testid="property-type-select">
             <option value="">Select property type</option>
             {propertyTypes.map((t) => (
               <option key={t} value={t}>{t}</option>
@@ -170,7 +174,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
           required
           error={errors.status?.message}
         >
-          <SelectNative {...register("status")}>
+          <SelectNative {...register("status")} data-testid="property-status-select">
             {statusOptions.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
@@ -188,6 +192,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
             min={0}
             {...register("bedrooms", { valueAsNumber: true })}
             placeholder="0"
+            data-testid="property-bedrooms-input"
           />
         </FormField>
         
@@ -201,6 +206,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
             min={0}
             {...register("bathrooms", { valueAsNumber: true })}
             placeholder="0"
+            data-testid="property-bathrooms-input"
           />
         </FormField>
       </div>
@@ -214,6 +220,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
           min={0}
           {...register("squareFeet", { valueAsNumber: true })}
           placeholder="0"
+          data-testid="property-square-feet-input"
         />
       </FormField>
       <FormField
@@ -224,6 +231,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
         <Input
           type="date"
           {...register("purchaseDate")}
+          data-testid="property-purchase-date-input"
         />
       </FormField>
       <div className="grid grid-cols-2 gap-4">
@@ -236,6 +244,7 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
             min={0}
             {...register("monthlyMortgage", { valueAsNumber: true })}
             placeholder="Optional"
+            data-testid="property-monthly-mortgage-input"
           />
         </FormField>
         
@@ -249,16 +258,27 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
             min={0}
             {...register("monthlyCapEx", { valueAsNumber: true })}
             placeholder="Auto-calculated (10% of mortgage)"
+            data-testid="property-monthly-capex-input"
           />
         </FormField>
       </div>
       <div className="flex gap-2 justify-end pt-4">
         {onCancel && (
-          <Button type="button" variant="outline" onClick={onCancel} disabled={loading || isSubmitting}>
+          <Button 
+            type="button" 
+            variant="outline" 
+            onClick={onCancel} 
+            disabled={loading || isSubmitting}
+            data-testid="cancel-property-button"
+          >
             Cancel
           </Button>
         )}
-        <Button type="submit" disabled={loading || isSubmitting}>
+        <Button 
+          type="submit" 
+          disabled={loading || isSubmitting}
+          data-testid="save-property-button"
+        >
           {loading || isSubmitting ? "Saving..." : "Save"}
         </Button>
       </div>

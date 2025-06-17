@@ -40,16 +40,19 @@ function Button({
   variant,
   size,
   asChild = false,
+  "data-testid": dataTestId,
   ...props
 }: React.ComponentProps<"button"> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
+    "data-testid"?: string
   }) {
   const Comp = asChild ? Slot : "button"
 
   return (
     <Comp
       data-slot="button"
+      data-testid={dataTestId}
       className={cn(buttonVariants({ variant, size, className }))}
       {...props}
     />

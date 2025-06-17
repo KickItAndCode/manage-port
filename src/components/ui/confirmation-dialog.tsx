@@ -48,18 +48,19 @@ export function ConfirmationDialog({
   };
 
   return (
-    <AlertDialog open={open} onOpenChange={onOpenChange}>
-      <AlertDialogContent>
+    <AlertDialog open={open} onOpenChange={onOpenChange} data-testid="confirmation-dialog">
+      <AlertDialogContent data-testid="confirmation-dialog-content">
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={loading}>{cancelText}</AlertDialogCancel>
+          <AlertDialogCancel disabled={loading} data-testid="confirmation-dialog-cancel">{cancelText}</AlertDialogCancel>
           <AlertDialogAction
             onClick={handleConfirm}
             disabled={loading}
             className={variant === "destructive" ? "bg-destructive hover:bg-destructive/90" : ""}
+            data-testid="confirmation-dialog-confirm"
           >
             {loading ? "Processing..." : confirmText}
           </AlertDialogAction>

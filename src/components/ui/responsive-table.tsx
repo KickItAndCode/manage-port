@@ -144,7 +144,7 @@ export function ResponsiveTable<T>({
 
   // Render mobile card view
   const renderMobileView = () => (
-    <div className="lg:hidden space-y-3">
+    <div className="lg:hidden space-y-3" data-testid="mobile-cards-view">
       {data.map((item) => {
         const selected = isItemSelected(item);
         
@@ -169,6 +169,7 @@ export function ResponsiveTable<T>({
               "p-4 hover:shadow-md transition-shadow duration-200",
               selected && "bg-primary/10 dark:bg-primary/15 border-l-4 border-l-primary"
             )}
+            data-testid={`table-item-card-${getItemId(item)}`}
           >
             <div className="space-y-3">
               {config.selectable !== false && (
@@ -178,6 +179,7 @@ export function ResponsiveTable<T>({
                     onCheckedChange={() => handleSelectItem(item)}
                     aria-label="Select item"
                     className="mt-1"
+                    data-testid={`select-item-checkbox-${getItemId(item)}`}
                   />
                   <div className="flex-1">
                     <DefaultMobileCardContent item={item} columns={config.columns} />
@@ -196,8 +198,8 @@ export function ResponsiveTable<T>({
 
   // Render desktop table view
   const renderDesktopView = () => (
-    <div className="hidden lg:block overflow-x-auto">
-      <Table>
+    <div className="hidden lg:block overflow-x-auto" data-testid="desktop-table-view">
+      <Table data-testid="responsive-table">
         <TableHeader>
           <TableRow>
             {config.selectable !== false && (
@@ -206,6 +208,7 @@ export function ResponsiveTable<T>({
                   checked={selectedItems.length === data.length && data.length > 0}
                   onCheckedChange={handleSelectAll}
                   aria-label="Select all"
+                  data-testid="select-all-checkbox"
                 />
               </TableHead>
             )}
@@ -243,6 +246,7 @@ export function ResponsiveTable<T>({
                   "hover:bg-muted/50 transition-colors duration-200",
                   selected && "bg-primary/10 dark:bg-primary/15 border-l-4 border-l-primary"
                 )}
+                data-testid={`table-row-${getItemId(item)}`}
               >
                 {config.selectable !== false && (
                   <TableCell className="w-8">
@@ -250,6 +254,7 @@ export function ResponsiveTable<T>({
                       checked={selected}
                       onCheckedChange={() => handleSelectItem(item)}
                       aria-label="Select item"
+                      data-testid={`select-item-checkbox-${getItemId(item)}`}
                     />
                   </TableCell>
                 )}
@@ -447,10 +452,13 @@ export function BulkActionsToolbar<T>({
   if (selectedItems.length === 0) return null;
 
   return (
-    <div className={cn(
-      "fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-2",
-      className
-    )}>
+    <div 
+      className={cn(
+        "fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom-2",
+        className
+      )}
+      data-testid="bulk-actions-toolbar"
+    >
       <Card className="shadow-lg border-primary/20 bg-card/95 backdrop-blur-sm">
         <CardContent className="p-4">
           <div className="flex items-center gap-4">
@@ -466,6 +474,7 @@ export function BulkActionsToolbar<T>({
                 size="sm"
                 variant="outline"
                 onClick={onClearSelection}
+                data-testid="clear-selection-button"
               >
                 Clear Selection
               </Button>
@@ -478,6 +487,7 @@ export function BulkActionsToolbar<T>({
                   onClick={() => action.action(selectedItems)}
                   disabled={action.disabled}
                   className="gap-2"
+                  data-testid={`bulk-action-${action.id}`}
                 >
                   {action.icon && <action.icon className="h-4 w-4" />}
                   {action.label}

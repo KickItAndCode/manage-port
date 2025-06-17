@@ -28,3 +28,6 @@ End the current development session by:
 5. Inform user the session has been documented
 
 The summary should be thorough enough that another developer (or AI) can understand everything that happened without reading the entire session.
+
+Make sure to update the claude.md file
+Update any task list that we haven't already

@@ -163,6 +163,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
             leaseDocumentUrl: leaseDocumentData?.storageId || data.leaseDocumentUrl,
           });
         })}
+        data-testid="lease-form"
       >
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-lg font-semibold">Lease Information</h3>
@@ -171,6 +172,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
             variant="outline"
             size="sm"
             onClick={fillWithDummyData}
+            data-testid="fill-dummy-data-button"
           >
             Fill with Dummy Data
           </Button>
@@ -181,7 +183,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
           required 
           error={errors.propertyId?.message}
         >
-          <SelectNative {...register("propertyId")} required>
+          <SelectNative {...register("propertyId")} required data-testid="property-select">
             <option value="">Select property</option>
             {properties.map((p) => (
               <option key={p._id} value={p._id}>
@@ -214,6 +216,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
               }}
               required={requiresUnitSelection}
               className={errors.unitId ? "border-destructive" : ""}
+              data-testid="unit-select"
             >
               <option value="">
                 {requiresUnitSelection ? "Select unit (required)" : "Select unit (optional)"}
@@ -245,6 +248,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
             placeholder="e.g., John Smith"
             {...register("tenantName")}
             required
+            data-testid="tenant-name-input"
           />
         </FormField>
 
@@ -257,6 +261,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
               type="email"
               placeholder="tenant@email.com"
               {...register("tenantEmail")}
+              data-testid="tenant-email-input"
             />
           </FormField>
           
@@ -268,6 +273,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
               type="tel"
               placeholder="(555) 123-4567"
               {...register("tenantPhone")}
+              data-testid="tenant-phone-input"
             />
           </FormField>
         </div>
@@ -282,6 +288,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
               type="date"
               {...register("startDate")}
               required
+              data-testid="lease-start-date-input"
             />
           </FormField>
           
@@ -293,6 +300,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
             <Input
               type="date"
               {...register("endDate")}
+              data-testid="lease-end-date-input"
               required
             />
           </FormField>
@@ -311,6 +319,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
               placeholder="0.00"
               {...register("rent", { valueAsNumber: true })}
               required
+              data-testid="monthly-rent-input"
             />
           </FormField>
           
@@ -324,6 +333,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
               step="0.01"
               placeholder="0.00"
               {...register("securityDeposit", { valueAsNumber: true })}
+              data-testid="security-deposit-input"
             />
           </FormField>
         </div>
@@ -334,7 +344,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
             required
             error={errors.status?.message}
           >
-            <SelectNative {...register("status")} required>
+            <SelectNative {...register("status")} required data-testid="lease-status-select">
               <option value="pending">Pending</option>
               <option value="active">Active</option>
               <option value="expired">Expired</option>
@@ -365,16 +375,27 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
             placeholder="Additional lease notes or terms"
             rows={3}
             {...register("notes")}
+            data-testid="lease-notes-textarea"
           />
         </FormField>
 
         <div className="flex gap-2 justify-end pt-4">
           {onCancel && (
-            <Button type="button" variant="outline" onClick={onCancel} disabled={loading || isSubmitting}>
+            <Button 
+              type="button" 
+              variant="outline" 
+              onClick={onCancel} 
+              disabled={loading || isSubmitting}
+              data-testid="cancel-lease-button"
+            >
               Cancel
             </Button>
           )}
-          <Button type="submit" disabled={loading || isSubmitting}>
+          <Button 
+            type="submit" 
+            disabled={loading || isSubmitting}
+            data-testid="save-lease-button"
+          >
             {loading || isSubmitting ? "Saving..." : "Save Lease"}
           </Button>
         </div>

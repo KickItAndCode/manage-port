@@ -191,6 +191,7 @@ export function GlobalSearch() {
           onKeyDown={handleKeyDown}
           onFocus={() => search && setIsOpen(true)}
           className="pl-10 pr-10 w-full bg-input text-foreground border-border focus:ring-2 focus:ring-primary"
+          data-testid="global-search-input"
         />
         {search && (
           <Button
