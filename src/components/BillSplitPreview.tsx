@@ -29,9 +29,15 @@ export function BillSplitPreview({
   userId,
   mode = "preview"
 }: BillSplitPreviewProps) {
-  // Get actual charges if bill ID is provided
-  const billWithCharges = useQuery(
-    api.utilityBills.getUtilityBillWithCharges,
+  // Get actual stored charges if bill ID is provided
+  const storedCharges = useQuery(
+    api.utilityCharges.getChargesForBill,
+    billId ? { billId } : "skip"
+  );
+
+  // Get bill details for display
+  const billDetails = useQuery(
+    api.utilityBills.getUtilityBill,
     billId ? { billId, userId } : "skip"
   );
 
@@ -49,12 +55,12 @@ export function BillSplitPreview({
   // Mutation for marking charges as paid
   const markChargePaid = useMutation(api.utilityPayments.markUtilityPaid);
 
-  // Use actual charges if available, otherwise show preview
-  const charges = billWithCharges?.charges || [];
-  const hasActualCharges = billWithCharges && charges.length > 0;
+  // Use stored charges if available, otherwise show preview
+  const charges = storedCharges || [];
+  const hasStoredCharges = storedCharges && charges.length > 0;
 
   // Loading state
-  if (!billWithCharges && !splitPreview) {
+  if (billId && (!storedCharges || !billDetails)) {
     return (
       <Card className="p-6">
         <div className="space-y-3">
@@ -66,10 +72,22 @@ export function BillSplitPreview({
     );
   }
 
-  if (hasActualCharges) {
-    // Show actual charges with payment controls
+  if (!billId && !splitPreview) {
+    return (
+      <Card className="p-6">
+        <div className="space-y-3">
+          <Skeleton className="h-4 w-32" />
+          <Skeleton className="h-20 w-full" />
+          <Skeleton className="h-20 w-full" />
+        </div>
+      </Card>
+    );
+  }
+
+  if (hasStoredCharges) {
+    // Show stored charges with payment controls
     const totalCharged = charges.reduce((sum: number, charge: any) => sum + charge.chargedAmount, 0);
-    const allPaid = charges.every((charge: any) => charge.isPaid);
+    const allPaid = charges.every((charge: any) => charge.status === "paid");
 
     return (
       <div className="space-y-4">
@@ -101,15 +119,20 @@ export function BillSplitPreview({
                         Unit {charge.unit.unitIdentifier}
                       </Badge>
                     )}
-                    {charge.isPaid ? (
+                    {charge.status === "paid" ? (
                       <Badge variant="outline" className="text-green-600 border-green-600 text-xs">
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Paid
                       </Badge>
+                    ) : charge.status === "partial" ? (
+                      <Badge variant="outline" className="text-blue-600 border-blue-600 text-xs">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Partial
+                      </Badge>
                     ) : (
                       <Badge variant="outline" className="text-orange-600 border-orange-600 text-xs">
                         <AlertCircle className="w-3 h-3 mr-1" />
-                        Outstanding
+                        Pending
                       </Badge>
                     )}
                   </div>
@@ -135,12 +158,13 @@ export function BillSplitPreview({
                     variant="outline"
                     onClick={async () => {
                       try {
+                        const newStatus = charge.status === "paid" ? "pending" : "paid";
                         await markChargePaid({
                           chargeId: charge._id,
-                          isPaid: !charge.isPaid,
+                          status: newStatus,
                           userId,
                         });
-                        toast.success(`Payment status updated to ${!charge.isPaid ? 'paid' : 'unpaid'}`);
+                        toast.success(`Payment status updated to ${newStatus}`);
                       } catch (error: any) {
                         toast.error("Failed to update payment status", {
                           description: error.message || "Please try again or contact support.",
@@ -148,7 +172,7 @@ export function BillSplitPreview({
                       }
                     }}
                   >
-                    {charge.isPaid ? (
+                    {charge.status === "paid" ? (
                       <>
                         <XCircle className="w-4 h-4 mr-1" />
                         Mark Unpaid
@@ -204,7 +228,7 @@ export function BillSplitPreview({
                 <div className="flex justify-between">
                   <span className="text-blue-700/70 dark:text-blue-300/70">Payment Status:</span>
                   <span className="font-medium text-blue-900 dark:text-blue-100">
-                    {charges.filter((c: any) => c.isPaid).length} of {charges.length} paid
+                    {charges.filter((c: any) => c.status === "paid").length} of {charges.length} paid
                   </span>
                 </div>
               </div>

@@ -1,23 +1,67 @@
 {
   "mcpServers": {
-    "supabase": {
+    "github.com/upstash/context7-mcp": {
+      "autoApprove": ["resolve-library-id", "get-library-docs"],
+      "disabled": false,
+      "timeout": 60,
       "command": "npx",
-      "args": ["-y", "@supabase/mcp-server-supabase@latest"],
-      "env": {
-        "SUPABASE_ACCESS_TOKEN": "sbp_842d625b36e3fc61fa9c4516e7ae949016a02538"
-      }
+      "args": ["-y", "@upstash/context7-mcp@latest"],
+      "transportType": "stdio"
+    },
+    "Firecrawl Web Scraping Server": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@Krieg2065/firecrawl-mcp-server",
+        "--key",
+        "104479ab-9efb-4d97-92e1-f57ab56db33a",
+        "--profile",
+        "regulatory-hawk-upUPzi"
+      ],
+      "env": {}
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@smithery-ai/github",
+        "--key",
+        "104479ab-9efb-4d97-92e1-f57ab56db33a",
+        "--profile",
+        "regulatory-hawk-upUPzi"
+      ]
+    },
+    "Notion": {
+      "type": "stdio",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@smithery/cli@latest",
+        "run",
+        "@smithery/notion",
+        "--key",
+        "104479ab-9efb-4d97-92e1-f57ab56db33a",
+        "--profile",
+        "regulatory-hawk-upUPzi"
+      ],
+      "env": {}
     },
     "puppeteer": {
       "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-puppeteer"],
+      "args": ["@modelcontextprotocol/server-puppeteer"],
       "env": {}
-    },
-    "brave-search": {
-      "command": "npx",
-      "args": ["-y", "@modelcontextprotocol/server-brave-search"],
-      "env": {
-        "BRAVE_API_KEY": ""
+    },    
+    "perplexity-mcp": {
+        "env": {
+          "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}"
+        },
+        "command": "npx",
+        "args": ["perplexity-mcp"]
       }
-    }
   }
 }

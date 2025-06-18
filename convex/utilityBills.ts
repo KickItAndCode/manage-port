@@ -2,6 +2,74 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 
+// Helper functions for charge management
+async function generateChargesForBillHelper(ctx: any, billId: string) {
+  // 1. Get the bill
+  const bill = await ctx.db.get(billId);
+  if (!bill) {
+    throw new Error("Bill not found");
+  }
+
+  // 2. Get active leases for the property
+  const activeLeases = await ctx.db
+    .query("leases")
+    .withIndex("by_property", (q) => q.eq("propertyId", bill.propertyId))
+    .filter((q) => q.eq(q.field("status"), "active"))
+    .collect();
+
+  if (activeLeases.length === 0) {
+    console.warn(`No active leases found for property ${bill.propertyId}`);
+    return [];
+  }
+
+  const charges = [];
+
+  // 3. For each active lease, calculate charge
+  for (const lease of activeLeases) {
+    const utilitySetting = await ctx.db
+      .query("leaseUtilitySettings")
+      .withIndex("by_lease", (q) => q.eq("leaseId", lease._id))
+      .filter((q) => q.eq(q.field("utilityType"), bill.utilityType))
+      .first();
+
+    if (utilitySetting && utilitySetting.responsibilityPercentage > 0) {
+      const chargedAmount = (bill.totalAmount * utilitySetting.responsibilityPercentage) / 100;
+      
+      // Create the charge
+      const chargeId = await ctx.db.insert("utilityCharges", {
+        leaseId: lease._id,
+        utilityBillId: billId,
+        unitId: lease.unitId,
+        tenantName: lease.tenantName,
+        chargedAmount,
+        responsibilityPercentage: utilitySetting.responsibilityPercentage,
+        dueDate: bill.dueDate,
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      });
+
+      charges.push(chargeId);
+    }
+  }
+
+  return charges;
+}
+
+async function deleteChargesForBillHelper(ctx: any, billId: string) {
+  const charges = await ctx.db
+    .query("utilityCharges")
+    .withIndex("by_bill", (q) => q.eq("utilityBillId", billId))
+    .collect();
+
+  const deletedIds = [];
+  for (const charge of charges) {
+    await ctx.db.delete(charge._id);
+    deletedIds.push(charge._id);
+  }
+
+  return deletedIds;
+}
+
 // Types for aggregated data
 export interface UtilityPageData {
   properties: Array<Doc<"properties"> & { monthlyRent: number }>;
@@ -195,9 +263,64 @@ export const addUtilityBill = mutation({
       createdAt: new Date().toISOString(),
     });
 
-    // Note: Tenant charges are now calculated on-demand, not stored
+    // AUTO-GENERATE TENANT CHARGES
+    try {
+      const chargeIds = await generateChargesForBillHelper(ctx, billId);
+      console.log(`Generated ${chargeIds.length} charges for bill ${billId}`);
+    } catch (error) {
+      console.error(`Failed to generate charges for bill ${billId}:`, error);
+      // Note: We don't throw here to avoid blocking bill creation
+      // Charges can be generated manually later if needed
+    }
 
     return billId;
+  },
+});
+
+// Update a utility bill and regenerate charges
+export const updateUtilityBillAndCharges = mutation({
+  args: {
+    id: v.id("utilityBills"),
+    updates: v.object({
+      totalAmount: v.optional(v.number()),
+      dueDate: v.optional(v.string()),
+      billDate: v.optional(v.string()),
+      provider: v.optional(v.string()),
+      billingPeriod: v.optional(v.string()),
+      notes: v.optional(v.string()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    // Verify bill exists and get current data
+    const existingBill = await ctx.db.get(args.id);
+    if (!existingBill) {
+      throw new Error("Bill not found");
+    }
+
+    // 1. Update the bill
+    await ctx.db.patch(args.id, {
+      ...args.updates,
+      updatedAt: new Date().toISOString(),
+    });
+
+    // 2. Delete existing charges for this bill
+    try {
+      const deletedChargeIds = await deleteChargesForBillHelper(ctx, args.id);
+      console.log(`Deleted ${deletedChargeIds.length} existing charges for bill ${args.id}`);
+    } catch (error) {
+      console.error(`Failed to delete existing charges for bill ${args.id}:`, error);
+    }
+
+    // 3. Regenerate charges with new amounts
+    try {
+      const newChargeIds = await generateChargesForBillHelper(ctx, args.id);
+      console.log(`Regenerated ${newChargeIds.length} charges for updated bill ${args.id}`);
+    } catch (error) {
+      console.error(`Failed to regenerate charges for bill ${args.id}:`, error);
+      // Note: We don't throw here to avoid blocking bill updates
+    }
+
+    return args.id;
   },
 });
 

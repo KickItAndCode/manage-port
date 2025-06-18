@@ -23,6 +23,7 @@ import type * as migrate from "../migrate.js";
 import type * as properties from "../properties.js";
 import type * as propertyImages from "../propertyImages.js";
 import type * as storage from "../storage.js";
+import type * as testUtilityCharges from "../testUtilityCharges.js";
 import type * as units from "../units.js";
 import type * as userSettings from "../userSettings.js";
 import type * as utilityBills from "../utilityBills.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   properties: typeof properties;
   propertyImages: typeof propertyImages;
   storage: typeof storage;
+  testUtilityCharges: typeof testUtilityCharges;
   units: typeof units;
   userSettings: typeof userSettings;
   utilityBills: typeof utilityBills;

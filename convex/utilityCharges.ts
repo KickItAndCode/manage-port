@@ -1,396 +1,405 @@
 import { v } from "convex/values";
-import { query } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
+import { mutation, query } from "./_generated/server";
 
-// Type for calculated tenant charges
-export interface CalculatedTenantCharge {
-  leaseId: Id<"leases">;
-  unitId?: Id<"units">;
-  tenantName: string;
-  utilityBillId: Id<"utilityBills">;
-  utilityType: string;
-  billMonth: string;
-  totalBillAmount: number;
-  chargedAmount: number;
-  responsibilityPercentage: number;
-  dueDate: string;
-  paidAmount: number;
-  remainingAmount: number;
-  unitIdentifier?: string;
-  propertyName?: string;
-}
+/**
+ * Helper function to generate charges for a utility bill
+ * This is the core logic that creates stored charges for each tenant
+ * based on their lease utility responsibility percentages
+ */
+async function generateChargesForBillHelper(ctx: any, billId: string) {
+  // 1. Get the bill
+  const bill = await ctx.db.get(billId);
+  if (!bill) {
+    throw new Error("Bill not found");
+  }
 
-// Helper function to calculate tenant charges for a bill
-async function calculateChargesForBill(
-  ctx: any,
-  bill: Doc<"utilityBills">
-): Promise<CalculatedTenantCharge[]> {
-  // Get all active leases for the property
+  // 2. Get active leases for the property
   const activeLeases = await ctx.db
     .query("leases")
-    .withIndex("by_property", (q: any) => q.eq("propertyId", bill.propertyId))
-    .filter((q: any) => q.eq(q.field("status"), "active"))
+    .withIndex("by_property", (q) => q.eq("propertyId", bill.propertyId))
+    .filter((q) => q.eq(q.field("status"), "active"))
     .collect();
 
   if (activeLeases.length === 0) {
+    console.warn(`No active leases found for property ${bill.propertyId}`);
     return [];
   }
 
-  const charges: CalculatedTenantCharge[] = [];
+  const charges = [];
 
-  // Calculate charges for each lease based on utility settings
+  // 3. For each active lease, calculate charge
   for (const lease of activeLeases) {
-    // Get utility setting for this lease and utility type
-    const setting = await ctx.db
+    const utilitySetting = await ctx.db
       .query("leaseUtilitySettings")
-      .withIndex("by_lease", (q: any) => q.eq("leaseId", lease._id))
-      .filter((q: any) => q.eq(q.field("utilityType"), bill.utilityType))
+      .withIndex("by_lease", (q) => q.eq("leaseId", lease._id))
+      .filter((q) => q.eq(q.field("utilityType"), bill.utilityType))
       .first();
 
-    if (setting && setting.responsibilityPercentage > 0) {
-      // Calculate the charged amount
-      const chargedAmount = Math.round((bill.totalAmount * setting.responsibilityPercentage) / 100 * 100) / 100;
-
-      // Get payments for this lease and bill
-      const payments = await ctx.db
-        .query("utilityPayments")
-        .withIndex("by_lease", (q: any) => q.eq("leaseId", lease._id))
-        .filter((q: any) => q.eq(q.field("utilityBillId"), bill._id))
-        .collect();
-
-      const paidAmount = payments.reduce((sum: number, payment: any) => sum + payment.amountPaid, 0);
-      const remainingAmount = Math.max(0, chargedAmount - paidAmount);
-
-      // Get unit information if available
-      let unitIdentifier;
-      if (lease.unitId) {
-        const unit = await ctx.db.get(lease.unitId);
-        unitIdentifier = unit?.unitIdentifier;
-      }
-
-      charges.push({
+    if (utilitySetting && utilitySetting.responsibilityPercentage > 0) {
+      const chargedAmount = (bill.totalAmount * utilitySetting.responsibilityPercentage) / 100;
+      
+      // Create the charge
+      const chargeId = await ctx.db.insert("utilityCharges", {
         leaseId: lease._id,
+        utilityBillId: billId,
         unitId: lease.unitId,
         tenantName: lease.tenantName,
-        utilityBillId: bill._id,
-        utilityType: bill.utilityType,
-        billMonth: bill.billMonth,
-        totalBillAmount: bill.totalAmount,
         chargedAmount,
-        responsibilityPercentage: setting.responsibilityPercentage,
+        responsibilityPercentage: utilitySetting.responsibilityPercentage,
         dueDate: bill.dueDate,
-        paidAmount,
-        remainingAmount,
-        unitIdentifier,
+        status: "pending",
+        createdAt: new Date().toISOString(),
       });
+
+      charges.push(chargeId);
     }
+  }
+
+  // 4. Comprehensive validation
+  if (charges.length > 0) {
+    // Validate total percentages
+    const totalPercentage = await validateChargePercentages(ctx, billId);
+    if (totalPercentage > 100) {
+      console.warn(`Total responsibility percentages exceed 100%: ${totalPercentage}% for bill ${billId}`);
+    }
+
+    // Validate no duplicate charges
+    await validateNoDuplicateCharges(ctx, billId);
+
+    // Validate charge amounts are reasonable
+    await validateChargeAmounts(ctx, billId);
   }
 
   return charges;
 }
 
-// Calculate tenant charges for a specific bill
-export const calculateTenantChargesForBill = query({
-  args: {
-    billId: v.id("utilityBills"),
-    userId: v.string(),
+/**
+ * Generate charges for a utility bill (public mutation)
+ * This wraps the helper function for external API access
+ */
+export const generateChargesForBill = mutation({
+  args: { 
+    billId: v.id("utilityBills") 
   },
   handler: async (ctx, args) => {
-    const bill = await ctx.db.get(args.billId);
-    if (!bill || bill.userId !== args.userId) {
-      return [];
-    }
-
-    return await calculateChargesForBill(ctx, bill);
+    return await generateChargesForBillHelper(ctx, args.billId);
   },
 });
 
-// Calculate tenant charges for all bills in a property within a date range
-export const calculateTenantChargesForProperty = query({
-  args: {
-    propertyId: v.id("properties"),
-    userId: v.string(),
-    startMonth: v.optional(v.string()),
-    endMonth: v.optional(v.string()),
+/**
+ * Get charges for a specific bill
+ */
+export const getChargesForBill = query({
+  args: { billId: v.id("utilityBills") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("utilityCharges")
+      .withIndex("by_bill", (q) => q.eq("utilityBillId", args.billId))
+      .collect();
+  },
+});
+
+/**
+ * Get outstanding charges for a tenant (lease)
+ */
+export const getOutstandingCharges = query({
+  args: { leaseId: v.id("leases") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("utilityCharges")
+      .withIndex("by_lease", (q) => q.eq("leaseId", args.leaseId))
+      .filter((q) => q.neq(q.field("status"), "paid"))
+      .collect();
+  },
+});
+
+/**
+ * Get charges by status (pending, paid, partial)
+ */
+export const getChargesByStatus = query({
+  args: { 
+    status: v.union(v.literal("pending"), v.literal("paid"), v.literal("partial")),
+    userId: v.string()
   },
   handler: async (ctx, args) => {
-    // Verify property ownership
-    const property = await ctx.db.get(args.propertyId);
-    if (!property || property.userId !== args.userId) {
-      return [];
+    // Get all charges for user's leases with the specified status
+    const userLeases = await ctx.db
+      .query("leases")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    const charges = [];
+    for (const lease of userLeases) {
+      const leaseCharges = await ctx.db
+        .query("utilityCharges")
+        .withIndex("by_lease", (q) => q.eq("leaseId", lease._id))
+        .filter((q) => q.eq(q.field("status"), args.status))
+        .collect();
+      charges.push(...leaseCharges);
     }
 
-    // Get bills for the property within date range
-    let billsQuery = ctx.db
-      .query("utilityBills")
-      .withIndex("by_property", (q: any) => q.eq("propertyId", args.propertyId));
+    return charges;
+  },
+});
 
-    if (args.startMonth && args.endMonth) {
-      billsQuery = billsQuery.filter((q: any) => 
-        q.and(
-          q.gte(q.field("billMonth"), args.startMonth),
-          q.lte(q.field("billMonth"), args.endMonth)
-        )
-      );
-    } else if (args.startMonth) {
-      billsQuery = billsQuery.filter((q: any) => 
-        q.gte(q.field("billMonth"), args.startMonth)
-      );
-    } else if (args.endMonth) {
-      billsQuery = billsQuery.filter((q: any) => 
-        q.lte(q.field("billMonth"), args.endMonth)
-      );
-    }
-
-    const bills = await billsQuery.collect();
-
-    // Calculate charges for all bills
-    const allCharges: CalculatedTenantCharge[] = [];
-    for (const bill of bills) {
-      const charges = await calculateChargesForBill(ctx, bill);
-      allCharges.push(...charges);
-    }
-
-    // Add property name to charges
-    const chargesWithProperty = allCharges.map(charge => ({
-      ...charge,
-      propertyName: property.name,
-    }));
-
-    // Sort by bill month descending, then by tenant name
-    return chargesWithProperty.sort((a, b) => {
-      const monthCompare = b.billMonth.localeCompare(a.billMonth);
-      if (monthCompare !== 0) return monthCompare;
-      return a.tenantName.localeCompare(b.tenantName);
+/**
+ * Update charge status (used when payments are recorded)
+ */
+export const updateChargeStatus = mutation({
+  args: {
+    chargeId: v.id("utilityCharges"),
+    status: v.union(v.literal("pending"), v.literal("paid"), v.literal("partial")),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.patch(args.chargeId, {
+      status: args.status,
+      updatedAt: new Date().toISOString(),
     });
+
+    return args.chargeId;
   },
 });
 
-// Calculate tenant charges for all properties of a user within a date range
+/**
+ * Helper function to delete charges for a bill
+ */
+async function deleteChargesForBillHelper(ctx: any, billId: string) {
+  const charges = await ctx.db
+    .query("utilityCharges")
+    .withIndex("by_bill", (q) => q.eq("utilityBillId", billId))
+    .collect();
+
+  const deletedIds = [];
+  for (const charge of charges) {
+    await ctx.db.delete(charge._id);
+    deletedIds.push(charge._id);
+  }
+
+  return deletedIds;
+}
+
+/**
+ * Delete charges for a bill (public mutation)
+ */
+export const deleteChargesForBill = mutation({
+  args: { billId: v.id("utilityBills") },
+  handler: async (ctx, args) => {
+    return await deleteChargesForBillHelper(ctx, args.billId);
+  },
+});
+
+/**
+ * Helper function to validate charge percentages for a bill
+ */
+async function validateChargePercentages(ctx: any, billId: string) {
+  const charges = await ctx.db
+    .query("utilityCharges")
+    .withIndex("by_bill", (q) => q.eq("utilityBillId", billId))
+    .collect();
+
+  return charges.reduce((sum: number, charge: any) => sum + charge.responsibilityPercentage, 0);
+}
+
+/**
+ * Helper function to validate no duplicate charges exist
+ */
+async function validateNoDuplicateCharges(ctx: any, billId: string) {
+  const charges = await ctx.db
+    .query("utilityCharges")
+    .withIndex("by_bill", (q) => q.eq("utilityBillId", billId))
+    .collect();
+
+  const seenLeases = new Set();
+  for (const charge of charges) {
+    if (seenLeases.has(charge.leaseId)) {
+      throw new Error(`Duplicate charge found for lease ${charge.leaseId} on bill ${billId}`);
+    }
+    seenLeases.add(charge.leaseId);
+  }
+}
+
+/**
+ * Helper function to validate charge amounts are reasonable
+ */
+async function validateChargeAmounts(ctx: any, billId: string) {
+  const charges = await ctx.db
+    .query("utilityCharges")
+    .withIndex("by_bill", (q) => q.eq("utilityBillId", billId))
+    .collect();
+
+  const bill = await ctx.db.get(billId);
+  if (!bill) return;
+
+  for (const charge of charges) {
+    // Validate charge amount is not negative
+    if (charge.chargedAmount < 0) {
+      throw new Error(`Negative charge amount found: $${charge.chargedAmount} for tenant ${charge.tenantName}`);
+    }
+
+    // Validate charge amount doesn't exceed total bill
+    if (charge.chargedAmount > bill.totalAmount) {
+      throw new Error(`Charge amount $${charge.chargedAmount} exceeds total bill amount $${bill.totalAmount} for tenant ${charge.tenantName}`);
+    }
+
+    // Validate percentage is reasonable
+    if (charge.responsibilityPercentage < 0 || charge.responsibilityPercentage > 100) {
+      throw new Error(`Invalid responsibility percentage ${charge.responsibilityPercentage}% for tenant ${charge.tenantName}`);
+    }
+  }
+}
+
+/**
+ * Get total paid amount for a specific charge
+ */
+export const getTotalPaidForCharge = query({
+  args: { chargeId: v.id("utilityCharges") },
+  handler: async (ctx, args) => {
+    const payments = await ctx.db
+      .query("utilityPayments")
+      .withIndex("by_charge", (q) => q.eq("chargeId", args.chargeId))
+      .collect();
+
+    return payments.reduce((sum, payment) => sum + payment.amountPaid, 0);
+  },
+});
+
+/**
+ * Get payment details for a charge
+ */
+export const getChargePayments = query({
+  args: { chargeId: v.id("utilityCharges") },
+  handler: async (ctx, args) => {
+    return await ctx.db
+      .query("utilityPayments")
+      .withIndex("by_charge", (q) => q.eq("chargeId", args.chargeId))
+      .order("desc")
+      .collect();
+  },
+});
+
+/**
+ * Calculate all tenant charges (compatibility function for UI)
+ * This replaces the old on-demand calculation with stored charges
+ */
 export const calculateAllTenantCharges = query({
   args: {
     userId: v.string(),
     propertyId: v.optional(v.id("properties")),
-    startMonth: v.optional(v.string()),
-    endMonth: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Get bills for the user (optionally filtered by property)
-    let billsQuery = ctx.db
-      .query("utilityBills")
-      .withIndex("by_user", (q: any) => q.eq("userId", args.userId));
-
-    const bills = await billsQuery.collect();
-
-    // Filter by property if specified
-    const filteredBills = args.propertyId 
-      ? bills.filter(bill => bill.propertyId === args.propertyId)
-      : bills;
-
-    // Filter by date range if specified
-    const dateFilteredBills = filteredBills.filter(bill => {
-      if (args.startMonth && bill.billMonth < args.startMonth) return false;
-      if (args.endMonth && bill.billMonth > args.endMonth) return false;
-      return true;
-    });
-
-    // Calculate charges for all bills
-    const allCharges: CalculatedTenantCharge[] = [];
-    for (const bill of dateFilteredBills) {
-      const charges = await calculateChargesForBill(ctx, bill);
-      allCharges.push(...charges);
+    // Get user's leases (filtered by property if specified)
+    let leases;
+    if (args.propertyId) {
+      leases = await ctx.db
+        .query("leases")
+        .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+        .filter((q) => q.eq(q.field("userId"), args.userId))
+        .collect();
+    } else {
+      leases = await ctx.db
+        .query("leases")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .collect();
     }
 
-    // Add property names to charges
-    const propertyMap = new Map();
-    const chargesWithProperty = await Promise.all(
-      allCharges.map(async (charge) => {
-        // Get the bill to find the property
-        let property = propertyMap.get(charge.utilityBillId);
-        if (!property) {
-          const bill = await ctx.db.get(charge.utilityBillId);
-          if (bill) {
-            property = await ctx.db.get(bill.propertyId);
-            propertyMap.set(charge.utilityBillId, property);
-          }
-        }
-        
-        return {
-          ...charge,
-          propertyName: property?.name || "Unknown Property",
-        };
-      })
-    );
+    const allCharges = [];
 
-    // Sort by creation date descending
-    return chargesWithProperty.sort((a, b) => 
-      b.billMonth.localeCompare(a.billMonth)
-    );
-  },
-});
+    for (const lease of leases) {
+      // Get all charges for this lease
+      const charges = await ctx.db
+        .query("utilityCharges")
+        .withIndex("by_lease", (q) => q.eq("leaseId", lease._id))
+        .collect();
 
-// Calculate tenant charges for a specific lease within a date range
-export const calculateTenantChargesForLease = query({
-  args: {
-    leaseId: v.id("leases"),
-    userId: v.string(),
-    startMonth: v.optional(v.string()),
-    endMonth: v.optional(v.string()),
-  },
-  handler: async (ctx, args) => {
-    // Verify lease ownership
-    const lease = await ctx.db.get(args.leaseId);
-    if (!lease || lease.userId !== args.userId) {
-      return [];
-    }
+      for (const charge of charges) {
+        // Get the bill details
+        const bill = await ctx.db.get(charge.utilityBillId);
+        if (!bill) continue;
 
-    // Get all bills for the property
-    let billsQuery = ctx.db
-      .query("utilityBills")
-      .withIndex("by_property", (q: any) => q.eq("propertyId", lease.propertyId));
+        // Get property details
+        const property = await ctx.db.get(lease.propertyId);
+        const unit = charge.unitId ? await ctx.db.get(charge.unitId) : null;
 
-    const bills = await billsQuery.collect();
-
-    // Filter by date range if specified
-    const dateFilteredBills = bills.filter(bill => {
-      if (args.startMonth && bill.billMonth < args.startMonth) return false;
-      if (args.endMonth && bill.billMonth > args.endMonth) return false;
-      return true;
-    });
-
-    // Calculate charges only for this specific lease
-    const leaseCharges: CalculatedTenantCharge[] = [];
-    
-    for (const bill of dateFilteredBills) {
-      // Get utility setting for this lease and utility type
-      const setting = await ctx.db
-        .query("leaseUtilitySettings")
-        .withIndex("by_lease", (q: any) => q.eq("leaseId", lease._id))
-        .filter((q: any) => q.eq(q.field("utilityType"), bill.utilityType))
-        .first();
-
-      if (setting && setting.responsibilityPercentage > 0) {
-        // Calculate the charged amount
-        const chargedAmount = Math.round((bill.totalAmount * setting.responsibilityPercentage) / 100 * 100) / 100;
-
-        // Get payments for this lease and bill
+        // Get total paid for this charge
         const payments = await ctx.db
           .query("utilityPayments")
-          .withIndex("by_lease", (q: any) => q.eq("leaseId", lease._id))
-          .filter((q: any) => q.eq(q.field("utilityBillId"), bill._id))
+          .withIndex("by_charge", (q) => q.eq("chargeId", charge._id))
           .collect();
 
-        const paidAmount = payments.reduce((sum: number, payment: any) => sum + payment.amountPaid, 0);
-        const remainingAmount = Math.max(0, chargedAmount - paidAmount);
+        const paidAmount = payments.reduce((sum, payment) => sum + payment.amountPaid, 0);
+        const remainingAmount = Math.max(0, charge.chargedAmount - paidAmount);
 
-        // Get unit information if available
-        let unitIdentifier;
-        if (lease.unitId) {
-          const unit = await ctx.db.get(lease.unitId);
-          unitIdentifier = unit?.unitIdentifier;
-        }
-
-        // Get property information
-        const property = await ctx.db.get(lease.propertyId);
-
-        leaseCharges.push({
-          leaseId: lease._id,
-          unitId: lease.unitId,
-          tenantName: lease.tenantName,
-          utilityBillId: bill._id,
+        // Format the charge data to match the expected interface
+        allCharges.push({
+          _id: charge._id,
+          leaseId: charge.leaseId,
+          utilityBillId: charge.utilityBillId,
+          tenantName: charge.tenantName,
+          propertyName: property?.name || "Unknown Property",
+          unitIdentifier: unit?.unitIdentifier,
           utilityType: bill.utilityType,
           billMonth: bill.billMonth,
+          chargedAmount: charge.chargedAmount,
+          responsibilityPercentage: charge.responsibilityPercentage,
           totalBillAmount: bill.totalAmount,
-          chargedAmount,
-          responsibilityPercentage: setting.responsibilityPercentage,
-          dueDate: bill.dueDate,
           paidAmount,
           remainingAmount,
-          unitIdentifier,
-          propertyName: property?.name,
+          dueDate: charge.dueDate,
+          status: charge.status,
+          createdAt: charge.createdAt,
         });
       }
     }
 
-    // Sort by bill month descending
-    return leaseCharges.sort((a, b) => 
-      b.billMonth.localeCompare(a.billMonth)
-    );
+    return allCharges;
   },
 });
 
-// Get outstanding (unpaid) charges summary
-export const getOutstandingChargesSummary = query({
-  args: {
-    userId: v.string(),
-    propertyId: v.optional(v.id("properties")),
+/**
+ * Get charge summary for a property (useful for dashboards)
+ */
+export const getPropertyChargeSummary = query({
+  args: { 
+    propertyId: v.id("properties"),
+    userId: v.string()
   },
   handler: async (ctx, args) => {
-    // Get all charges (with optional property filter) - implement the logic here directly
-    // Get bills for the user (optionally filtered by property)
-    let billsQuery = ctx.db
+    // Get all bills for the property
+    const bills = await ctx.db
       .query("utilityBills")
-      .withIndex("by_user", (q: any) => q.eq("userId", args.userId));
+      .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .collect();
 
-    const bills = await billsQuery.collect();
+    let totalCharges = 0;
+    let pendingCharges = 0;
+    let paidCharges = 0;
+    let chargeCount = 0;
 
-    // Filter by property if specified
-    const filteredBills = args.propertyId 
-      ? bills.filter(bill => bill.propertyId === args.propertyId)
-      : bills;
+    for (const bill of bills) {
+      const charges = await ctx.db
+        .query("utilityCharges")
+        .withIndex("by_bill", (q) => q.eq("utilityBillId", bill._id))
+        .collect();
 
-    // Calculate charges for all bills
-    const allCharges: CalculatedTenantCharge[] = [];
-    for (const bill of filteredBills) {
-      const charges = await calculateChargesForBill(ctx, bill);
-      allCharges.push(...charges);
+      for (const charge of charges) {
+        totalCharges += charge.chargedAmount;
+        chargeCount++;
+        
+        if (charge.status === "pending" || charge.status === "partial") {
+          pendingCharges += charge.chargedAmount;
+        } else if (charge.status === "paid") {
+          paidCharges += charge.chargedAmount;
+        }
+      }
     }
 
-    // Filter to only outstanding charges
-    const outstandingCharges = allCharges.filter(charge => charge.remainingAmount > 0);
-
-    // Calculate summary statistics
-    const totalOutstanding = outstandingCharges.reduce(
-      (sum, charge) => sum + charge.remainingAmount, 
-      0
-    );
-
-    const byUtilityType: Record<string, number> = {};
-    const byProperty: Record<string, number> = {};
-    const byTenant: Record<string, number> = {};
-
-    outstandingCharges.forEach(charge => {
-      // By utility type
-      byUtilityType[charge.utilityType] = (byUtilityType[charge.utilityType] || 0) + charge.remainingAmount;
-      
-      // By property
-      if (charge.propertyName) {
-        byProperty[charge.propertyName] = (byProperty[charge.propertyName] || 0) + charge.remainingAmount;
-      }
-      
-      // By tenant
-      byTenant[charge.tenantName] = (byTenant[charge.tenantName] || 0) + charge.remainingAmount;
-    });
-
-    // Find oldest unpaid charge
-    const oldestCharge = outstandingCharges.length > 0 
-      ? outstandingCharges.reduce((oldest, current) => 
-          current.billMonth < oldest.billMonth ? current : oldest
-        )
-      : null;
-
     return {
-      totalOutstanding,
-      totalCharges: outstandingCharges.length,
-      byUtilityType,
-      byProperty,
-      byTenant,
-      oldestCharge: oldestCharge ? {
-        tenantName: oldestCharge.tenantName,
-        amount: oldestCharge.remainingAmount,
-        billMonth: oldestCharge.billMonth,
-        utilityType: oldestCharge.utilityType,
-      } : null,
+      totalCharges,
+      pendingCharges,
+      paidCharges,
+      chargeCount,
+      averageCharge: chargeCount > 0 ? totalCharges / chargeCount : 0,
     };
   },
 });
