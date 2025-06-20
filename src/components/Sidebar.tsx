@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Building, FileText, Settings, Flashlight, Layers, Shield } from "lucide-react";
+import { Home, Building, FileText, Settings, Flashlight, Layers, Shield, ExternalLink } from "lucide-react";
 import { useEffect, useState } from "react";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
   { label: "Properties", href: "/properties", icon: Building },
+  { label: "Listings", href: "/listings", icon: ExternalLink },
   { label: "Leases", href: "/leases", icon: Layers },
   { label: "Bills & Payments", href: "/utility-bills", icon: Flashlight },
   { label: "Documents", href: "/documents", icon: FileText },

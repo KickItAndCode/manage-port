@@ -197,4 +197,84 @@ export default defineSchema({
     updatedAt: v.optional(v.string()),
   })
     .index("by_user", ["userId"]),
+  listingPublications: defineTable({
+    userId: v.string(), // Clerk user ID - for security and data isolation
+    propertyId: v.id("properties"), // Reference to property being listed
+    platform: v.string(), // apartments_com, zillow, rentals_com, etc.
+    status: v.union(
+      v.literal("pending"), // Publication in progress
+      v.literal("active"), // Successfully published
+      v.literal("error"), // Failed to publish
+      v.literal("expired"), // Listing expired or removed
+      v.literal("paused") // Temporarily paused by user
+    ),
+    externalId: v.optional(v.string()), // Platform's listing ID (when successfully published)
+    externalUrl: v.optional(v.string()), // Direct URL to the listing on the platform
+    publishedAt: v.optional(v.string()), // When listing went live on platform
+    lastSyncAt: v.optional(v.string()), // Last time we checked status with platform
+    errorMessage: v.optional(v.string()), // Error details for failed publications
+    errorCode: v.optional(v.string()), // Platform-specific error codes
+    retryCount: v.optional(v.number()), // Number of retry attempts (for failure recovery)
+    
+    // Listing metadata
+    listingTitle: v.optional(v.string()), // Custom title for this platform
+    listingDescription: v.optional(v.string()), // Custom description
+    monthlyRent: v.optional(v.number()), // Rent specific to this listing
+    availableDate: v.optional(v.string()), // When property becomes available
+    
+    // Platform-specific settings
+    platformSettings: v.optional(v.object({
+      featuredListing: v.optional(v.boolean()), // Paid promotion
+      contactMethod: v.optional(v.string()), // phone, email, form
+      showExactAddress: v.optional(v.boolean()), // Address privacy setting
+      petPolicy: v.optional(v.string()), // Platform-specific pet policies
+      smokingPolicy: v.optional(v.string()), // Smoking allowed/not allowed
+      leaseDuration: v.optional(v.string()), // month-to-month, 12-month, flexible
+    })),
+    
+    // Auto-renewal and management
+    autoRenew: v.optional(v.boolean()), // Automatically renew expired listings
+    renewalPrice: v.optional(v.number()), // Cost of renewal (if paid platform)
+    
+    createdAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_property", ["propertyId"])
+    .index("by_platform", ["platform"])
+    .index("by_status", ["status"])
+    .index("by_user_property", ["userId", "propertyId"]) // For efficient property listing queries
+    .index("by_user_platform", ["userId", "platform"]) // For platform-specific dashboards
+    .index("by_property_platform", ["propertyId", "platform"]) // Ensure unique property-platform pairs
+    .index("by_external_id", ["externalId"]) // For webhook and sync operations
+    .index("by_published_date", ["publishedAt"]) // For analytics and reporting
+    .index("by_sync_date", ["lastSyncAt"]), // For identifying stale listings needing sync
+  platformTokens: defineTable({
+    userId: v.string(), // Clerk user ID - for security and data isolation
+    platform: v.string(), // apartments_com, zillow, rentals_com, etc.
+    accessToken: v.string(), // OAuth access token (encrypted in production)
+    refreshToken: v.optional(v.string()), // OAuth refresh token (encrypted in production)
+    tokenType: v.optional(v.string()), // Usually "Bearer"
+    expiresAt: v.optional(v.number()), // Unix timestamp when token expires
+    scope: v.optional(v.array(v.string())), // OAuth scopes granted
+    
+    // Token metadata
+    issuedAt: v.string(), // When token was first obtained
+    lastRefreshedAt: v.optional(v.string()), // When token was last refreshed
+    isValid: v.boolean(), // Whether token is currently valid
+    
+    // Platform connection info
+    platformUserId: v.optional(v.string()), // User ID on the external platform
+    platformUserEmail: v.optional(v.string()), // Email on the external platform
+    platformAccountName: v.optional(v.string()), // Account name on the external platform
+    
+    createdAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_platform", ["platform"])
+    .index("by_user_platform", ["userId", "platform"]) // Ensure unique user-platform pairs
+    .index("by_validity", ["isValid"])
+    .index("by_expiration", ["expiresAt"]) // For token cleanup and refresh jobs
+    .index("by_platform_user", ["platform", "platformUserId"]), // For platform-specific queries
 }); 

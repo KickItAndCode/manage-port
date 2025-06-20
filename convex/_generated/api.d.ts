@@ -14,12 +14,16 @@ import type {
   FunctionReference,
 } from "convex/server";
 import type * as admin from "../admin.js";
+import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
 import type * as documentFolders from "../documentFolders.js";
 import type * as documents from "../documents.js";
 import type * as leaseUtilitySettings from "../leaseUtilitySettings.js";
 import type * as leases from "../leases.js";
+import type * as listingJobs from "../listingJobs.js";
+import type * as listingPublications from "../listingPublications.js";
 import type * as migrate from "../migrate.js";
+import type * as platformTokens from "../platformTokens.js";
 import type * as properties from "../properties.js";
 import type * as propertyImages from "../propertyImages.js";
 import type * as storage from "../storage.js";
@@ -39,12 +43,16 @@ import type * as utilityPayments from "../utilityPayments.js";
  */
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  crons: typeof crons;
   dashboard: typeof dashboard;
   documentFolders: typeof documentFolders;
   documents: typeof documents;
   leaseUtilitySettings: typeof leaseUtilitySettings;
   leases: typeof leases;
+  listingJobs: typeof listingJobs;
+  listingPublications: typeof listingPublications;
   migrate: typeof migrate;
+  platformTokens: typeof platformTokens;
   properties: typeof properties;
   propertyImages: typeof propertyImages;
   storage: typeof storage;
