@@ -1,0 +1,1 @@
+use "npx ccusage" to check claude code usage
