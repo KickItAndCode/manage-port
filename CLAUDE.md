@@ -144,6 +144,38 @@
    - ✅ Added proper error boundaries and recovery mechanisms
    - ✅ Implemented graceful handling of edge cases
 
+### 💰 **Historical Utility Bills System - MAJOR IMPLEMENTATION** *(June 2025)*
+1. **Database Schema Enhancement**
+   - ✅ **Added `noTenantCharges` field** to utilityBills table for historical bill support
+   - ✅ **Backward compatible design** - Optional field maintains existing functionality
+   - ✅ **Comprehensive migration support** - Safe to deploy without data migration
+
+2. **Backend Logic Overhaul**
+   - ✅ **Enhanced `calculateTenantCharges()` function** - Respects historical bill flags
+   - ✅ **Added `bulkMarkNoTenantCharges()` mutation** - Bulk operations for historical bills
+   - ✅ **Created `getBillsTenantChargeStatus()` query** - Analysis tool for bill status migration
+   - ✅ **Updated all utility mutations** - Support for `noTenantCharges` parameter
+   - ✅ **Intelligent charge prevention** - Historical bills automatically skip tenant charge generation
+
+3. **User Interface Enhancements**
+   - ✅ **UtilityBillForm enhancement** - Added "Historical Bill - No Tenant Charges" checkbox
+   - ✅ **Bulk operations interface** - "Mark as Historical" and "Enable Tenant Charges" actions
+   - ✅ **Clear visual indicators** - Distinguishes between historical and active bills
+   - ✅ **Intuitive user flow** - Simple checkbox prevents complex billing scenarios
+
+4. **Import Infrastructure - PRODUCTION READY**
+   - ✅ **Comprehensive import scripts** - Multiple formats (Bash, Node.js ESM, CommonJS)
+   - ✅ **User authentication support** - Properly handles Convex user context
+   - ✅ **Automatic historical marking** - Imports bills without generating tenant charges
+   - ✅ **Data validation & error handling** - Robust import process with detailed logging
+   - ✅ **Ready-to-use scripts** - `/scripts/import-utility-bills.sh` for immediate deployment
+
+5. **Problem Solved**
+   - 🔧 **Issue**: Imported historical bills were generating $5,782.86 in false tenant charges
+   - ✅ **Solution**: Historical bills tracked for records but don't create tenant liability  
+   - ✅ **Impact**: Clean financial records + proper historical bill management
+   - ✅ **Business Value**: Accurate tenant billing without losing historical data
+
 ## Test Results Analysis
 
 When asked to analyze test results or fix test issues, Claude should:
@@ -166,6 +198,10 @@ When asked to analyze test results or fix test issues, Claude should:
 - `npm run dev` - Start development server
 - `npm run build` - Build the project
 
+### Utility Management
+- `./scripts/import-utility-bills.sh` - Import historical utility bills (production-ready)
+- Requires user ID and property ID configuration in script
+
 ## Project Structure
 
 - `/tests/` - Playwright test files
@@ -173,6 +209,9 @@ When asked to analyze test results or fix test issues, Claude should:
 - `/test-results/` - Playwright test results and videos
 - `/src/components/` - React components
 - `/convex/` - Convex backend functions
+- `/docs/` - Project documentation and technical specifications
+- `/scripts/` - Utility scripts for data import and management
+- `/future-features/` - Simplified implementation plans and technical designs
 
 ## E2E Testing Guidelines
 
@@ -423,8 +462,8 @@ Based on comprehensive application audit and recent development work:
    - **Impact**: Prove concept with single platform before expansion
 
 3. **FIX REMAINING TECHNICAL DEBT** ⚠️ **(Timeline: 1 week)**
-   - **62 TypeScript linting warnings** (down from 103)
-   - **E2E testing infrastructure** - Authentication timeouts
+   - **~15 TypeScript linting warnings** (down from 62, significant progress)
+   - **E2E testing infrastructure** - Authentication timeouts  
    - **Mobile responsiveness gaps** - Utility bills table, modals
    - **Impact**: Blocks safe development and deployment confidence
 
