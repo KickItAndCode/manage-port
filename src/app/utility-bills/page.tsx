@@ -347,6 +347,7 @@ function UtilityBillsContent() {
   const updateBill = useMutation(api.utilityBills.updateUtilityBill);
   const deleteBill = useMutation(api.utilityBills.deleteUtilityBill);
   const bulkAddBills = useMutation(api.utilityBills.bulkAddUtilityBills);
+  const bulkMarkNoTenantCharges = useMutation(api.utilityBills.bulkMarkNoTenantCharges);
 
   // Table sort handler
   function handleSort(key: keyof Doc<"utilityBills">, direction: "asc" | "desc") {
@@ -415,6 +416,50 @@ function UtilityBillsContent() {
     } catch (error: any) {
       toast.error(formatErrorForToast(error));
     }
+  };
+
+  const handleBulkMarkNoTenantCharges = async (billsToUpdate: Doc<"utilityBills">[]) => {
+    if (billsToUpdate.length === 0 || !user) return;
+    confirm({
+      title: "Mark as Historical Bills",
+      description: `Mark ${billsToUpdate.length} selected bills as historical (no tenant charges)? This will remove any outstanding tenant charges for these bills.`,
+      variant: "default",
+      onConfirm: async () => {
+        try {
+          const result = await bulkMarkNoTenantCharges({
+            billIds: billsToUpdate.map(bill => bill._id as any),
+            userId: user.id,
+            noTenantCharges: true,
+          });
+          setSelectedUtilityBills([]);
+          toast.success(`${result.updatedBills} bills marked as historical`);
+        } catch (error: any) {
+          toast.error(formatErrorForToast(error));
+        }
+      }
+    });
+  };
+
+  const handleBulkMarkWithTenantCharges = async (billsToUpdate: Doc<"utilityBills">[]) => {
+    if (billsToUpdate.length === 0 || !user) return;
+    confirm({
+      title: "Enable Tenant Charges",
+      description: `Enable tenant charges for ${billsToUpdate.length} selected bills? This will generate tenant charges based on current lease utility settings.`,
+      variant: "default",
+      onConfirm: async () => {
+        try {
+          const result = await bulkMarkNoTenantCharges({
+            billIds: billsToUpdate.map(bill => bill._id as any),
+            userId: user.id,
+            noTenantCharges: false,
+          });
+          setSelectedUtilityBills([]);
+          toast.success(`${result.updatedBills} bills updated to generate tenant charges`);
+        } catch (error: any) {
+          toast.error(formatErrorForToast(error));
+        }
+      }
+    });
   };
 
   const handleDeleteBill = async (bill: any) => {
@@ -509,6 +554,20 @@ function UtilityBillsContent() {
         action: handleBulkMarkUnpaid
       },
       {
+        id: 'mark-historical',
+        label: 'Mark as Historical',
+        icon: AlertCircle,
+        variant: 'outline',
+        action: handleBulkMarkNoTenantCharges
+      },
+      {
+        id: 'enable-tenant-charges',
+        label: 'Enable Tenant Charges',
+        icon: DollarSign,
+        variant: 'outline',
+        action: handleBulkMarkWithTenantCharges
+      },
+      {
         id: 'delete',
         label: 'Delete',
         icon: Trash2,
@@ -518,7 +577,7 @@ function UtilityBillsContent() {
     ];
 
     return config;
-  }, [handleDeleteBill, handleTogglePaidStatus, properties]);
+  }, [handleDeleteBill, handleTogglePaidStatus, handleBulkMarkPaid, handleBulkMarkUnpaid, handleBulkMarkNoTenantCharges, handleBulkMarkWithTenantCharges, handleBulkDelete, properties]);
 
   // Handle filter updates
   const handlePropertyChange = useCallback((propertyId: string) => {

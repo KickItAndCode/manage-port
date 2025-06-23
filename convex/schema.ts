@@ -75,6 +75,7 @@ export default defineSchema({
     billingPeriod: v.optional(v.string()), // monthly, bi-monthly, quarterly, etc.
     landlordPaidUtilityCompany: v.boolean(), // Landlord paid to utility company
     landlordPaidDate: v.optional(v.string()),
+    noTenantCharges: v.optional(v.boolean()), // If true, don't generate tenant charges (for historical/settled bills)
     billDocumentId: v.optional(v.id("documents")), // Reference to uploaded bill
     notes: v.optional(v.string()),
     createdAt: v.string(),

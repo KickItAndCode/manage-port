@@ -52,6 +52,16 @@ async function calculateTenantCharges(
   chargedAmount: number;
   responsibilityPercentage: number;
 }>> {
+  // If bill is marked as no tenant charges, return empty array
+  if (bill.noTenantCharges) {
+    console.log("calculateTenantCharges - Bill marked as no tenant charges:", {
+      billId,
+      billMonth: bill.billMonth,
+      utilityType: bill.utilityType
+    });
+    return [];
+  }
+
   // Get all active leases for the property
   const activeLeases = await ctx.db
     .query("leases")
@@ -152,6 +162,7 @@ export const addUtilityBill = mutation({
     dueDate: v.string(),
     billDate: v.string(),
     billingPeriod: v.optional(v.string()),
+    noTenantCharges: v.optional(v.boolean()),
     billDocumentId: v.optional(v.id("documents")),
     notes: v.optional(v.string()),
   },
@@ -216,6 +227,7 @@ export const updateUtilityBill = mutation({
     billingPeriod: v.optional(v.string()),
     landlordPaidUtilityCompany: v.optional(v.boolean()),
     landlordPaidDate: v.optional(v.string()),
+    noTenantCharges: v.optional(v.boolean()),
     billDocumentId: v.optional(v.id("documents")),
     notes: v.optional(v.string()),
   },
@@ -264,6 +276,7 @@ export const updateUtilityBill = mutation({
     if (args.billingPeriod !== undefined) updates.billingPeriod = args.billingPeriod;
     if (args.landlordPaidUtilityCompany !== undefined) updates.landlordPaidUtilityCompany = args.landlordPaidUtilityCompany;
     if (args.landlordPaidDate !== undefined) updates.landlordPaidDate = args.landlordPaidDate;
+    if (args.noTenantCharges !== undefined) updates.noTenantCharges = args.noTenantCharges;
     if (args.billDocumentId !== undefined) updates.billDocumentId = args.billDocumentId;
     if (args.notes !== undefined) updates.notes = args.notes;
 
@@ -663,6 +676,7 @@ export const bulkAddUtilityBills = mutation({
     userId: v.string(),
     propertyId: v.id("properties"),
     billMonth: v.string(),
+    noTenantCharges: v.optional(v.boolean()),
     bills: v.array(v.object({
       utilityType: v.string(),
       provider: v.string(),
@@ -720,6 +734,7 @@ export const bulkAddUtilityBills = mutation({
           dueDate: billData.dueDate,
           billDate: billData.billDate,
           landlordPaidUtilityCompany: false,
+          noTenantCharges: args.noTenantCharges,
           notes: billData.notes,
           createdAt: new Date().toISOString(),
         });
@@ -1038,6 +1053,11 @@ async function calculateChargesForBill(
   remainingAmount: number;
   unitIdentifier?: string;
 }>> {
+  // If bill is marked as no tenant charges, return empty array
+  if (bill.noTenantCharges) {
+    return [];
+  }
+
   // Get all active leases for the property
   const activeLeases = await ctx.db
     .query("leases")
@@ -1170,6 +1190,104 @@ export const getUtilityPageData = query({
       }),
       charges: charges.sort((a, b) => b.billMonth.localeCompare(a.billMonth)),
       stats,
+    };
+  },
+});
+
+// Bulk mark bills as no tenant charges (for historical bills)
+export const bulkMarkNoTenantCharges = mutation({
+  args: {
+    billIds: v.array(v.id("utilityBills")),
+    userId: v.string(),
+    noTenantCharges: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const updatedBills = [];
+    const errors = [];
+
+    for (const billId of args.billIds) {
+      try {
+        const bill = await ctx.db.get(billId);
+        if (!bill) {
+          errors.push({ billId, error: "Bill not found" });
+          continue;
+        }
+
+        // Verify ownership
+        const isOwner = await verifyPropertyOwnership(ctx, bill.propertyId, args.userId);
+        if (!isOwner) {
+          errors.push({ billId, error: "Permission denied" });
+          continue;
+        }
+
+        // Update the bill
+        await ctx.db.patch(billId, {
+          noTenantCharges: args.noTenantCharges,
+          updatedAt: new Date().toISOString(),
+        });
+
+        updatedBills.push(billId);
+      } catch (error: any) {
+        errors.push({ billId, error: error.message });
+      }
+    }
+
+    return {
+      success: errors.length === 0,
+      updatedBills: updatedBills.length,
+      errors,
+    };
+  },
+});
+
+// Get bills summary with tenant charge status for migration analysis
+export const getBillsTenantChargeStatus = query({
+  args: {
+    userId: v.string(),
+    propertyId: v.optional(v.id("properties")),
+  },
+  handler: async (ctx, args) => {
+    // Get all bills for the user
+    let bills = await ctx.db
+      .query("utilityBills")
+      .withIndex("by_user", (q: any) => q.eq("userId", args.userId))
+      .collect();
+
+    // Filter by property if specified
+    if (args.propertyId) {
+      bills = bills.filter(b => b.propertyId === args.propertyId);
+    }
+
+    const billsWithStatus = await Promise.all(
+      bills.map(async (bill) => {
+        // Calculate if this bill would generate tenant charges
+        const charges = await calculateTenantCharges(ctx, bill._id, bill);
+        
+        return {
+          ...bill,
+          hasNoTenantChargesFlag: !!bill.noTenantCharges,
+          wouldGenerateCharges: charges.length > 0,
+          currentChargeCount: charges.length,
+          totalChargeAmount: charges.reduce((sum, charge) => sum + charge.chargedAmount, 0),
+        };
+      })
+    );
+
+    // Group bills for analysis
+    const analysis = {
+      totalBills: billsWithStatus.length,
+      billsWithNoTenantChargesFlag: billsWithStatus.filter(b => b.hasNoTenantChargesFlag).length,
+      billsGeneratingCharges: billsWithStatus.filter(b => b.wouldGenerateCharges && !b.hasNoTenantChargesFlag).length,
+      billsNotGeneratingCharges: billsWithStatus.filter(b => !b.wouldGenerateCharges && !b.hasNoTenantChargesFlag).length,
+      historicalBillsNeedingFlag: billsWithStatus.filter(b => 
+        !b.hasNoTenantChargesFlag && b.wouldGenerateCharges && 
+        new Date(b.billMonth + "-01") < new Date(Date.now() - 60 * 24 * 60 * 60 * 1000) // Bills older than 60 days
+      ).length,
+    };
+
+    return {
+      bills: billsWithStatus.sort((a, b) => b.billMonth.localeCompare(a.billMonth)),
+      analysis,
     };
   },
 });

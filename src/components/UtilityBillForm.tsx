@@ -30,6 +30,7 @@ interface UtilityBillFormProps {
     dueDate: string;
     billDate: string;
     billingPeriod?: string;
+    noTenantCharges?: boolean;
     notes?: string;
   };
   onSubmit: (data: {
@@ -41,6 +42,7 @@ interface UtilityBillFormProps {
     dueDate: string;
     billDate: string;
     billingPeriod?: string;
+    noTenantCharges?: boolean;
     notes?: string;
   }) => Promise<void>;
   onCancel?: () => void;
@@ -100,6 +102,7 @@ export function UtilityBillForm({
   const [dueDate, setDueDate] = useState(initial?.dueDate || "");
   const [billDate, setBillDate] = useState(initial?.billDate || "");
   const [billingPeriod, setBillingPeriod] = useState(initial?.billingPeriod || "monthly");
+  const [noTenantCharges, setNoTenantCharges] = useState(initial?.noTenantCharges || false);
   const [notes, setNotes] = useState(initial?.notes || "");
   const [errors, setErrors] = useState<Record<string, string>>({});
   
@@ -180,6 +183,7 @@ export function UtilityBillForm({
       dueDate,
       billDate,
       billingPeriod,
+      noTenantCharges,
       notes: notes.trim() || undefined,
     });
   };
@@ -562,6 +566,28 @@ export function UtilityBillForm({
           <FileText className="w-5 h-5" />
           Additional Information
         </h3>
+
+        {/* Historical Bill Option */}
+        <div className="space-y-3">
+          <div className="flex items-center space-x-3 p-4 bg-card rounded-lg border">
+            <input
+              type="checkbox"
+              id="noTenantCharges"
+              checked={noTenantCharges}
+              onChange={(e) => setNoTenantCharges(e.target.checked)}
+              className="h-4 w-4 text-primary focus:ring-primary border-muted-foreground rounded"
+              disabled={loading}
+            />
+            <div className="flex-1">
+              <Label htmlFor="noTenantCharges" className="text-sm font-medium">
+                Historical Bill - No Tenant Charges
+              </Label>
+              <p className="text-xs text-muted-foreground mt-1">
+                Check this for historical bills that are already settled and should not generate tenant charges.
+              </p>
+            </div>
+          </div>
+        </div>
 
         {/* Notes */}
         <div>
