@@ -1,6 +1,22 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
 
+// Helper function to compute lease status based on dates
+function computeLeaseStatus(startDate: string, endDate: string): "active" | "expired" | "pending" {
+  const now = new Date();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  // Clear time components for date-only comparison
+  now.setHours(0, 0, 0, 0);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  
+  if (start > now) return "pending";
+  if (end < now) return "expired";
+  return "active";
+}
+
 // Get dashboard metrics for a user
 export const getDashboardMetrics = query({
   args: { userId: v.string() },
@@ -27,8 +43,11 @@ export const getDashboardMetrics = query({
     const totalProperties = properties.length;
     const totalSquareFeet = properties.reduce((sum, p) => sum + p.squareFeet, 0);
     
-    // Calculate occupancy and rent from active leases
-    const activeLeases = leases.filter(l => l.status === "active");
+    // Calculate occupancy and rent from active leases (computed from dates)
+    const activeLeases = leases.filter(l => {
+      const computedStatus = computeLeaseStatus(l.startDate, l.endDate);
+      return computedStatus === "active";
+    });
     const occupancyRate = totalProperties > 0 ? (activeLeases.length / totalProperties) * 100 : 0;
     
     // Use actual lease rent instead of property rent for more accurate income

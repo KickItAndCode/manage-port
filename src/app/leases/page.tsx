@@ -26,6 +26,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useLeaseStatuses } from "@/hooks/use-lease-status";
+import { sortLeasesByStatus } from "@/lib/lease-status";
 
 function LeasesPageContent() {
   const { user } = useUser();
@@ -33,8 +35,11 @@ function LeasesPageContent() {
   const preSelectedPropertyId = searchParams.get('propertyId');
   
   const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
-  const leases = useQuery(api.leases.getLeases, user ? { userId: user.id } : "skip");
+  const leasesFromDb = useQuery(api.leases.getLeases, user ? { userId: user.id } : "skip");
   const allDocuments = useQuery(api.documents.getDocuments, user ? { userId: user.id } : "skip");
+  
+  // Compute status for all leases
+  const leases = useLeaseStatuses(leasesFromDb || []);
   const addLease = useMutation(api.leases.addLease);
   const updateLease = useMutation(api.leases.updateLease);
   const deleteLease = useMutation(api.leases.deleteLease);
@@ -60,13 +65,7 @@ function LeasesPageContent() {
     }
   }, [preSelectedPropertyId, properties]);
 
-  // Calculate days until expiry for active leases
-  const calculateDaysUntilExpiry = (endDate: string) => {
-    const end = new Date(endDate);
-    const today = new Date();
-    const diff = Math.floor((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-    return diff;
-  };
+  // Days until expiry is now computed in the lease object
 
   // Filtering
   const filtered = (leases || []).filter((l: any) => {
@@ -75,9 +74,17 @@ function LeasesPageContent() {
     return true;
   });
 
-  // Separate active/pending and expired leases
-  const activeAndPendingLeases = filtered.filter((l: any) => l.status === "active" || l.status === "pending");
-  const expiredLeases = filtered.filter((l: any) => l.status === "expired");
+  // Separate active/pending and expired leases using computed status
+  const activeAndPendingLeases = filtered.filter((l: any) => l.computedStatus === "active" || l.computedStatus === "pending");
+  const expiredLeases = filtered.filter((l: any) => l.computedStatus === "expired");
+  
+  // Sort leases by status priority
+  const sortedActiveAndPending = sortLeasesByStatus(activeAndPendingLeases);
+  const sortedExpired = sortLeasesByStatus(expiredLeases);
+  
+  // Use sorted arrays for display
+  const displayActiveAndPending = sortedActiveAndPending;
+  const displayExpired = sortedExpired;
 
   // Format date
   const formatDate = (dateString: string) => {
@@ -91,20 +98,20 @@ function LeasesPageContent() {
     return allDocuments.filter(doc => doc.leaseId === leaseId);
   };
 
-  // Get status badge
-  const getStatusBadge = (status: string, endDate?: string) => {
-    if (status === "active" && endDate) {
-      const daysLeft = calculateDaysUntilExpiry(endDate);
-      if (daysLeft <= 60 && daysLeft >= 0) {
-        return (
-          <div className="flex items-center gap-2">
-            <StatusBadge status={status} variant="compact" />
-            <Badge variant="outline" className="border-orange-500 text-orange-500 text-xs">
-              {daysLeft}d left
-            </Badge>
-          </div>
-        );
-      }
+  // Get status badge with computed status and expiry info
+  const getStatusBadge = (lease: any) => {
+    const status = lease.computedStatus;
+    const daysLeft = lease.daysUntilExpiry;
+    
+    if (status === "active" && daysLeft !== null && daysLeft <= 60 && daysLeft >= 0) {
+      return (
+        <div className="flex items-center gap-2">
+          <StatusBadge status={status} variant="compact" />
+          <Badge variant="outline" className="border-orange-500 text-orange-500 text-xs">
+            {daysLeft}d left
+          </Badge>
+        </div>
+      );
     }
     return <StatusBadge status={status} variant="compact" />;
   };
@@ -326,7 +333,6 @@ function LeasesPageContent() {
       <div className="lg:hidden space-y-4">
         {leaseList.map((lease) => {
           const property = properties?.find((p: any) => p._id === lease.propertyId);
-          const daysUntilExpiry = calculateDaysUntilExpiry(lease.endDate);
           const leaseDocuments = getLeaseDocuments(lease._id);
           return (
             <Card key={lease._id} className="p-4 border">
@@ -345,7 +351,7 @@ function LeasesPageContent() {
                   </div>
                   <div className="text-right">
                     <p className="font-semibold">${lease.rent.toLocaleString()}/mo</p>
-                    {getStatusBadge(lease.status, lease.endDate)}
+                    {getStatusBadge(lease)}
                   </div>
                 </div>
                 
@@ -373,10 +379,10 @@ function LeasesPageContent() {
                   </div>
                 )}
                 
-                {lease.status === "active" && daysUntilExpiry <= 60 && daysUntilExpiry >= 0 && (
+                {lease.computedStatus === "active" && lease.daysUntilExpiry <= 60 && lease.daysUntilExpiry >= 0 && (
                   <div className="flex items-center gap-1 text-orange-500 text-sm">
                     <AlertCircle className="w-3 h-3" />
-                    <span>{daysUntilExpiry} days left</span>
+                    <span>{lease.daysUntilExpiry} days left</span>
                   </div>
                 )}
                 
@@ -475,7 +481,7 @@ function LeasesPageContent() {
           <TableBody>
             {leaseList.map((lease) => {
               const property = properties?.find((p: any) => p._id === lease.propertyId);
-              const daysUntilExpiry = calculateDaysUntilExpiry(lease.endDate);
+              // daysUntilExpiry is now computed in the lease object
               const leaseDocuments = getLeaseDocuments(lease._id);
               return (
                 <TableRow key={lease._id} className="hover:bg-muted/50 transition-colors duration-200">
@@ -512,10 +518,10 @@ function LeasesPageContent() {
                   <TableCell>
                     <div className="text-sm">
                       <p>{formatDate(lease.startDate)} - {formatDate(lease.endDate)}</p>
-                      {lease.status === "active" && daysUntilExpiry <= 60 && daysUntilExpiry >= 0 && (
+                      {lease.computedStatus === "active" && lease.daysUntilExpiry <= 60 && lease.daysUntilExpiry >= 0 && (
                         <p className="text-orange-500 flex items-center gap-1 mt-1">
                           <AlertCircle className="w-3 h-3" />
-                          {daysUntilExpiry} days left
+                          {lease.daysUntilExpiry} days left
                         </p>
                       )}
                     </div>
@@ -534,7 +540,7 @@ function LeasesPageContent() {
                       </Tooltip>
                     ) : "-"}
                   </TableCell>
-                  <TableCell>{getStatusBadge(lease.status, lease.endDate)}</TableCell>
+                  <TableCell>{getStatusBadge(lease)}</TableCell>
                   <TableCell>
                     <div className="flex justify-center">
                       <DropdownMenu>
@@ -657,9 +663,9 @@ function LeasesPageContent() {
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Archive className="w-4 h-4" />
             <span>History</span>
-            {expiredLeases.length > 0 && (
+            {displayExpired.length > 0 && (
               <Badge variant="outline" className="text-xs h-5 px-1.5">
-                {expiredLeases.length}
+                {displayExpired.length}
               </Badge>
             )}
           </div>
@@ -694,30 +700,30 @@ function LeasesPageContent() {
       </div>
 
       <div className="space-y-6">
-        {activeAndPendingLeases.length > 0 && (
-          <LeaseTable leases={activeAndPendingLeases} title="Active & Pending Leases" />
+        {displayActiveAndPending.length > 0 && (
+          <LeaseTable leases={displayActiveAndPending} title="Active & Pending Leases" />
         )}
         
         {/* Expired Leases - Only show when toggle is enabled */}
-        {showExpiredLeases && expiredLeases.length > 0 && (
+        {showExpiredLeases && displayExpired.length > 0 && (
           <div className="space-y-3 animate-in fade-in-0 slide-in-from-top-2 duration-300">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Archive className="w-4 h-4" />
               <span className="text-sm font-medium">Lease History</span>
             </div>
             <div className="animate-in fade-in-0 slide-in-from-bottom-2 duration-500">
-              <LeaseTable leases={expiredLeases} title="Expired Leases" />
+              <LeaseTable leases={displayExpired} title="Expired Leases" />
             </div>
           </div>
         )}
         
         {/* Show helpful message when history is hidden but expired leases exist */}
-        {!showExpiredLeases && expiredLeases.length > 0 && (
+        {!showExpiredLeases && displayExpired.length > 0 && (
           <div className="flex items-center justify-center p-8 bg-muted/20 border border-dashed border-muted-foreground/30 rounded-lg animate-in fade-in-0 duration-300">
             <div className="text-center space-y-2">
               <Archive className="w-8 h-8 mx-auto text-muted-foreground animate-in zoom-in-50 duration-500" />
               <p className="text-sm text-muted-foreground animate-in fade-in-0 slide-in-from-bottom-1 duration-500 delay-100">
-                {expiredLeases.length} expired lease{expiredLeases.length !== 1 ? 's' : ''} hidden
+                {displayExpired.length} expired lease{displayExpired.length !== 1 ? 's' : ''} hidden
               </p>
               <button
                 onClick={() => setShowExpiredLeases(true)}

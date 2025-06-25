@@ -52,7 +52,7 @@ export default defineSchema({
     endDate: v.string(), // ISO date string
     rent: v.number(), // Monthly rent amount
     securityDeposit: v.optional(v.number()), // Security deposit amount
-    status: v.union(v.literal("active"), v.literal("expired"), v.literal("pending")), // Lease status
+    status: v.union(v.literal("active"), v.literal("expired"), v.literal("pending")), // @deprecated - Use computed status from dates instead
     notes: v.optional(v.string()), // Additional lease notes
     leaseDocumentUrl: v.optional(v.string()),
     createdAt: v.string(),

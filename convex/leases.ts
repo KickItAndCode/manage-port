@@ -2,6 +2,22 @@ import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { UTILITY_TYPES } from "../src/lib/constants";
 
+// Helper function to compute lease status based on dates
+function computeLeaseStatus(startDate: string, endDate: string): "active" | "expired" | "pending" {
+  const now = new Date();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  // Clear time components for date-only comparison
+  now.setHours(0, 0, 0, 0);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  
+  if (start > now) return "pending";
+  if (end < now) return "expired";
+  return "active";
+}
+
 // Get a single lease by ID
 export const getLease = query({
   args: { 
@@ -133,11 +149,16 @@ async function applyUtilityDefaults(ctx: any, leaseId: string, property: any, un
   }
 
   // Get ALL active leases for this property (including the new one)
-  const activeLeases = await ctx.db
+  const allLeases = await ctx.db
     .query("leases")
     .withIndex("by_property", (q: any) => q.eq("propertyId", property._id))
-    .filter((q: any) => q.eq(q.field("status"), "active"))
     .collect();
+  
+  // Filter to only active leases based on computed status
+  const activeLeases = allLeases.filter((lease: any) => {
+    const status = computeLeaseStatus(lease.startDate, lease.endDate);
+    return status === "active";
+  });
 
   if (activeLeases.length === 0) return;
 
@@ -208,7 +229,7 @@ export const addLease = mutation({
     endDate: v.string(),
     rent: v.number(),
     securityDeposit: v.optional(v.number()),
-    status: v.union(v.literal("active"), v.literal("expired"), v.literal("pending")),
+    status: v.optional(v.union(v.literal("active"), v.literal("expired"), v.literal("pending"))),
     paymentDay: v.optional(v.number()),
     notes: v.optional(v.string()),
     leaseDocumentUrl: v.optional(v.string()),
@@ -233,8 +254,11 @@ export const addLease = mutation({
       throw new Error("Payment day must be between 1 and 31");
     }
     
+    // Compute status from dates if not provided
+    const computedStatus = args.status || computeLeaseStatus(args.startDate, args.endDate);
+    
     // Check for existing active lease if trying to add an active lease
-    if (args.status === "active") {
+    if (computedStatus === "active") {
       if (args.unitId) {
         // Check for active lease on the specific unit
         const activeLeases = await ctx.db
@@ -270,11 +294,12 @@ export const addLease = mutation({
     
     const lease = await ctx.db.insert("leases", {
       ...args,
+      status: computedStatus, // Use computed status
       createdAt: new Date().toISOString(),
     });
     
     // Update unit status if unit-based lease
-    if (args.unitId && args.status === "active") {
+    if (args.unitId && computedStatus === "active") {
       await ctx.db.patch(args.unitId, { status: "occupied" });
     }
     
@@ -297,7 +322,7 @@ export const addLease = mutation({
     }
     
     // Auto-apply property utility defaults for active leases
-    if (args.status === "active") {
+    if (computedStatus === "active") {
       await applyUtilityDefaults(ctx, lease, property, args.unitId);
     }
     
@@ -319,7 +344,7 @@ export const updateLease = mutation({
     endDate: v.string(),
     rent: v.number(),
     securityDeposit: v.optional(v.number()),
-    status: v.union(v.literal("active"), v.literal("expired"), v.literal("pending")),
+    status: v.optional(v.union(v.literal("active"), v.literal("expired"), v.literal("pending"))),
     paymentDay: v.optional(v.number()),
     notes: v.optional(v.string()),
     leaseDocumentUrl: v.optional(v.string()),
@@ -349,8 +374,11 @@ export const updateLease = mutation({
       }
     }
     
+    // Compute status from dates if not provided
+    const computedStatus = args.status || computeLeaseStatus(args.startDate, args.endDate);
+    
     // Check for existing active lease if changing to active
-    if (args.status === "active" && lease.status !== "active") {
+    if (computedStatus === "active" && lease.status !== "active") {
       if (args.unitId) {
         // Check for active lease on the specific unit
         const activeLeases = await ctx.db
@@ -390,20 +418,21 @@ export const updateLease = mutation({
     
     await ctx.db.patch(args.id, {
       ...updateData,
+      status: computedStatus, // Use computed status
       updatedAt: new Date().toISOString(),
     });
     
     // Update unit status based on lease status changes
     if (args.unitId) {
-      if (args.status === "active" && lease.status !== "active") {
+      if (computedStatus === "active" && lease.status !== "active") {
         await ctx.db.patch(args.unitId, { status: "occupied" });
-      } else if (args.status !== "active" && lease.status === "active") {
+      } else if (computedStatus !== "active" && lease.status === "active") {
         await ctx.db.patch(args.unitId, { status: "available" });
       }
     }
     
     // Auto-apply property utility defaults when lease becomes active
-    if (args.status === "active" && lease.status !== "active") {
+    if (computedStatus === "active" && lease.status !== "active") {
       await applyUtilityDefaults(ctx, args.id, property, args.unitId);
     }
     
@@ -600,11 +629,16 @@ export const applyDefaultsToExistingLeases = mutation({
       }
 
       // Get active leases for this property
-      const activeLeases = await ctx.db
+      const allLeases = await ctx.db
         .query("leases")
         .withIndex("by_property", (q: any) => q.eq("propertyId", property._id))
-        .filter((q: any) => q.eq(q.field("status"), "active"))
         .collect();
+      
+      // Filter to only active leases based on computed status
+      const activeLeases = allLeases.filter((lease: any) => {
+        const status = computeLeaseStatus(lease.startDate, lease.endDate);
+        return status === "active";
+      });
 
       for (const lease of activeLeases) {
         // Check if this lease already has utility settings

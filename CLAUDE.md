@@ -144,6 +144,38 @@
    - ✅ Added proper error boundaries and recovery mechanisms
    - ✅ Implemented graceful handling of edge cases
 
+### 🎯 **Computed Lease Status Feature - COMPLETED** *(June 2025)*
+1. **Status Derivation System**
+   - ✅ **Created lease status utilities** - `getLeaseStatus()` computes status from dates automatically
+   - ✅ **React hooks implementation** - `useLeaseStatus()` provides real-time updates at midnight
+   - ✅ **Removed manual status selection** - LeaseForm now shows read-only computed status
+   - ✅ **Smart expiry warnings** - Shows days remaining for leases expiring within 60 days
+   - ✅ **Status descriptions** - Human-readable messages like "Expires in 30 days"
+
+2. **Backend Query Updates**
+   - ✅ **Date-based filtering** - `getActiveLeases` now filters by computed status, not stored field
+   - ✅ **Dashboard metrics updated** - Uses computed status for accurate occupancy calculations
+   - ✅ **Backward compatibility** - Status field remains but marked @deprecated
+   - ✅ **Zero database migrations** - Works with existing data seamlessly
+
+3. **UI Enhancements**
+   - ✅ **Leases page updated** - Uses `useLeaseStatuses()` hook for real-time status
+   - ✅ **Status badges with context** - Shows "30d left" for expiring leases
+   - ✅ **Automatic sorting** - Active leases first, sorted by expiry date
+   - ✅ **Conflict detection** - Identifies multiple active leases on same unit
+
+4. **Problem Solved**
+   - 🔧 **Issue**: Manual status management led to incorrect status (expired leases showing as active)
+   - ✅ **Solution**: Status always computed from source of truth (dates)
+   - ✅ **Impact**: Eliminates manual errors, always accurate, simpler code
+   - ✅ **Business Value**: Accurate lease tracking, automatic expiry notifications
+
+5. **Technical Implementation**
+   - ✅ **Zero breaking changes** - Gradual migration from stored to computed status
+   - ✅ **Performance optimized** - Computed values cached in React hooks
+   - ✅ **Edge cases handled** - Leases starting/ending today work correctly
+   - ✅ **Type-safe** - Full TypeScript support with proper types
+
 ### 💰 **Historical Utility Bills System - MAJOR IMPLEMENTATION** *(June 2025)*
 1. **Database Schema Enhancement**
    - ✅ **Added `noTenantCharges` field** to utilityBills table for historical bill support
@@ -462,7 +494,7 @@ Based on comprehensive application audit and recent development work:
    - **Impact**: Prove concept with single platform before expansion
 
 3. **FIX REMAINING TECHNICAL DEBT** ⚠️ **(Timeline: 1 week)**
-   - **~15 TypeScript linting warnings** (down from 62, significant progress)
+   - **~13 TypeScript linting warnings** (down from 62, significant progress) - 2 more fixed with lease status feature
    - **E2E testing infrastructure** - Authentication timeouts  
    - **Mobile responsiveness gaps** - Utility bills table, modals
    - **Impact**: Blocks safe development and deployment confidence

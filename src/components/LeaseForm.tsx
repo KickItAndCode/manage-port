@@ -14,6 +14,8 @@ import { LeaseDocumentUpload } from "@/components/LeaseDocumentUpload";
 import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Id } from "@/../convex/_generated/dataModel";
+import { useLeaseStatus } from "@/hooks/use-lease-status";
+import { getStatusDescription } from "@/lib/lease-status";
 
 export interface LeaseFormProps {
   properties: { _id: string; name: string; address?: string }[];
@@ -28,7 +30,7 @@ export interface LeaseFormProps {
     endDate: string;
     rent: number;
     securityDeposit?: number;
-    status: string;
+    status?: string; // Optional now since it's computed
     notes?: string;
     leaseDocumentUrl?: string;
   };
@@ -42,7 +44,7 @@ export interface LeaseFormProps {
     endDate: string;
     rent: number;
     securityDeposit?: number;
-    status: string;
+    status?: string; // Optional now since it's computed
     notes?: string;
     leaseDocumentUrl?: string;
   }) => void;
@@ -93,9 +95,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
     clearErrors,
   } = useForm<LeaseFormType>({
     resolver: zodResolver(requiresUnitSelection ? multiUnitLeaseSchema : leaseSchema),
-    defaultValues: initial as LeaseFormType || {
-      status: "pending",
-    },
+    defaultValues: initial as LeaseFormType || {},
   });
 
   // Update selected property when form value changes
@@ -111,7 +111,9 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
     return <div className="text-center text-muted-foreground">No properties available. Please add a property first.</div>;
   }
 
-  const status = watch("status");
+  const startDate = watch("startDate");
+  const endDate = watch("endDate");
+  const { status: computedStatus, daysUntilExpiry } = useLeaseStatus(startDate || new Date().toISOString(), endDate || new Date().toISOString());
 
   // Dummy data generator with randomization
   function fillWithDummyData() {
@@ -142,7 +144,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
       endDate: endDate.toISOString().split('T')[0],
       rent: rent,
       securityDeposit: rent * randomInt(1, 2), // 1-2 months rent
-      status: startDate <= today ? "active" : "pending",
+      // Status is now computed based on dates
       notes: `Standard ${randomInt(6, 12)}-month lease agreement`,
       leaseDocumentUrl: `https://example.com/lease-${Date.now()}.pdf`,
     });
@@ -157,8 +159,10 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
         className="space-y-6"
         onSubmit={handleSubmit((data) => {
           // Include the document storage ID and unit ID in the submission
+          // Omit status since it's now computed from dates
+          const { status, ...dataWithoutStatus } = data;
           onSubmit({
-            ...data,
+            ...dataWithoutStatus,
             unitId: selectedUnitId || undefined,
             leaseDocumentUrl: leaseDocumentData?.storageId || data.leaseDocumentUrl,
           });
@@ -328,24 +332,31 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
           </FormField>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Computed Status Display - Read Only */}
+        {startDate && endDate && (
           <FormField
-            label="Status"
-            required
-            error={errors.status?.message}
+            label="Computed Status"
+            description="Status is automatically determined based on lease dates"
           >
-            <SelectNative {...register("status")} required>
-              <option value="pending">Pending</option>
-              <option value="active">Active</option>
-              <option value="expired">Expired</option>
-            </SelectNative>
-            <div className="mt-1">
-              {status === "active" && <Badge variant="default">Active Lease</Badge>}
-              {status === "pending" && <Badge variant="secondary">Pending Lease</Badge>}
-              {status === "expired" && <Badge variant="destructive">Expired Lease</Badge>}
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                {computedStatus === "active" && <Badge variant="default">Active Lease</Badge>}
+                {computedStatus === "pending" && <Badge variant="secondary">Pending Lease</Badge>}
+                {computedStatus === "expired" && <Badge variant="destructive">Expired Lease</Badge>}
+                <span className="text-sm text-muted-foreground">
+                  {getStatusDescription(computedStatus, daysUntilExpiry)}
+                </span>
+              </div>
+              {computedStatus === "active" && daysUntilExpiry !== null && daysUntilExpiry <= 60 && daysUntilExpiry >= 0 && (
+                <div className="flex items-center gap-2 p-2 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+                  <span className="text-xs text-amber-700 dark:text-amber-300">
+                    ⚠️ This lease expires in {daysUntilExpiry} days. Consider renewal discussions with the tenant.
+                  </span>
+                </div>
+              )}
             </div>
           </FormField>
-        </div>
+        )}
 
         <LeaseDocumentUpload
           propertyId={watch("propertyId")}
