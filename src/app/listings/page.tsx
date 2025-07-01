@@ -16,7 +16,8 @@ import {
   Settings,
   BarChart3,
   Plus,
-  ExternalLink
+  ExternalLink,
+  Wand2
 } from "lucide-react";
 import { ListingsDashboard } from "@/components/ListingsDashboard";
 import { PlatformConnections } from "@/components/PlatformConnections";
@@ -57,6 +58,12 @@ export default function ListingsPage() {
           </div>
           
           <div className="flex items-center gap-2">
+            <Button variant="outline" asChild>
+              <Link href="/listings/enhance">
+                <Wand2 className="h-4 w-4 mr-2" />
+                AI Enhancement
+              </Link>
+            </Button>
             <Button variant="outline" asChild>
               <Link href="/properties">
                 <Building2 className="h-4 w-4 mr-2" />
