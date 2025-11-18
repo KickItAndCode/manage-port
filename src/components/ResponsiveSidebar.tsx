@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
@@ -77,12 +78,20 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
       <div className="flex-shrink-0">
         {/* Logo/Brand */}
         <div className={cn(
-          "flex items-center gap-2 px-2 mb-8",
+          "flex items-center justify-between gap-2 px-2 mb-8",
           isCollapsed && !isMobile && "justify-center"
         )}>
-          <Building className="text-primary flex-shrink-0" size={24} />
+          <div className={cn(
+            "flex items-center gap-2",
+            isCollapsed && !isMobile && "justify-center"
+          )}>
+            <Building className="text-primary flex-shrink-0" size={24} />
+            {(!isCollapsed || isMobile) && (
+              <span className="text-xl font-bold text-primary">ManagePort</span>
+            )}
+          </div>
           {(!isCollapsed || isMobile) && (
-            <span className="text-xl font-bold text-primary">ManagePort</span>
+            <NotificationCenter />
           )}
         </div>
       </div>

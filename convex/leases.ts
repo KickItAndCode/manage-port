@@ -1,6 +1,16 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { UTILITY_TYPES } from "../src/lib/constants";
+import { createNotification, NOTIFICATION_TYPES } from "./notifications";
+
+// Helper function to compute days until expiration
+function getDaysUntilExpiry(endDate: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const end = new Date(endDate);
+  end.setHours(0, 0, 0, 0);
+  return Math.floor((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+}
 
 // Helper function to compute lease status based on dates
 function computeLeaseStatus(startDate: string, endDate: string): "active" | "expired" | "pending" {
@@ -594,6 +604,87 @@ export const updateLeaseStatuses = mutation({
     }
     
     return { updated };
+  },
+});
+
+// Generate notifications for expiring leases
+// This mutation creates notifications for leases expiring within 60 days
+export const generateLeaseExpirationNotifications = mutation({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    let createdCount = 0;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const warningDays = 60; // Notify if expiring within 60 days
+
+    // Get all active leases for the user
+    const activeLeases = await ctx.db
+      .query("leases")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("status"), "active"))
+      .collect();
+
+    for (const lease of activeLeases) {
+      const daysUntilExpiry = getDaysUntilExpiry(lease.endDate);
+      
+      // Only create notifications for leases expiring within the warning period
+      if (daysUntilExpiry >= 0 && daysUntilExpiry <= warningDays) {
+        const property = await ctx.db.get(lease.propertyId);
+        const propertyName = property?.name || "Unknown Property";
+        const unitName = lease.unitId
+          ? (await ctx.db.get(lease.unitId))?.name || ""
+          : "";
+
+        // Determine severity based on days until expiration
+        let severity: "info" | "warning" | "error" = "info";
+        if (daysUntilExpiry <= 7) {
+          severity = "error";
+        } else if (daysUntilExpiry <= 30) {
+          severity = "warning";
+        }
+
+        const title =
+          daysUntilExpiry === 0
+            ? "Lease Expires Today"
+            : daysUntilExpiry === 1
+            ? "Lease Expires Tomorrow"
+            : `Lease Expires in ${daysUntilExpiry} Days`;
+
+        const location = unitName
+          ? `${propertyName} - ${unitName}`
+          : propertyName;
+
+        try {
+          await createNotification(ctx, {
+            userId: args.userId,
+            type: NOTIFICATION_TYPES.LEASE_EXPIRATION,
+            title,
+            message: `${lease.tenantName}'s lease at ${location} expires ${daysUntilExpiry === 0 ? "today" : daysUntilExpiry === 1 ? "tomorrow" : `in ${daysUntilExpiry} days`}`,
+            relatedEntityType: "lease",
+            relatedEntityId: lease._id as string,
+            actionUrl: `/properties/${lease.propertyId}?leaseId=${lease._id}`,
+            severity,
+            metadata: {
+              leaseId: lease._id,
+              propertyId: lease.propertyId,
+              propertyName,
+              unitId: lease.unitId,
+              unitName,
+              tenantName: lease.tenantName,
+              endDate: lease.endDate,
+              daysUntilExpiry,
+            },
+          });
+          createdCount++;
+        } catch (error) {
+          console.error("Error creating lease expiration notification:", error);
+        }
+      }
+    }
+
+    return { created: createdCount };
   },
 });
 

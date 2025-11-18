@@ -48,6 +48,7 @@ import { BulkUnitCreator } from "@/components/BulkUnitCreator";
 import { PropertyUtilityAllocation } from "@/components/PropertyUtilityAllocation";
 import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
 import { UtilityResponsibilitySnapshot } from "@/components/UtilityResponsibilitySnapshot";
+import { ActivityTimeline } from "@/components/ActivityTimeline";
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -1013,6 +1014,11 @@ export default function PropertyDetailsPage() {
 
           {/* Sidebar */}
           <div className="space-y-4 lg:space-y-6">
+            {/* Activity Timeline */}
+            {isValidPropertyId && (
+              <ActivityTimeline propertyId={propertyId as any} limit={20} />
+            )}
+
             {/* Financial Summary */}
             <Card className="bg-gradient-to-br from-card to-muted/20">
               <CardHeader>

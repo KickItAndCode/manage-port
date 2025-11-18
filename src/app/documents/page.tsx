@@ -29,6 +29,7 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentViewer } from "@/components/DocumentViewer";
+import { DocumentPreview } from "@/components/DocumentPreview";
 import { DocumentForm } from "@/components/DocumentForm";
 import DocumentUploadForm from "@/components/DocumentUploadForm";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -288,6 +289,7 @@ export default function DocumentsPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<any>(null);
+  const [previewDoc, setPreviewDoc] = useState<any>(null);
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
@@ -682,10 +684,9 @@ export default function DocumentsPage() {
                     <tr 
                       key={doc._id} 
                       className={cn(
-                        "border-b hover:bg-muted/30 cursor-pointer transition-colors",
+                        "border-b hover:bg-muted/30 transition-colors",
                         isSelected && "bg-muted/20 border-l-4 border-l-primary"
                       )}
-                      onClick={() => toggleSelectDocument(doc._id)}
                     >
                       <td className="p-2 sm:p-4">
                         <div className="w-5 h-5 rounded border-2 border-input bg-background flex items-center justify-center">
@@ -700,11 +701,14 @@ export default function DocumentsPage() {
                           />
                         </div>
                       </td>
-                      <td className="p-2 sm:p-4">
+                      <td 
+                        className="p-2 sm:p-4 cursor-pointer"
+                        onClick={() => setPreviewDoc(doc)}
+                      >
                         <div className="flex items-center gap-3">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="font-medium">{doc.name}</p>
+                            <p className="font-medium hover:text-primary transition-colors">{doc.name}</p>
                             {doc.notes && (
                               <p className="text-sm text-muted-foreground">{doc.notes}</p>
                             )}
@@ -732,17 +736,10 @@ export default function DocumentsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DocumentViewer
-                                storageId={doc.storageId || doc.url}
-                                fileName={doc.name}
-                                mimeType={doc.mimeType}
-                                actionType="view"
-                              >
-                                <DropdownMenuItem>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View
-                                </DropdownMenuItem>
-                              </DocumentViewer>
+                              <DropdownMenuItem onClick={() => setPreviewDoc(doc)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Preview
+                              </DropdownMenuItem>
                               <DocumentViewer
                                 storageId={doc.storageId || doc.url}
                                 fileName={doc.name}
@@ -811,6 +808,18 @@ export default function DocumentsPage() {
           // Document will be automatically refreshed via Convex reactivity
         }}
       />
+
+      {/* Document Preview Dialog */}
+      {previewDoc && (
+        <DocumentPreview
+          storageId={previewDoc.storageId || previewDoc.url}
+          fileName={previewDoc.name}
+          mimeType={previewDoc.mimeType}
+          open={!!previewDoc}
+          onOpenChange={(open) => !open && setPreviewDoc(null)}
+        />
+      )}
+
       {confirmDialog}
     </div>
   );

@@ -3,6 +3,8 @@
 **Status**: 🚧 In Progress  
 **Started**: January 27, 2025
 
+> **Note**: This file is kept for historical reference. For current tasks and what to work on next, see **[TASKS.md](./TASKS.md)** and **[CURRENT_STATUS.md](./CURRENT_STATUS.md)**.
+
 ---
 
 ## Summary
@@ -63,39 +65,75 @@ Phase 3 focuses on deepening the user experience through actionable dashboards, 
 src/components/
 ├── DashboardKPIs.tsx              # ✅ Enhanced with filter support
 ├── DashboardFilters.tsx           # ✅ Complete quick filters component
-└── ResponsiveSidebar.tsx         # ✅ Redesigned structure
+├── ResponsiveSidebar.tsx          # ✅ Redesigned structure
+├── TagAutocomplete.tsx             # ✅ NEW - Tag autocomplete component
+├── DocumentPreview.tsx             # ✅ NEW - Inline document preview
+└── DocumentUploadForm.tsx         # ✅ Enhanced drag/drop UX and tag integration
 
 src/app/
-└── dashboard/
-    └── page.tsx                   # ✅ Context-aware quick actions
+├── dashboard/
+│   └── page.tsx                   # ✅ Context-aware quick actions
+└── documents/
+    └── page.tsx                   # ✅ Preview integration
 
 convex/
-└── dashboard.ts                   # ✅ Filter parameter support complete
+├── dashboard.ts                   # ✅ Filter parameter support complete
+└── documents.ts                   # ✅ Added getAllTags query
 ```
 
 ---
 
-## Track 2: Documents & Activity ⏳
+## Track 2: Documents & Activity ✅
 
-### Status: Ready to Start
+### Status: In Progress - Core Features Complete
 
 **Foundation**:
 - ✅ Document upload form exists (`DocumentUploadForm.tsx`)
 - ✅ Document storage and management backend complete
 - ✅ Unified components available (Phase 1 - ✅ Complete)
 
-**Planned Features**:
-- Drag/drop upload improvements (better UX, visual feedback)
-- Document previews (PDF viewer, image gallery)
-- Enhanced tagging system (autocomplete, bulk operations)
+### Completed ✅ (January 27, 2025)
+
+1. **Enhanced Drag/Drop UX** ✅
+   - ✅ Improved visual feedback with animations and scale effects
+   - ✅ Animated upload icon with checkmark on drag
+   - ✅ File preview thumbnails (images show preview, PDFs show icon)
+   - ✅ Grid layout for file list with hover effects
+   - ✅ Toast notifications for file additions
+   - ✅ Better visual states (drag active, hover, etc.)
+
+2. **Document Preview Component** ✅
+   - ✅ Created `DocumentPreview.tsx` component
+   - ✅ Inline PDF preview using iframe
+   - ✅ Image preview with zoom controls (50%-300%)
+   - ✅ Image rotation controls
+   - ✅ Download button in preview
+   - ✅ Loading states and error handling
+   - ✅ Responsive modal dialog
+
+3. **Enhanced Tagging System** ✅
+   - ✅ Created `TagAutocomplete.tsx` component
+   - ✅ Autocomplete suggestions from existing tags
+   - ✅ Keyboard navigation (arrow keys, enter, escape)
+   - ✅ Create new tags on the fly
+   - ✅ Visual tag badges with remove buttons
+   - ✅ Backend function `getAllTags` to fetch unique tags
+   - ✅ Integrated into `DocumentUploadForm`
+
+4. **Documents Page Integration** ✅
+   - ✅ Click document name to open preview
+   - ✅ Preview option in dropdown menu
+   - ✅ Seamless preview experience
+
+**Remaining Features**:
 - Property/lease activity timelines
 - Audit event logging
+- Bulk tagging operations (can be added later)
 
 **Next Steps**:
-1. Enhance drag/drop UX with better visual feedback
-2. Add document preview component (PDF.js integration)
-3. Improve tagging interface with autocomplete
-4. Create activity timeline component
+1. Create activity timeline component
+2. Add audit event logging
+3. Consider bulk tagging operations UI
 
 ---
 
@@ -133,14 +171,15 @@ convex/
 ## Next Steps
 
 ### Immediate (Next Session) - Track 2: Documents & Activity
-1. Enhance document manager drag/drop UX
-2. Add document previews (PDF, images)
-3. Improve tagging interface with autocomplete
+1. ✅ ~~Enhance document manager drag/drop UX~~ - Complete
+2. ✅ ~~Add document previews (PDF, images)~~ - Complete
+3. ✅ ~~Improve tagging interface with autocomplete~~ - Complete
+4. Create activity timeline component
+5. Add audit event logging
 
 ### Short Term
-1. Create activity timeline component
-2. Add audit event logging
-3. Build notification center UI (Track 3)
+1. Build notification center UI (Track 3)
+2. Consider bulk tagging operations for documents
 
 ### Medium Term
 1. Email/SMS integration (Track 3)

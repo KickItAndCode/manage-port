@@ -1,6 +1,7 @@
 import { v } from "convex/values";
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { createNotification, NOTIFICATION_TYPES } from "./notifications";
 
 export interface UtilityAnomaly {
   billId: Id<"utilityBills">;
@@ -728,5 +729,156 @@ export const getUtilityReminders = query({
       missingReadings: sortedMissingReadings,
       totalReminders: sortedOverdueBills.length + sortedMissingReadings.length,
     };
+  },
+});
+
+// Generate notifications from utility reminders
+// This mutation creates notifications for overdue bills and missing readings
+// Note: Inlines reminder detection logic since we can't call queries from mutations
+export const generateNotificationsFromReminders = mutation({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    let createdCount = 0;
+
+    // Detect overdue bills (inline logic from getUtilityReminders)
+    const threshold = 1;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const unpaidBills = await ctx.db
+      .query("utilityBills")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .filter((q) => q.eq(q.field("landlordPaidUtilityCompany"), false))
+      .collect();
+
+    for (const bill of unpaidBills) {
+      const dueDate = new Date(bill.dueDate);
+      dueDate.setHours(0, 0, 0, 0);
+      if (dueDate < today) {
+        const daysOverdue = Math.floor(
+          (today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (daysOverdue >= threshold) {
+          const property = await ctx.db.get(bill.propertyId);
+          const propertyName = property?.name || "Unknown Property";
+
+          try {
+            await createNotification(ctx, {
+              userId: args.userId,
+              type: NOTIFICATION_TYPES.UTILITY_BILL_REMINDER,
+              title: `Overdue Utility Bill`,
+              message: `${bill.utilityType} bill for ${propertyName} is ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue ($${bill.totalAmount.toFixed(2)})`,
+              relatedEntityType: "utility_bill",
+              relatedEntityId: bill._id as string,
+              actionUrl: `/utility-bills?propertyId=${bill.propertyId}`,
+              severity: daysOverdue > 30 ? "error" : "warning",
+              metadata: {
+                propertyId: bill.propertyId,
+                propertyName,
+                daysOverdue,
+                amount: bill.totalAmount,
+              },
+            });
+            createdCount++;
+          } catch (error) {
+            console.error("Error creating notification for overdue bill:", error);
+          }
+        }
+      }
+    }
+
+    // Detect missing readings (simplified version)
+    const properties = await ctx.db
+      .query("properties")
+      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .collect();
+
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth() + 1;
+    const lookback = 2;
+
+    for (const property of properties) {
+      const leases = await ctx.db
+        .query("leases")
+        .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+        .filter((q) => q.eq(q.field("status"), "active"))
+        .collect();
+
+      if (leases.length === 0) continue;
+
+      // Get utility types from lease settings
+      const utilityTypes = new Set<string>();
+      for (const lease of leases) {
+        const settings = await ctx.db
+          .query("leaseUtilitySettings")
+          .withIndex("by_lease", (q) => q.eq("leaseId", lease._id))
+          .collect();
+        for (const setting of settings) {
+          if (setting.responsibilityPercentage > 0) {
+            utilityTypes.add(setting.utilityType);
+          }
+        }
+      }
+
+      if (utilityTypes.size === 0) continue;
+
+      const bills = await ctx.db
+        .query("utilityBills")
+        .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+        .collect();
+
+      const billsByTypeAndMonth: Record<string, Set<string>> = {};
+      for (const bill of bills) {
+        if (!billsByTypeAndMonth[bill.utilityType]) {
+          billsByTypeAndMonth[bill.utilityType] = new Set();
+        }
+        billsByTypeAndMonth[bill.utilityType].add(bill.billMonth);
+      }
+
+      for (let i = 0; i < lookback; i++) {
+        let checkMonth = currentMonth - i;
+        let checkYear = currentYear;
+        while (checkMonth < 1) {
+          checkMonth += 12;
+          checkYear -= 1;
+        }
+        const expectedMonth = `${checkYear}-${String(checkMonth).padStart(2, "0")}`;
+        const expectedDate = new Date(checkYear, checkMonth - 1, 1);
+        const daysSinceExpected = Math.floor(
+          (today.getTime() - expectedDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+        if (daysSinceExpected < 35) continue;
+
+        for (const utilityType of utilityTypes) {
+          const hasBill = billsByTypeAndMonth[utilityType]?.has(expectedMonth);
+          if (!hasBill) {
+            try {
+              await createNotification(ctx, {
+                userId: args.userId,
+                type: NOTIFICATION_TYPES.UTILITY_BILL_REMINDER,
+                title: `Missing Utility Reading`,
+                message: `No ${utilityType} bill found for ${property.name} (expected: ${expectedMonth})`,
+                relatedEntityType: "property",
+                relatedEntityId: property._id as string,
+                actionUrl: `/properties/${property._id}`,
+                severity: "warning",
+                metadata: {
+                  propertyId: property._id,
+                  propertyName: property.name,
+                  utilityType,
+                  expectedMonth,
+                },
+              });
+              createdCount++;
+            } catch (error) {
+              console.error("Error creating notification for missing reading:", error);
+            }
+          }
+        }
+      }
+    }
+
+    return { created: createdCount };
   },
 });

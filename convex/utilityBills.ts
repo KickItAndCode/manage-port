@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { logActivity, ACTIVITY_TYPES, ACTIVITY_ACTIONS } from "./activityLog";
 
 // Types for aggregated data
 export interface UtilityPageData {
@@ -204,6 +205,21 @@ export const addUtilityBill = mutation({
       ...args,
       landlordPaidUtilityCompany: false,
       createdAt: new Date().toISOString(),
+    });
+
+    // Log activity
+    await logActivity(ctx, {
+      userId: args.userId,
+      entityType: ACTIVITY_TYPES.UTILITY_BILL,
+      entityId: billId,
+      action: ACTIVITY_ACTIONS.CREATED,
+      description: `${args.utilityType} bill for ${args.billMonth} added ($${args.totalAmount.toFixed(2)})`,
+      metadata: {
+        utilityType: args.utilityType,
+        billMonth: args.billMonth,
+        totalAmount: args.totalAmount,
+        propertyId: args.propertyId,
+      },
     });
 
     // Note: Tenant charges are now calculated on-demand, not stored

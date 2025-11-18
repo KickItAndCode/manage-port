@@ -279,4 +279,35 @@ export default defineSchema({
     .index("by_validity", ["isValid"])
     .index("by_expiration", ["expiresAt"]) // For token cleanup and refresh jobs
     .index("by_platform_user", ["platform", "platformUserId"]), // For platform-specific queries
+  activityLog: defineTable({
+    userId: v.string(), // Clerk user ID
+    entityType: v.string(), // "property", "lease", "document", "utility_bill", "unit"
+    entityId: v.string(), // ID of the entity (propertyId, leaseId, etc.)
+    action: v.string(), // "created", "updated", "deleted", "uploaded", etc.
+    description: v.string(), // Human-readable description
+    metadata: v.optional(v.any()), // Additional context (property name, tenant name, etc.)
+    timestamp: v.string(), // ISO timestamp
+  })
+    .index("by_user", ["userId"])
+    .index("by_entity", ["entityType", "entityId"])
+    .index("by_timestamp", ["timestamp"])
+    .index("by_user_timestamp", ["userId", "timestamp"]),
+  notifications: defineTable({
+    userId: v.string(), // Clerk user ID
+    type: v.string(), // "lease_expiration", "payment_reminder", "utility_bill_reminder", "utility_anomaly"
+    title: v.string(), // Notification title
+    message: v.string(), // Notification message/description
+    read: v.boolean(), // Whether notification has been read
+    relatedEntityType: v.optional(v.string()), // "property", "lease", "utility_bill"
+    relatedEntityId: v.optional(v.string()), // ID of related entity
+    actionUrl: v.optional(v.string()), // URL to navigate to when clicked
+    severity: v.optional(v.union(v.literal("info"), v.literal("warning"), v.literal("error"))), // Notification severity
+    metadata: v.optional(v.any()), // Additional context
+    createdAt: v.string(), // ISO timestamp
+    readAt: v.optional(v.string()), // When notification was marked as read
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_read", ["userId", "read"])
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_type", ["type"]),
 }); 

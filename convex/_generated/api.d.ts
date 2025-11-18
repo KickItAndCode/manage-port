@@ -13,6 +13,7 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as activityLog from "../activityLog.js";
 import type * as admin from "../admin.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
@@ -23,6 +24,7 @@ import type * as leases from "../leases.js";
 import type * as listingJobs from "../listingJobs.js";
 import type * as listingPublications from "../listingPublications.js";
 import type * as migrate from "../migrate.js";
+import type * as notifications from "../notifications.js";
 import type * as platformTokens from "../platformTokens.js";
 import type * as properties from "../properties.js";
 import type * as propertyImages from "../propertyImages.js";
@@ -44,6 +46,7 @@ import type * as utilityPayments from "../utilityPayments.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  activityLog: typeof activityLog;
   admin: typeof admin;
   crons: typeof crons;
   dashboard: typeof dashboard;
@@ -54,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   listingJobs: typeof listingJobs;
   listingPublications: typeof listingPublications;
   migrate: typeof migrate;
+  notifications: typeof notifications;
   platformTokens: typeof platformTokens;
   properties: typeof properties;
   propertyImages: typeof propertyImages;

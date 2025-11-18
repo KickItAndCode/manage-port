@@ -85,16 +85,21 @@
 
 ---
 
-### Track 2: Documents & Activity ⏳
+### Track 2: Documents & Activity ✅
 
-**Status**: Not Started
+**Status**: Core Features Complete
 
-**Planned**:
-- Drag/drop upload improvements
-- Document previews (PDF, images)
-- Enhanced tagging system
+**Completed** (January 27, 2025):
+- ✅ Enhanced drag/drop UX with animations and visual feedback
+- ✅ Document preview component (PDF and image previews)
+- ✅ Tag autocomplete component with suggestions
+- ✅ Integrated previews into documents page
+- ✅ Backend function to fetch all tags for autocomplete
+
+**Remaining**:
 - Property/lease activity timelines
 - Audit event logging
+- Bulk tagging operations (optional enhancement)
 
 **Dependencies**: Requires unified components (Phase 1 - ✅ Complete)
 
@@ -132,25 +137,11 @@
 
 ---
 
-## 📋 Immediate Next Steps
+## 📋 What to Work On Next
 
-### Priority 1: Document Manager Enhancements (Track 2) (2-3 hours)
-1. Improve drag/drop UX for document uploads
-2. Add document previews (PDF, images)
-3. Enhance tagging interface with autocomplete
-4. Add bulk tagging operations
+**👉 See [TASKS.md](./TASKS.md) for detailed task breakdown and next steps**
 
-### Priority 2: Activity Timelines (Track 2) (2-3 hours)
-1. Create activity timeline component
-2. Show property/lease activity history
-3. Add audit event logging
-4. Filter activities by date range and type
-
-### Priority 3: Notification Center UI (Track 3) (2-3 hours)
-1. Build notification center component
-2. Show notification history
-3. Add mark as read/unread functionality
-4. Real-time notification updates
+**Current Priority**: Notification Center UI (Track 3) - 2-3 hours estimated
 
 ---
 
@@ -164,12 +155,16 @@
 - `src/components/UtilityResponsibilitySnapshot.tsx` - Utility split visualization
 - `src/components/UtilityLedger.tsx` - Inspectable charge calculations
 - `src/components/ResponsiveSidebar.tsx` - Main navigation sidebar
+- `src/components/TagAutocomplete.tsx` - Tag autocomplete with suggestions
+- `src/components/DocumentPreview.tsx` - Inline document preview (PDF/images)
+- `src/components/DocumentUploadForm.tsx` - Enhanced upload with drag/drop UX
 
 ### Backend
-- `convex/dashboard.ts` - Dashboard metrics (needs filter support)
+- `convex/dashboard.ts` - Dashboard metrics with filter support ✅
 - `convex/utilityInsights.ts` - Anomaly detection & reminders
 - `convex/userSettings.ts` - User preferences & notifications
 - `convex/utilityBills.ts` - Utility bill management
+- `convex/documents.ts` - Document management with getAllTags query ✅
 
 ### Pages
 - `src/app/dashboard/page.tsx` - Main dashboard
@@ -190,28 +185,21 @@
 
 ## 📚 Related Documentation
 
+- **[TASKS.md](./TASKS.md)** - **What to work on next** ⭐
 - [Next Phase Plan](./NEXT_PHASE_PLAN.md) - Full roadmap
-- [Phase 2 Progress](./PHASE_2_PROGRESS.md) - Detailed Phase 2 completion
 - [Phase 2 Complete](./PHASE_2_COMPLETE.md) - Phase 2 summary
 - [Utility Bills Solution](./UTILITY_BILLS_SOLUTION.md) - Historical bill solution
+
+**Note**: Detailed phase progress files (PHASE_*_PROGRESS.md) are archived. See TASKS.md for current work.
 
 ---
 
 ## 🚀 Starting a New Chat
 
-**Current Focus**: Phase 3 - Track 2: Documents & Activity
+**Quick Start**: Check [TASKS.md](./TASKS.md) for current priority and detailed task breakdown
 
-**Immediate Objective**: Enhance document management with drag/drop improvements and previews
-
-**Context Needed**:
-- Track 1 (Actionable Dashboards) is complete ✅
-- Document upload form exists (`DocumentUploadForm.tsx`)
-- Need to improve UX and add preview capabilities
-
-**Quick Start Command**:
-```
-Continue Phase 3 Track 2: Enhance document manager. 
-Start with drag/drop UX improvements and document previews (PDF, images).
-The DocumentUploadForm component exists at src/components/DocumentUploadForm.tsx.
-```
+**Current Status**:
+- Phase 3 Track 1 (Actionable Dashboards) - ✅ Complete
+- Phase 3 Track 2 (Documents & Activity) - Core features complete, working on activity timelines
+- Phase 3 Track 3 (Communication & Automation) - Foundation ready, notification center next
 
