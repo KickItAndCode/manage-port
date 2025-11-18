@@ -16,9 +16,11 @@ import { UtilityBillForm } from "@/components/UtilityBillForm";
 import { BulkUtilityBillEntry } from "@/components/BulkUtilityBillEntry";
 import { BillSplitPreview } from "@/components/BillSplitPreview";
 import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
+import { UtilityLedger } from "@/components/UtilityLedger";
 import { LoadingContent } from "@/components/LoadingContent";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ResponsiveTable, BulkActionsToolbar } from "@/components/ui/responsive-table";
+import { EmptyState } from "@/components/ui/empty-state";
 import { 
   createUtilityBillTableConfig, 
   UtilityBillMobileCard, 
@@ -347,6 +349,7 @@ function UtilityBillsContent() {
   const updateBill = useMutation(api.utilityBills.updateUtilityBill);
   const deleteBill = useMutation(api.utilityBills.deleteUtilityBill);
   const bulkAddBills = useMutation(api.utilityBills.bulkAddUtilityBills);
+  const bulkMarkNoTenantCharges = useMutation(api.utilityBills.bulkMarkNoTenantCharges);
 
   // Table sort handler
   function handleSort(key: keyof Doc<"utilityBills">, direction: "asc" | "desc") {
@@ -415,6 +418,50 @@ function UtilityBillsContent() {
     } catch (error: any) {
       toast.error(formatErrorForToast(error));
     }
+  };
+
+  const handleBulkMarkNoTenantCharges = async (billsToUpdate: Doc<"utilityBills">[]) => {
+    if (billsToUpdate.length === 0 || !user) return;
+    confirm({
+      title: "Mark as Historical Bills",
+      description: `Mark ${billsToUpdate.length} selected bills as historical (no tenant charges)? This will remove any outstanding tenant charges for these bills.`,
+      variant: "default",
+      onConfirm: async () => {
+        try {
+          const result = await bulkMarkNoTenantCharges({
+            billIds: billsToUpdate.map(bill => bill._id as any),
+            userId: user.id,
+            noTenantCharges: true,
+          });
+          setSelectedUtilityBills([]);
+          toast.success(`${result.updatedBills} bills marked as historical`);
+        } catch (error: any) {
+          toast.error(formatErrorForToast(error));
+        }
+      }
+    });
+  };
+
+  const handleBulkMarkWithTenantCharges = async (billsToUpdate: Doc<"utilityBills">[]) => {
+    if (billsToUpdate.length === 0 || !user) return;
+    confirm({
+      title: "Enable Tenant Charges",
+      description: `Enable tenant charges for ${billsToUpdate.length} selected bills? This will generate tenant charges based on current lease utility settings.`,
+      variant: "default",
+      onConfirm: async () => {
+        try {
+          const result = await bulkMarkNoTenantCharges({
+            billIds: billsToUpdate.map(bill => bill._id as any),
+            userId: user.id,
+            noTenantCharges: false,
+          });
+          setSelectedUtilityBills([]);
+          toast.success(`${result.updatedBills} bills updated to generate tenant charges`);
+        } catch (error: any) {
+          toast.error(formatErrorForToast(error));
+        }
+      }
+    });
   };
 
   const handleDeleteBill = async (bill: any) => {
@@ -509,6 +556,20 @@ function UtilityBillsContent() {
         action: handleBulkMarkUnpaid
       },
       {
+        id: 'mark-historical',
+        label: 'Mark as Historical',
+        icon: AlertCircle,
+        variant: 'outline',
+        action: handleBulkMarkNoTenantCharges
+      },
+      {
+        id: 'enable-tenant-charges',
+        label: 'Enable Tenant Charges',
+        icon: DollarSign,
+        variant: 'outline',
+        action: handleBulkMarkWithTenantCharges
+      },
+      {
         id: 'delete',
         label: 'Delete',
         icon: Trash2,
@@ -518,7 +579,7 @@ function UtilityBillsContent() {
     ];
 
     return config;
-  }, [handleDeleteBill, handleTogglePaidStatus, properties]);
+  }, [handleDeleteBill, handleTogglePaidStatus, handleBulkMarkPaid, handleBulkMarkUnpaid, handleBulkMarkNoTenantCharges, handleBulkMarkWithTenantCharges, handleBulkDelete, properties]);
 
   // Handle filter updates
   const handlePropertyChange = useCallback((propertyId: string) => {
@@ -767,19 +828,24 @@ function UtilityBillsContent() {
             config={tableConfig}
             loading={false}
             emptyState={
-              <div className="text-center py-12">
-                <Receipt className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No Bills Found</h3>
-                <p className="text-muted-foreground mb-4">
-                  {Object.values(filters).some(v => v !== undefined && v !== '' && (!Array.isArray(v) || v.length > 0))
+              <EmptyState
+                icon={Receipt}
+                title="No Bills Found"
+                description={
+                  Object.values(filters).some(v => v !== undefined && v !== '' && (!Array.isArray(v) || v.length > 0))
                     ? "Try adjusting your filters"
-                    : "Start by adding your first utility bill"}
-                </p>
-                <Button onClick={() => setBillDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add First Bill
-                </Button>
-              </div>
+                    : "Start by adding your first utility bill"
+                }
+                action={
+                  !Object.values(filters).some(v => v !== undefined && v !== '' && (!Array.isArray(v) || v.length > 0))
+                    ? {
+                        label: "Add First Bill",
+                        onClick: () => setBillDialogOpen(true),
+                        icon: Plus,
+                      }
+                    : undefined
+                }
+              />
             }
             onSort={handleSort}
             onSelect={setSelectedUtilityBills}
@@ -894,12 +960,12 @@ function UtilityBillsContent() {
 
       {/* View Charges Dialog */}
       <Dialog open={!!viewingBill} onOpenChange={(open) => !open && setViewingBill(null)}>
-        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg md:text-xl">Bill Charges & Tenant Responsibilities</DialogTitle>
+            <DialogTitle className="text-lg md:text-xl">Bill Details & Charge Ledger</DialogTitle>
           </DialogHeader>
           {viewingBill && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="bg-muted/50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">{viewingBill.utilityType} - {viewingBill.billMonth}</h3>
@@ -908,6 +974,14 @@ function UtilityBillsContent() {
                 <p className="text-sm text-muted-foreground">{viewingBill.provider}</p>
               </div>
               
+              {/* Utility Ledger - Inspectable calculation breakdown */}
+              <UtilityLedger
+                billId={viewingBill._id}
+                userId={user.id}
+                showEdit={true}
+              />
+              
+              {/* Bill Split Preview */}
               <BillSplitPreview
                 propertyId={viewingBill.propertyId}
                 utilityType={viewingBill.utilityType}

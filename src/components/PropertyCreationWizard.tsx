@@ -9,6 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
+import { FormField } from "@/components/ui/form-field";
+import { FormGrid } from "@/components/ui/form-grid";
+import { SelectNative } from "@/components/ui/select-native";
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -381,11 +384,9 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
   const progressPercentage = (currentStep / STEPS.length) * 100;
 
   return (
-    <div 
-      data-testid="property-wizard-modal"
-      className={cn(
-        isModal ? "flex flex-col h-full min-h-0 p-6" : "max-w-4xl mx-auto space-y-6"
-      )}>
+    <div className={cn(
+      isModal ? "flex flex-col h-full min-h-0 p-6" : "max-w-4xl mx-auto space-y-6"
+    )}>
       {/* Progress Header */}
       <Card className={cn(isModal && "flex-shrink-0")}>
         <CardHeader className={cn("pb-4", isModal && "px-4 py-3")}>
@@ -399,7 +400,6 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
                   size="sm"
                   onClick={fillAllSteps}
                   disabled={isGenerating}
-                  data-testid="quick-fill-all-steps-button"
                   className={cn(
                     "gap-2 text-xs transition-all duration-200",
                     isGenerating && "bg-primary/10 border-primary/30"
@@ -436,7 +436,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
                 const isCompleted = currentStep > step.id;
                 
                 return (
-                  <div key={step.id} className="flex items-center" data-testid={`wizard-step-${step.id}`}>
+                  <div key={step.id} className="flex items-center">
                     <div className={cn(
                       "flex items-center justify-center rounded-full border-2 transition-colors",
                       isModal ? "w-6 h-6" : "w-8 h-8",
@@ -500,12 +500,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
       )}>
         <div>
           {currentStep > 1 && (
-            <Button 
-              variant="outline" 
-              onClick={prevStep} 
-              size={isModal ? "sm" : "default"}
-              data-testid="wizard-previous-button"
-            >
+            <Button variant="outline" onClick={prevStep} size={isModal ? "sm" : "default"}>
               <ArrowLeft className="w-4 h-4 mr-2" />
               Previous
             </Button>
@@ -514,32 +509,18 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
         
         <div className="flex gap-2">
           {onCancel && (
-            <Button 
-              variant="outline" 
-              onClick={onCancel} 
-              size={isModal ? "sm" : "default"}
-              data-testid="property-wizard-cancel-button"
-            >
+            <Button variant="outline" onClick={onCancel} size={isModal ? "sm" : "default"}>
               Cancel
             </Button>
           )}
           
           {currentStep < STEPS.length ? (
-            <Button 
-              onClick={nextStep} 
-              size={isModal ? "sm" : "default"}
-              data-testid="wizard-next-button"
-            >
+            <Button onClick={nextStep} size={isModal ? "sm" : "default"}>
               Next
               <ArrowRight className="w-4 h-4 ml-2" />
             </Button>
           ) : (
-            <Button 
-              onClick={handleSubmit} 
-              disabled={loading} 
-              size={isModal ? "sm" : "default"}
-              data-testid="create-property-button"
-            >
+            <Button onClick={handleSubmit} disabled={loading} size={isModal ? "sm" : "default"}>
               {loading ? "Creating Property..." : "Create Property"}
             </Button>
           )}
@@ -564,7 +545,7 @@ function BasicInfoStep({ form, isModal = false }: { form: any; isModal?: boolean
   const statusOptions = ["Available", "Occupied", "Maintenance", "Under Contract"];
 
   return (
-    <div className="space-y-6" data-testid="basic-info-form">
+    <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-2">Property Information</h3>
         <p className="text-muted-foreground text-sm">
@@ -572,133 +553,131 @@ function BasicInfoStep({ form, isModal = false }: { form: any; isModal?: boolean
         </p>
       </div>
 
-      <div className={cn(
-        "grid gap-6",
-        isModal ? "grid-cols-1 lg:grid-cols-2 gap-4" : "grid-cols-1 md:grid-cols-2"
-      )}>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Property Name</label>
+      <FormGrid cols={isModal ? 2 : 2} gap="lg">
+        <FormField
+          label="Property Name"
+          required
+          error={errors.name?.message}
+        >
           <Input
             {...register("name")}
             placeholder="Enter property name"
-            data-testid="property-name-input"
           />
-          {errors.name && <span className="text-sm text-destructive">{errors.name.message}</span>}
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Property Type</label>
-          <select
-            className="w-full h-10 px-3 rounded-md border border-input bg-background"
-            {...register("type")}
-            data-testid="property-type-select"
-          >
+        <FormField
+          label="Property Type"
+          required
+          error={errors.type?.message}
+        >
+          <SelectNative {...register("type")}>
             <option value="">Select property type</option>
             {propertyTypes.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
-          </select>
-          {errors.type && <span className="text-sm text-destructive">{errors.type.message}</span>}
-        </div>
+          </SelectNative>
+        </FormField>
 
-        <div className="md:col-span-2 space-y-2">
-          <label className="block text-sm font-medium">Address</label>
+        <FormField
+          label="Address"
+          required
+          error={errors.address?.message}
+          className="md:col-span-2"
+        >
           <Input
             {...register("address")}
             placeholder="Enter property address"
-            data-testid="property-address-input"
           />
-          {errors.address && <span className="text-sm text-destructive">{errors.address.message}</span>}
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Status</label>
-          <select
-            className="w-full h-10 px-3 rounded-md border border-input bg-background"
-            {...register("status")}
-            data-testid="property-status-select"
-          >
+        <FormField
+          label="Status"
+          required
+          error={errors.status?.message}
+        >
+          <SelectNative {...register("status")}>
             {statusOptions.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
-          </select>
-          {errors.status && <span className="text-sm text-destructive">{errors.status.message}</span>}
-        </div>
+          </SelectNative>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Purchase Date</label>
+        <FormField
+          label="Purchase Date"
+          required
+          error={errors.purchaseDate?.message}
+        >
           <Input
             type="date"
             {...register("purchaseDate")}
-            data-testid="property-purchase-date-input"
           />
-          {errors.purchaseDate && <span className="text-sm text-destructive">{errors.purchaseDate.message}</span>}
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Bedrooms</label>
+        <FormField
+          label="Bedrooms"
+          required
+          error={errors.bedrooms?.message}
+        >
           <Input
             type="number"
             min={0}
             {...register("bedrooms", { valueAsNumber: true })}
             placeholder="0"
-            data-testid="property-bedrooms-input"
           />
-          {errors.bedrooms && <span className="text-sm text-destructive">{errors.bedrooms.message}</span>}
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Bathrooms</label>
+        <FormField
+          label="Bathrooms"
+          required
+          error={errors.bathrooms?.message}
+        >
           <Input
             type="number"
             min={0}
             step="0.5"
             {...register("bathrooms", { valueAsNumber: true })}
             placeholder="0"
-            data-testid="property-bathrooms-input"
           />
-          {errors.bathrooms && <span className="text-sm text-destructive">{errors.bathrooms.message}</span>}
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Square Feet</label>
+        <FormField
+          label="Square Feet"
+          required
+          error={errors.squareFeet?.message}
+        >
           <Input
             type="number"
             min={0}
             {...register("squareFeet", { valueAsNumber: true })}
             placeholder="0"
-            data-testid="property-square-feet-input"
           />
-          {errors.squareFeet && <span className="text-sm text-destructive">{errors.squareFeet.message}</span>}
-        </div>
+        </FormField>
 
-
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Monthly Mortgage ($)</label>
+        <FormField
+          label="Monthly Mortgage ($)"
+          error={errors.monthlyMortgage?.message}
+        >
           <Input
             type="number"
             min={0}
             {...register("monthlyMortgage", { valueAsNumber: true })}
             placeholder="Optional"
-            data-testid="property-monthly-mortgage-input"
           />
-          {errors.monthlyMortgage && <span className="text-sm text-destructive">{errors.monthlyMortgage.message}</span>}
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">CapEx Reserve ($)</label>
+        <FormField
+          label="CapEx Reserve ($)"
+          error={errors.monthlyCapEx?.message}
+          description="Auto-calculated as 10% of mortgage"
+        >
           <Input
             type="number"
             min={0}
             {...register("monthlyCapEx", { valueAsNumber: true })}
             placeholder="Auto-calculated (10% of mortgage)"
-            data-testid="property-monthly-capex-input"
           />
-          <p className="text-xs text-muted-foreground">Auto-calculated as 10% of mortgage</p>
-          {errors.monthlyCapEx && <span className="text-sm text-destructive">{errors.monthlyCapEx.message}</span>}
-        </div>
-
-      </div>
+        </FormField>
+      </FormGrid>
     </div>
   );
 }
@@ -714,7 +693,7 @@ function PropertyTypeStep({ form, units, onUpdateUnitName, isModal = false }: {
   const unitCount = watch("unitCount");
 
   return (
-    <div className="space-y-6" data-testid="property-type-form">
+    <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-2">Property Type & Units</h3>
         <p className="text-muted-foreground text-sm">
@@ -735,7 +714,6 @@ function PropertyTypeStep({ form, units, onUpdateUnitName, isModal = false }: {
               propertyType === "single-family" ? "ring-2 ring-primary" : ""
             )}
             onClick={() => setValue("propertyType", "single-family")}
-            data-testid="single-family-option"
           >
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
@@ -744,7 +722,6 @@ function PropertyTypeStep({ form, units, onUpdateUnitName, isModal = false }: {
                   {...register("propertyType")}
                   value="single-family"
                   className="sr-only"
-                  data-testid="single-family-radio"
                 />
                 <Home className="w-8 h-8 text-primary" />
                 <div>
@@ -763,7 +740,6 @@ function PropertyTypeStep({ form, units, onUpdateUnitName, isModal = false }: {
               propertyType === "multi-family" ? "ring-2 ring-primary" : ""
             )}
             onClick={() => setValue("propertyType", "multi-family")}
-            data-testid="multi-family-option"
           >
             <CardContent className="p-4">
               <div className="flex items-center space-x-3">
@@ -772,7 +748,6 @@ function PropertyTypeStep({ form, units, onUpdateUnitName, isModal = false }: {
                   {...register("propertyType")}
                   value="multi-family"
                   className="sr-only"
-                  data-testid="multi-family-radio"
                 />
                 <Users className="w-8 h-8 text-primary" />
                 <div>
@@ -800,7 +775,6 @@ function PropertyTypeStep({ form, units, onUpdateUnitName, isModal = false }: {
                 value={unitCount || 2}
                 onChange={(e) => setValue("unitCount", parseInt(e.target.value))}
                 className="w-24"
-                data-testid="unit-count-input"
               />
               <span className="text-sm text-muted-foreground">units</span>
             </div>
@@ -820,7 +794,6 @@ function PropertyTypeStep({ form, units, onUpdateUnitName, isModal = false }: {
                       onChange={(e) => onUpdateUnitName(index, e.target.value)}
                       placeholder={`Unit ${unit.identifier}`}
                       className="flex-1"
-                      data-testid={`unit-name-input-${unit.identifier}`}
                     />
                   </div>
                 ))}
@@ -861,7 +834,7 @@ function UtilitySetupStep({ form, units, onUpdatePercentage, isModal = false }: 
   const customSplit = watch("customSplit") || [];
 
   return (
-    <div className="space-y-6" data-testid="utility-setup-form">
+    <div className="space-y-6">
       <div>
         <h3 className="text-lg font-semibold mb-2">Utility Setup</h3>
         <p className="text-muted-foreground text-sm">
@@ -884,7 +857,6 @@ function UtilitySetupStep({ form, units, onUpdatePercentage, isModal = false }: 
                 utilityPreset === "owner-pays" ? "ring-2 ring-primary" : ""
               )}
               onClick={() => setValue("utilityPreset", "owner-pays")}
-              data-testid="owner-pays-option"
             >
               <CardContent className="p-4 text-center">
                 <input
@@ -892,7 +864,6 @@ function UtilitySetupStep({ form, units, onUpdatePercentage, isModal = false }: 
                   {...register("utilityPreset")}
                   value="owner-pays"
                   className="sr-only"
-                  data-testid="owner-pays-radio"
                 />
                 <h4 className="font-medium">Owner Pays All</h4>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -907,7 +878,6 @@ function UtilitySetupStep({ form, units, onUpdatePercentage, isModal = false }: 
                 utilityPreset === "tenant-pays" ? "ring-2 ring-primary" : ""
               )}
               onClick={() => setValue("utilityPreset", "tenant-pays")}
-              data-testid="tenant-pays-option"
             >
               <CardContent className="p-4 text-center">
                 <input
@@ -915,7 +885,6 @@ function UtilitySetupStep({ form, units, onUpdatePercentage, isModal = false }: 
                   {...register("utilityPreset")}
                   value="tenant-pays"
                   className="sr-only"
-                  data-testid="tenant-pays-radio"
                 />
                 <h4 className="font-medium">Tenants Pay All</h4>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -930,7 +899,6 @@ function UtilitySetupStep({ form, units, onUpdatePercentage, isModal = false }: 
                 utilityPreset === "custom" ? "ring-2 ring-primary" : ""
               )}
               onClick={() => setValue("utilityPreset", "custom")}
-              data-testid="custom-split-option"
             >
               <CardContent className="p-4 text-center">
                 <input
@@ -938,7 +906,6 @@ function UtilitySetupStep({ form, units, onUpdatePercentage, isModal = false }: 
                   {...register("utilityPreset")}
                   value="custom"
                   className="sr-only"
-                  data-testid="custom-split-radio"
                 />
                 <h4 className="font-medium">Custom Split</h4>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -980,7 +947,6 @@ function UtilitySetupStep({ form, units, onUpdatePercentage, isModal = false }: 
                           min={0}
                           step={1}
                           className="w-full"
-                          data-testid={`utility-split-slider-${unitSplit.unitId}`}
                         />
                       </div>
                     );

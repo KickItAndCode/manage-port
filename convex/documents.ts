@@ -1,5 +1,6 @@
 import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
+import { logActivity, ACTIVITY_TYPES, ACTIVITY_ACTIONS } from "./activityLog";
 
 // Document type definitions
 export const DOCUMENT_TYPES = {
@@ -168,7 +169,25 @@ export const addDocument = mutation({
       uploadedAt: new Date().toISOString(),
     };
 
-    return await ctx.db.insert("documents", documentData);
+    const documentId = await ctx.db.insert("documents", documentData);
+
+    // Log activity
+    await logActivity(ctx, {
+      userId: args.userId,
+      entityType: ACTIVITY_TYPES.DOCUMENT,
+      entityId: documentId,
+      action: ACTIVITY_ACTIONS.UPLOADED,
+      description: `Document "${args.name}" uploaded`,
+      metadata: {
+        documentName: args.name,
+        documentType: args.type,
+        propertyId: args.propertyId,
+        leaseId: args.leaseId,
+        utilityBillId: args.utilityBillId,
+      },
+    });
+
+    return documentId;
   },
 });
 
@@ -544,5 +563,29 @@ export const bulkDeleteDocuments = mutation({
     }
     
     return deletedCount;
+  },
+});
+
+// Get all unique tags for a user (for autocomplete)
+export const getAllTags = query({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const documents = await ctx.db
+      .query("documents")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    // Extract all tags and create a unique set
+    const tagSet = new Set<string>();
+    documents.forEach(doc => {
+      if (doc.tags && doc.tags.length > 0) {
+        doc.tags.forEach(tag => tagSet.add(tag.trim().toLowerCase()));
+      }
+    });
+
+    // Return sorted array of unique tags
+    return Array.from(tagSet).sort();
   },
 });

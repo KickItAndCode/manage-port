@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
+import { logActivity, ACTIVITY_TYPES, ACTIVITY_ACTIONS } from "./activityLog";
 
 // Rate limiting for mutations (simple in-memory store)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -194,10 +195,22 @@ export const addProperty = mutation({
     }
 
     try {
-      return await ctx.db.insert("properties", {
+      const propertyId = await ctx.db.insert("properties", {
         ...args,
         createdAt: new Date().toISOString(),
       });
+
+      // Log activity
+      await logActivity(ctx, {
+        userId: args.userId,
+        entityType: ACTIVITY_TYPES.PROPERTY,
+        entityId: propertyId,
+        action: ACTIVITY_ACTIONS.CREATED,
+        description: `Property "${args.name}" created`,
+        metadata: { propertyName: args.name, address: args.address },
+      });
+
+      return propertyId;
     } catch (error) {
       throw new ConvexError({
         code: "DATABASE_ERROR",
@@ -299,6 +312,21 @@ export const createPropertyWithUnits = mutation({
         displayName: "Main Unit",
         customName: false,
       }];
+
+      // Log activity
+      await logActivity(ctx, {
+        userId: args.userId,
+        entityType: ACTIVITY_TYPES.PROPERTY,
+        entityId: propertyId,
+        action: ACTIVITY_ACTIONS.CREATED,
+        description: `Property "${args.name}" created with ${units.length} unit${units.length !== 1 ? 's' : ''}`,
+        metadata: { 
+          propertyName: args.name, 
+          address: args.address,
+          unitsCreated: units.length,
+          propertyType: args.propertyType,
+        },
+      });
 
       const createdUnits = [];
       for (const unit of units) {
@@ -534,6 +562,18 @@ export const updateProperty = mutation({
         monthlyMortgage: args.monthlyMortgage,
         monthlyCapEx: args.monthlyCapEx,
       });
+
+      // Log activity
+      await logActivity(ctx, {
+        userId: args.userId,
+        entityType: ACTIVITY_TYPES.PROPERTY,
+        entityId: args.id,
+        action: ACTIVITY_ACTIONS.UPDATED,
+        description: `Property "${args.name}" updated`,
+        metadata: { propertyName: args.name, address: args.address },
+      });
+
+      return { success: true };
     } catch (error) {
       throw new ConvexError({
         code: "DATABASE_ERROR",
@@ -567,6 +607,16 @@ export const deleteProperty = mutation({
     }
 
     try {
+      // Log activity before deletion
+      await logActivity(ctx, {
+        userId: args.userId,
+        entityType: ACTIVITY_TYPES.PROPERTY,
+        entityId: args.id,
+        action: ACTIVITY_ACTIONS.DELETED,
+        description: `Property "${property.name}" deleted`,
+        metadata: { propertyName: property.name, address: property.address },
+      });
+
       // Delete all associated data in correct order to maintain referential integrity
       
       // 1. Delete all leases (including documents associated with leases)

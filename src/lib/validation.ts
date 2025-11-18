@@ -64,7 +64,7 @@ const baseLeaseSchema = z.object({
     .optional(),
   status: z.enum(["active", "expired", "pending"], {
     errorMap: () => ({ message: "Please select a valid lease status" })
-  }),
+  }).optional(), // Making status optional as we transition to computed status
   notes: z.string()
     .max(1000, "Notes must be less than 1000 characters")
     .optional(),
@@ -131,7 +131,7 @@ const multiUnitBaseSchema = z.object({
     .optional(),
   status: z.enum(["active", "expired", "pending"], {
     errorMap: () => ({ message: "Please select a valid lease status" })
-  }),
+  }).optional(), // Making status optional as we transition to computed status
   notes: z.string()
     .max(1000, "Notes must be less than 1000 characters")
     .optional(),

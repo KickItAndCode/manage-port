@@ -16,6 +16,7 @@ import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { NotificationCenter } from "@/components/NotificationCenter";
 
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Home },
@@ -33,7 +34,12 @@ interface ResponsiveSidebarProps {
 export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('sidebarCollapsed') === 'true';
+    }
+    return false;
+  });
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
@@ -67,27 +73,37 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
   if (!mounted) return null;
 
   const SidebarContent = () => (
-    <>
-      {/* Logo/Brand */}
-      <div className={cn(
-        "flex items-center gap-2 px-2 mb-8",
-        isCollapsed && !isMobile ? "justify-center" : ""
-      )}>
-        <Building className="text-primary flex-shrink-0" size={24} />
-        {(!isCollapsed || isMobile) && (
-          <span className="text-xl font-bold text-primary">ManagePort</span>
-        )}
+    <div className="flex flex-col h-full">
+      {/* Header Section */}
+      <div className="flex-shrink-0">
+        {/* Logo/Brand */}
+        <div className={cn(
+          "flex items-center justify-between gap-2 px-2 mb-8",
+          isCollapsed && !isMobile && "justify-center"
+        )}>
+          <div className={cn(
+            "flex items-center gap-2",
+            isCollapsed && !isMobile && "justify-center"
+          )}>
+            <Building className="text-primary flex-shrink-0" size={24} />
+            {(!isCollapsed || isMobile) && (
+              <span className="text-xl font-bold text-primary">ManagePort</span>
+            )}
+          </div>
+          {(!isCollapsed || isMobile) && (
+            <NotificationCenter />
+          )}
+        </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1">
+      {/* Navigation Section - Takes available space */}
+      <nav className="flex-1 overflow-y-auto min-h-0">
         <ul className="space-y-2">
           {navItems.map(({ label, href, icon: Icon }) => {
             const isActive = pathname.startsWith(href);
             const linkContent = (
               <Link
                 href={href}
-                data-testid={`sidebar-${label.toLowerCase().replace(/\s+/g, '-').replace('&', 'and')}-link`}
                 className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-sidebar-foreground",
                   "hover:bg-primary hover:text-primary-foreground hover:bg-primary/90",
@@ -123,29 +139,37 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
         </ul>
       </nav>
 
-      {/* Collapse Toggle (Desktop only) */}
-      {!isMobile && (
+      {/* Footer Section - Fixed at bottom */}
+      <div className="flex-shrink-0 pt-4 border-t border-sidebar-border/50">
+        {/* Collapse Toggle (Desktop only) */}
+        {!isMobile && (
         <Button
           variant="ghost"
           size="sm"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          data-testid="sidebar-collapse-toggle"
+          onClick={() => {
+            const newState = !isCollapsed;
+            setIsCollapsed(newState);
+            localStorage.setItem('sidebarCollapsed', String(newState));
+            // Dispatch custom event for layout to listen
+            window.dispatchEvent(new CustomEvent('sidebarToggle'));
+          }}
           className={cn(
-            "mt-auto mx-2 hover:bg-primary/10",
+            "w-full justify-start hover:bg-primary/10",
             isCollapsed && "justify-center"
           )}
         >
-          <ChevronLeft 
-            size={18} 
-            className={cn(
-              "transition-transform duration-200",
-              isCollapsed && "rotate-180"
-            )}
-          />
-          {!isCollapsed && <span className="ml-2">Collapse</span>}
-        </Button>
-      )}
-    </>
+            <ChevronLeft 
+              size={18} 
+              className={cn(
+                "transition-transform duration-200 flex-shrink-0",
+                isCollapsed && "rotate-180"
+              )}
+            />
+            {!isCollapsed && <span className="ml-2">Collapse</span>}
+          </Button>
+        )}
+      </div>
+    </div>
   );
 
   // Mobile Menu Toggle Button
@@ -156,7 +180,6 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
       onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
       className="fixed top-4 left-4 z-50 md:hidden"
       aria-label="Toggle menu"
-      data-testid="mobile-menu-toggle"
     >
       {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
     </Button>
@@ -166,10 +189,12 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
   const DesktopSidebar = () => (
     <aside className={cn(
       "hidden md:flex h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
-      "flex-col py-6 px-4 shadow-xl transition-all duration-300",
+      "flex-col shadow-xl transition-all duration-300",
       isCollapsed ? "w-20" : "w-64"
     )}>
-      <SidebarContent />
+      <div className="flex flex-col h-full py-6 px-4">
+        <SidebarContent />
+      </div>
     </aside>
   );
 
@@ -187,10 +212,12 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
       {/* Sidebar */}
       <aside className={cn(
         "fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
-        "flex flex-col py-6 px-4 shadow-xl transition-transform duration-300 z-50 md:hidden w-64",
+        "flex flex-col shadow-xl transition-transform duration-300 z-50 md:hidden w-64",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
-        <SidebarContent />
+        <div className="flex flex-col h-full py-6 px-4">
+          <SidebarContent />
+        </div>
       </aside>
     </>
   );

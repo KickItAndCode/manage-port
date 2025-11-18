@@ -47,6 +47,8 @@ import { UnitForm } from "@/components/UnitForm";
 import { BulkUnitCreator } from "@/components/BulkUnitCreator";
 import { PropertyUtilityAllocation } from "@/components/PropertyUtilityAllocation";
 import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
+import { UtilityResponsibilitySnapshot } from "@/components/UtilityResponsibilitySnapshot";
+import { ActivityTimeline } from "@/components/ActivityTimeline";
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -1012,6 +1014,11 @@ export default function PropertyDetailsPage() {
 
           {/* Sidebar */}
           <div className="space-y-4 lg:space-y-6">
+            {/* Activity Timeline */}
+            {isValidPropertyId && (
+              <ActivityTimeline propertyId={propertyId as any} limit={20} />
+            )}
+
             {/* Financial Summary */}
             <Card className="bg-gradient-to-br from-card to-muted/20">
               <CardHeader>
@@ -1137,6 +1144,15 @@ export default function PropertyDetailsPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Utility Responsibility Snapshot */}
+            {property && (
+              <UtilityResponsibilitySnapshot
+                propertyId={property._id as any}
+                userId={user!.id}
+                showEdit={true}
+              />
+            )}
 
             {/* Property Utility Allocation */}
             {property && (property.propertyType === "multi-family" || (propertyWithUnits?.units && propertyWithUnits.units.length > 0)) && (

@@ -31,8 +31,12 @@ import {
   X, 
   FileText, 
   Loader2,
-  Plus 
+  Plus,
+  Image as ImageIcon,
+  File,
+  CheckCircle2
 } from "lucide-react";
+import { TagAutocomplete } from "./TagAutocomplete";
 import { 
   DOCUMENT_TYPES, 
   DOCUMENT_TYPE_LABELS, 
@@ -82,7 +86,7 @@ export default function DocumentUploadForm({
   const [formData, setFormData] = useState({
     type: DOCUMENT_TYPES.OTHER as string,
     notes: "",
-    tags: "",
+    tags: [] as string[],
     expiryDate: "",
     selectedPropertyId: propertyId as string | undefined,
     selectedLeaseId: leaseId as string | undefined,
@@ -122,6 +126,7 @@ export default function DocumentUploadForm({
     );
 
     setFiles(prev => [...prev, ...newFiles]);
+    toast.success(`Added ${acceptedFiles.length} file${acceptedFiles.length !== 1 ? 's' : ''}`);
   }, []);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -189,7 +194,7 @@ export default function DocumentUploadForm({
             fileSize: file.size,
             mimeType: file.type,
             expiryDate: formData.expiryDate || undefined,
-            tags: formData.tags ? formData.tags.split(",").map(tag => tag.trim()) : undefined,
+            tags: formData.tags.length > 0 ? formData.tags : undefined,
             notes: formData.notes || undefined,
           });
 
@@ -214,7 +219,7 @@ export default function DocumentUploadForm({
       setFormData({
         type: DOCUMENT_TYPES.OTHER as string,
         notes: "",
-        tags: "",
+        tags: [],
         expiryDate: "",
         selectedPropertyId: propertyId as string | undefined,
         selectedLeaseId: leaseId as string | undefined,
@@ -258,66 +263,114 @@ export default function DocumentUploadForm({
         </DialogHeader>
         
         <div className="space-y-6">
-          {/* Dropzone */}
+          {/* Enhanced Dropzone */}
           <Card>
             <CardContent className="pt-6">
               <div
                 {...getRootProps()}
                 className={`
-                  border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+                  border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-all duration-200
                   ${isDragActive 
-                    ? "border-primary bg-primary/10" 
-                    : "border-muted-foreground/25 hover:border-primary/50"
+                    ? "border-primary bg-primary/10 scale-[1.02] shadow-lg" 
+                    : "border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30"
                   }
                 `}
               >
                 <input {...getInputProps()} />
-                <Upload className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-                {isDragActive ? (
-                  <p className="text-lg font-medium">Drop the files here...</p>
-                ) : (
-                  <div>
-                    <p className="text-lg font-medium mb-2">
-                      Drag & drop files here, or click to select
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      Supports PDF, images, Word, Excel files up to {formatFileSize(MAX_FILE_SIZE)}
-                    </p>
-                  </div>
-                )}
+                <div className="flex flex-col items-center gap-4">
+                  {isDragActive ? (
+                    <>
+                      <div className="relative">
+                        <Upload className="h-16 w-16 mx-auto text-primary animate-bounce" />
+                        <CheckCircle2 className="h-6 w-6 text-primary absolute -top-1 -right-1 bg-background rounded-full" />
+                      </div>
+                      <div>
+                        <p className="text-xl font-semibold text-primary">Drop files here</p>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          Release to upload {files.length > 0 && `${files.length} file${files.length !== 1 ? 's' : ''} already selected`}
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Upload className={`h-12 w-12 mx-auto text-muted-foreground transition-transform ${files.length > 0 ? 'scale-110' : ''}`} />
+                      <div>
+                        <p className="text-lg font-medium mb-2">
+                          {files.length > 0 ? `Add more files` : "Drag & drop files here, or click to select"}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Supports PDF, images, Word, Excel files up to {formatFileSize(MAX_FILE_SIZE)}
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* File list */}
+          {/* Enhanced File list with previews */}
           {files.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Selected Files</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Selected Files ({files.length})
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2">
-                  {files.map((file, index) => (
-                    <div key={index} className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="flex items-center space-x-3">
-                        <FileText className="h-5 w-5 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{file.name}</p>
-                          <p className="text-sm text-muted-foreground">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {files.map((file, index) => {
+                    const isImage = file.type.startsWith('image/');
+                    const isPDF = file.type === 'application/pdf';
+                    
+                    return (
+                      <div 
+                        key={index} 
+                        className="group relative flex items-start gap-3 p-3 bg-muted rounded-lg border border-border hover:border-primary/50 transition-colors"
+                      >
+                        {/* Preview thumbnail */}
+                        <div className="flex-shrink-0">
+                          {isImage && file.preview ? (
+                            <img 
+                              src={file.preview} 
+                              alt={file.name}
+                              className="h-16 w-16 object-cover rounded border"
+                            />
+                          ) : isPDF ? (
+                            <div className="h-16 w-16 bg-red-100 dark:bg-red-900/20 rounded border border-red-300 dark:border-red-800 flex items-center justify-center">
+                              <FileText className="h-8 w-8 text-red-600 dark:text-red-400" />
+                            </div>
+                          ) : (
+                            <div className="h-16 w-16 bg-muted-foreground/10 rounded border flex items-center justify-center">
+                              <File className="h-8 w-8 text-muted-foreground" />
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* File info */}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate" title={file.name}>
+                            {file.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-1">
                             {formatFileSize(file.size)}
                           </p>
                         </div>
+                        
+                        {/* Remove button */}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(file)}
+                          disabled={uploading}
+                          className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile(file)}
-                        disabled={uploading}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
@@ -462,12 +515,14 @@ export default function DocumentUploadForm({
 
               <div>
                 <Label htmlFor="tags">Tags (Optional)</Label>
-                <Input
-                  id="tags"
-                  placeholder="Enter tags separated by commas"
+                <TagAutocomplete
                   value={formData.tags}
-                  onChange={(e) => setFormData(prev => ({ ...prev, tags: e.target.value }))}
+                  onChange={(tags) => setFormData(prev => ({ ...prev, tags }))}
+                  placeholder="Add tags for easy searching..."
                 />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Type to see suggestions or create new tags. Press Enter to add.
+                </p>
               </div>
 
               <div>

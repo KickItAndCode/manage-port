@@ -1,35 +1,139 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
+
+// Helper function to compute lease status based on dates
+function computeLeaseStatus(startDate: string, endDate: string): "active" | "expired" | "pending" {
+  const now = new Date();
+  const start = new Date(startDate);
+  const end = new Date(endDate);
+  
+  // Clear time components for date-only comparison
+  now.setHours(0, 0, 0, 0);
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+  
+  if (start > now) return "pending";
+  if (end < now) return "expired";
+  return "active";
+}
+
+// Helper function to calculate date range start date
+function getDateRangeStart(dateRange?: "week" | "month" | "quarter" | "year" | "all"): Date | null {
+  if (!dateRange || dateRange === "all") return null;
+  
+  const now = new Date();
+  const start = new Date();
+  
+  switch (dateRange) {
+    case "week":
+      start.setDate(now.getDate() - 7);
+      break;
+    case "month":
+      start.setMonth(now.getMonth() - 1);
+      break;
+    case "quarter":
+      start.setMonth(now.getMonth() - 3);
+      break;
+    case "year":
+      start.setFullYear(now.getFullYear() - 1);
+      break;
+  }
+  
+  start.setHours(0, 0, 0, 0);
+  return start;
+}
 
 // Get dashboard metrics for a user
 export const getDashboardMetrics = query({
-  args: { userId: v.string() },
+  args: { 
+    userId: v.string(),
+    propertyId: v.optional(v.id("properties")),
+    dateRange: v.optional(v.union(v.literal("week"), v.literal("month"), v.literal("quarter"), v.literal("year"), v.literal("all"))),
+    status: v.optional(v.union(v.literal("all"), v.literal("active"), v.literal("expired"), v.literal("pending"))),
+  },
   handler: async (ctx, args) => {
-    // Get all properties
-    const properties = await ctx.db
+    // Build property filter
+    let propertyQuery = ctx.db
       .query("properties")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
-      .collect();
+      .filter((q) => q.eq(q.field("userId"), args.userId));
+    
+    // Get all properties (filtered by propertyId if provided)
+    const allProperties = await propertyQuery.collect();
+    const properties = args.propertyId 
+      ? allProperties.filter(p => p._id === args.propertyId)
+      : allProperties;
 
-    // Get all leases
-    const leases = await ctx.db
+    // Get all leases (filtered by propertyId if provided)
+    let leaseQuery = ctx.db
       .query("leases")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
-      .collect();
+      .filter((q) => q.eq(q.field("userId"), args.userId));
+    
+    const allLeases = await leaseQuery.collect();
+    let leases = args.propertyId
+      ? allLeases.filter(l => l.propertyId === args.propertyId)
+      : allLeases;
 
-    // Get all utility bills
-    const utilityBills = await ctx.db
+    // Get all utility bills (filtered by propertyId if provided)
+    let utilityBillQuery = ctx.db
       .query("utilityBills")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
-      .collect();
+      .filter((q) => q.eq(q.field("userId"), args.userId));
+    
+    const allUtilityBills = await utilityBillQuery.collect();
+    let utilityBills = args.propertyId
+      ? allUtilityBills.filter(bill => bill.propertyId === args.propertyId)
+      : allUtilityBills;
 
     // Calculate metrics
     const totalProperties = properties.length;
     const totalSquareFeet = properties.reduce((sum, p) => sum + p.squareFeet, 0);
     
-    // Calculate occupancy and rent from active leases
-    const activeLeases = leases.filter(l => l.status === "active");
-    const occupancyRate = totalProperties > 0 ? (activeLeases.length / totalProperties) * 100 : 0;
+    // Get all units for properties
+    const propertyIds = properties.map(p => p._id);
+    const allUnits = await ctx.db.query("units").collect();
+    const units = allUnits.filter(u => propertyIds.includes(u.propertyId));
+    const totalUnits = units.length;
+    
+    // Apply date range filter to leases
+    const dateRangeStart = getDateRangeStart(args.dateRange);
+    if (dateRangeStart) {
+      leases = leases.filter(l => {
+        const leaseStart = new Date(l.startDate);
+        const leaseEnd = new Date(l.endDate);
+        // Include leases that overlap with the date range
+        return leaseEnd >= dateRangeStart && leaseStart <= new Date();
+      });
+    }
+
+    // Apply status filter to leases
+    if (args.status && args.status !== "all") {
+      leases = leases.filter(l => {
+        const computedStatus = computeLeaseStatus(l.startDate, l.endDate);
+        return computedStatus === args.status;
+      });
+    }
+    
+    // Calculate occupancy and rent from active leases (computed from dates)
+    const activeLeases = leases.filter(l => {
+      const computedStatus = computeLeaseStatus(l.startDate, l.endDate);
+      return computedStatus === "active";
+    });
+    
+    // Calculate occupancy rate based on units (more accurate for multi-unit properties)
+    // If no units exist, fall back to properties-based calculation but cap at 100%
+    let occupancyRate = 0;
+    if (totalUnits > 0) {
+      // Count unique units with active leases
+      const unitsWithActiveLeases = new Set(
+        activeLeases
+          .map(l => l.unitId)
+          .filter((id): id is string => id !== undefined)
+      );
+      occupancyRate = (unitsWithActiveLeases.size / totalUnits) * 100;
+    } else if (totalProperties > 0) {
+      // Fallback: use properties but cap at 100%
+      occupancyRate = Math.min((activeLeases.length / totalProperties) * 100, 100);
+    }
     
     // Use actual lease rent instead of property rent for more accurate income
     const totalMonthlyRent = activeLeases.reduce((sum, l) => sum + l.rent, 0);
@@ -37,11 +141,42 @@ export const getDashboardMetrics = query({
     // Calculate security deposits held
     const totalSecurityDeposits = activeLeases.reduce((sum, l) => sum + (l.securityDeposit || 0), 0);
     
-    // Calculate total utility costs from recent bills (last 3 months)
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    const recentBills = utilityBills.filter(bill => new Date(bill.billDate) >= threeMonthsAgo);
-    const totalUtilityCost = recentBills.reduce((sum, bill) => sum + bill.totalAmount, 0) / 3; // Average monthly cost
+    // Apply date range filter to utility bills
+    let filteredUtilityBills = utilityBills;
+    if (dateRangeStart) {
+      filteredUtilityBills = utilityBills.filter(bill => {
+        const billDate = new Date(bill.billDate);
+        return billDate >= dateRangeStart;
+      });
+    }
+    
+    // Calculate total utility costs from recent bills
+    // If date range is specified, use that; otherwise use last 3 months
+    const utilityDateStart = dateRangeStart || (() => {
+      const threeMonthsAgo = new Date();
+      threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      return threeMonthsAgo;
+    })();
+    
+    const recentBills = filteredUtilityBills.filter(bill => new Date(bill.billDate) >= utilityDateStart);
+    
+    // Calculate average monthly utility cost
+    // For date ranges, calculate based on the range duration
+    let totalUtilityCost = 0;
+    if (recentBills.length > 0) {
+      const totalCost = recentBills.reduce((sum, bill) => sum + bill.totalAmount, 0);
+      if (args.dateRange) {
+        // Calculate monthly average based on date range
+        const monthsInRange = args.dateRange === "week" ? 7/30 : 
+                             args.dateRange === "month" ? 1 : 
+                             args.dateRange === "quarter" ? 3 : 
+                             args.dateRange === "year" ? 12 : 3;
+        totalUtilityCost = totalCost / monthsInRange;
+      } else {
+        // Default: average over 3 months
+        totalUtilityCost = totalCost / 3;
+      }
+    }
     
     // Calculate total mortgage and CapEx costs
     const totalMonthlyMortgage = properties.reduce((sum, p) => sum + (p.monthlyMortgage || 0), 0);
@@ -89,6 +224,7 @@ export const getDashboardMetrics = query({
 
     return {
       totalProperties,
+      totalUnits,
       totalMonthlyRent,
       totalSquareFeet,
       occupancyRate,

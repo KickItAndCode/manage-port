@@ -29,9 +29,11 @@ import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DocumentViewer } from "@/components/DocumentViewer";
+import { DocumentPreview } from "@/components/DocumentPreview";
 import { DocumentForm } from "@/components/DocumentForm";
 import DocumentUploadForm from "@/components/DocumentUploadForm";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -287,6 +289,7 @@ export default function DocumentsPage() {
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [editingDoc, setEditingDoc] = useState<any>(null);
+  const [previewDoc, setPreviewDoc] = useState<any>(null);
   const [selectedDocuments, setSelectedDocuments] = useState<Set<string>>(new Set());
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
@@ -622,20 +625,24 @@ export default function DocumentsPage() {
       {documents.length === 0 ? (
         <Card>
           <CardContent className="py-12">
-            <div className="text-center">
-              <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No documents found</h3>
-              <p className="text-muted-foreground mb-4">
-                {search || typeFilter ? 
-                  "Try adjusting your filters" : 
-                  "Upload your first document to get started"
-                }
-              </p>
-              <Button onClick={() => setUploadDialogOpen(true)} className="gap-2">
-                <Upload className="h-4 w-4" />
-                Upload Document
-              </Button>
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="No documents found"
+              description={
+                search || typeFilter
+                  ? "Try adjusting your filters"
+                  : "Upload your first document to get started"
+              }
+              action={
+                !search && !typeFilter
+                  ? {
+                      label: "Upload Document",
+                      onClick: () => setUploadDialogOpen(true),
+                      icon: Upload,
+                    }
+                  : undefined
+              }
+            />
           </CardContent>
         </Card>
       ) : (
@@ -677,10 +684,9 @@ export default function DocumentsPage() {
                     <tr 
                       key={doc._id} 
                       className={cn(
-                        "border-b hover:bg-muted/30 cursor-pointer transition-colors",
+                        "border-b hover:bg-muted/30 transition-colors",
                         isSelected && "bg-muted/20 border-l-4 border-l-primary"
                       )}
-                      onClick={() => toggleSelectDocument(doc._id)}
                     >
                       <td className="p-2 sm:p-4">
                         <div className="w-5 h-5 rounded border-2 border-input bg-background flex items-center justify-center">
@@ -695,11 +701,14 @@ export default function DocumentsPage() {
                           />
                         </div>
                       </td>
-                      <td className="p-2 sm:p-4">
+                      <td 
+                        className="p-2 sm:p-4 cursor-pointer"
+                        onClick={() => setPreviewDoc(doc)}
+                      >
                         <div className="flex items-center gap-3">
                           <FileText className="h-4 w-4 text-muted-foreground" />
                           <div>
-                            <p className="font-medium">{doc.name}</p>
+                            <p className="font-medium hover:text-primary transition-colors">{doc.name}</p>
                             {doc.notes && (
                               <p className="text-sm text-muted-foreground">{doc.notes}</p>
                             )}
@@ -727,17 +736,10 @@ export default function DocumentsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DocumentViewer
-                                storageId={doc.storageId || doc.url}
-                                fileName={doc.name}
-                                mimeType={doc.mimeType}
-                                actionType="view"
-                              >
-                                <DropdownMenuItem>
-                                  <Eye className="h-4 w-4 mr-2" />
-                                  View
-                                </DropdownMenuItem>
-                              </DocumentViewer>
+                              <DropdownMenuItem onClick={() => setPreviewDoc(doc)}>
+                                <Eye className="h-4 w-4 mr-2" />
+                                Preview
+                              </DropdownMenuItem>
                               <DocumentViewer
                                 storageId={doc.storageId || doc.url}
                                 fileName={doc.name}
@@ -806,6 +808,18 @@ export default function DocumentsPage() {
           // Document will be automatically refreshed via Convex reactivity
         }}
       />
+
+      {/* Document Preview Dialog */}
+      {previewDoc && (
+        <DocumentPreview
+          storageId={previewDoc.storageId || previewDoc.url}
+          fileName={previewDoc.name}
+          mimeType={previewDoc.mimeType}
+          open={!!previewDoc}
+          onOpenChange={(open) => !open && setPreviewDoc(null)}
+        />
+      )}
+
       {confirmDialog}
     </div>
   );

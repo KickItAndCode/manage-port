@@ -13,21 +13,29 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as activityLog from "../activityLog.js";
 import type * as admin from "../admin.js";
+import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
 import type * as documentFolders from "../documentFolders.js";
 import type * as documents from "../documents.js";
 import type * as leaseUtilitySettings from "../leaseUtilitySettings.js";
 import type * as leases from "../leases.js";
+import type * as listingJobs from "../listingJobs.js";
+import type * as listingPublications from "../listingPublications.js";
 import type * as migrate from "../migrate.js";
+import type * as notifications from "../notifications.js";
+import type * as platformTokens from "../platformTokens.js";
 import type * as properties from "../properties.js";
 import type * as propertyImages from "../propertyImages.js";
 import type * as storage from "../storage.js";
 import type * as testUtilityCharges from "../testUtilityCharges.js";
 import type * as units from "../units.js";
 import type * as userSettings from "../userSettings.js";
+import type * as utilityAnalytics from "../utilityAnalytics.js";
 import type * as utilityBills from "../utilityBills.js";
 import type * as utilityCharges from "../utilityCharges.js";
+import type * as utilityInsights from "../utilityInsights.js";
 import type * as utilityPayments from "../utilityPayments.js";
 
 /**
@@ -39,21 +47,29 @@ import type * as utilityPayments from "../utilityPayments.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  activityLog: typeof activityLog;
   admin: typeof admin;
+  crons: typeof crons;
   dashboard: typeof dashboard;
   documentFolders: typeof documentFolders;
   documents: typeof documents;
   leaseUtilitySettings: typeof leaseUtilitySettings;
   leases: typeof leases;
+  listingJobs: typeof listingJobs;
+  listingPublications: typeof listingPublications;
   migrate: typeof migrate;
+  notifications: typeof notifications;
+  platformTokens: typeof platformTokens;
   properties: typeof properties;
   propertyImages: typeof propertyImages;
   storage: typeof storage;
   testUtilityCharges: typeof testUtilityCharges;
   units: typeof units;
   userSettings: typeof userSettings;
+  utilityAnalytics: typeof utilityAnalytics;
   utilityBills: typeof utilityBills;
   utilityCharges: typeof utilityCharges;
+  utilityInsights: typeof utilityInsights;
   utilityPayments: typeof utilityPayments;
 }>;
 export declare const api: FilterApi<
