@@ -32,6 +32,7 @@ import { DocumentViewer } from "@/components/DocumentViewer";
 import { DocumentForm } from "@/components/DocumentForm";
 import DocumentUploadForm from "@/components/DocumentUploadForm";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -622,20 +623,24 @@ export default function DocumentsPage() {
       {documents.length === 0 ? (
         <Card>
           <CardContent className="py-12">
-            <div className="text-center">
-              <FileText className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2">No documents found</h3>
-              <p className="text-muted-foreground mb-4">
-                {search || typeFilter ? 
-                  "Try adjusting your filters" : 
-                  "Upload your first document to get started"
-                }
-              </p>
-              <Button onClick={() => setUploadDialogOpen(true)} className="gap-2">
-                <Upload className="h-4 w-4" />
-                Upload Document
-              </Button>
-            </div>
+            <EmptyState
+              icon={FileText}
+              title="No documents found"
+              description={
+                search || typeFilter
+                  ? "Try adjusting your filters"
+                  : "Upload your first document to get started"
+              }
+              action={
+                !search && !typeFilter
+                  ? {
+                      label: "Upload Document",
+                      onClick: () => setUploadDialogOpen(true),
+                      icon: Upload,
+                    }
+                  : undefined
+              }
+            />
           </CardContent>
         </Card>
       ) : (

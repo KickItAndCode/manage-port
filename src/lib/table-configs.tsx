@@ -3,8 +3,9 @@ import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { MoreHorizontal, Edit, Trash2, Eye, CheckCircle, XCircle, AlertCircle, Building, Calendar, Zap, Droplets, Flame, Wifi, Receipt } from "lucide-react";
+import { MoreHorizontal, Edit, Trash2, Eye, CheckCircle, XCircle, AlertCircle, Building, Calendar, Zap, Droplets, Flame, Wifi, Receipt, FileText } from "lucide-react";
 import { TableConfig, ColumnDefinition, BulkAction } from "@/components/ui/responsive-table";
+import { DocumentViewer } from "@/components/DocumentViewer";
 import { cn } from "@/lib/utils";
 import { Id } from "@/../convex/_generated/dataModel";
 
@@ -42,6 +43,32 @@ export interface UtilityBill {
   landlordPaidUtilityCompany: boolean;
   landlordPaidDate?: string;
   property?: Property;
+}
+
+export interface Lease {
+  _id: string;
+  userId: string;
+  propertyId: string;
+  unitId?: string;
+  tenantName: string;
+  tenantEmail?: string;
+  tenantPhone?: string;
+  startDate: string;
+  endDate: string;
+  rent: number;
+  securityDeposit?: number;
+  status?: string; // Deprecated, use computedStatus
+  computedStatus?: "active" | "expired" | "pending";
+  daysUntilExpiry?: number | null;
+  notes?: string;
+  leaseDocumentUrl?: string;
+  createdAt: string;
+  updatedAt?: string;
+  unit?: {
+    _id: string;
+    unitIdentifier: string;
+    status: string;
+  };
 }
 
 // Utility helper functions
@@ -657,6 +684,327 @@ export const UtilityBillDataPriority = {
   essential: ['utilityType', 'billMonth', 'totalAmount', 'landlordPaidUtilityCompany'],
   important: ['propertyId', 'provider', 'dueDate'],
   contextual: ['billDate', 'billingPeriod', 'landlordPaidDate', 'notes'],
+  administrative: ['_id', 'userId', 'createdAt', 'updatedAt']
+} as const;
+
+// Lease table configuration
+export function createLeaseTableConfig(
+  onEdit: (lease: Lease) => void,
+  onDelete: (lease: Lease) => void,
+  onViewDocuments: (lease: Lease) => void,
+  properties?: Property[],
+  getLeaseDocuments?: (leaseId: string) => any[]
+): TableConfig<Lease> {
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
+  const columns: ColumnDefinition<Lease>[] = [
+    {
+      key: 'tenantName',
+      label: 'Tenant',
+      priority: 'essential',
+      sortable: true,
+      render: (value, item) => {
+        const leaseDocuments = getLeaseDocuments ? getLeaseDocuments(item._id) : [];
+        return (
+          <div>
+            <div className="flex items-center gap-2">
+              <p className="font-medium">{value}</p>
+              {leaseDocuments.length > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  {leaseDocuments.length} doc{leaseDocuments.length !== 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
+            {item.tenantEmail && (
+              <p className="text-sm text-muted-foreground">{item.tenantEmail}</p>
+            )}
+            {item.tenantPhone && (
+              <p className="text-sm text-muted-foreground">{item.tenantPhone}</p>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      key: 'propertyId',
+      label: 'Property',
+      priority: 'essential',
+      sortable: true,
+      render: (value) => {
+        const property = properties?.find(p => p._id === value);
+        return (
+          <div className="flex items-center gap-1 text-sm">
+            <Building className="w-3 h-3 text-muted-foreground" />
+            <span className="truncate max-w-[150px]">{property?.name || "Unknown"}</span>
+          </div>
+        );
+      }
+    },
+    {
+      key: 'startDate',
+      label: 'Term',
+      priority: 'essential',
+      sortable: true,
+      render: (value, item) => (
+        <div className="text-sm">
+          <p>{formatDate(value)} - {formatDate(item.endDate)}</p>
+          {item.computedStatus === "active" && item.daysUntilExpiry !== null && item.daysUntilExpiry <= 60 && item.daysUntilExpiry >= 0 && (
+            <p className="text-orange-500 flex items-center gap-1 mt-1 text-xs">
+              <AlertCircle className="w-3 h-3" />
+              {item.daysUntilExpiry} days left
+            </p>
+          )}
+        </div>
+      )
+    },
+    {
+      key: 'rent',
+      label: 'Rent',
+      priority: 'essential',
+      sortable: true,
+      render: (value) => (
+        <span className="font-semibold text-green-600">
+          ${value.toLocaleString()}/mo
+        </span>
+      )
+    },
+    {
+      key: 'securityDeposit',
+      label: 'Deposit',
+      priority: 'important',
+      sortable: true,
+      render: (value) => (
+        <span className="text-sm">
+          {value ? `$${value.toLocaleString()}` : '-'}
+        </span>
+      )
+    },
+    {
+      key: 'computedStatus',
+      label: 'Status',
+      priority: 'essential',
+      sortable: true,
+      render: (value) => {
+        if (!value) return <StatusBadge status="pending" />;
+        return <StatusBadge status={value === "active" ? "active" : value === "expired" ? "expired" : "pending"} />;
+      }
+    },
+    {
+      key: '_id',
+      label: 'Actions',
+      priority: 'administrative',
+      sortable: false,
+      width: '64px',
+      className: 'text-center',
+      render: (value, item) => (
+        <div className="flex justify-center">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {getLeaseDocuments && getLeaseDocuments(item._id).length > 0 && (
+                <>
+                  {getLeaseDocuments(item._id).map((doc: any) => (
+                    <DropdownMenuItem key={doc._id} asChild>
+                      <DocumentViewer
+                        storageId={doc.storageId}
+                        fileName={doc.name}
+                      >
+                        <div className="flex items-center w-full cursor-pointer">
+                          <FileText className="h-4 w-4 mr-2" />
+                          View {doc.name}
+                        </div>
+                      </DocumentViewer>
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuItem onClick={() => onEdit(item)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Lease
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive"
+                onClick={() => onDelete(item)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Lease
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )
+    }
+  ];
+
+  return {
+    columns,
+    defaultSort: {
+      column: 'startDate',
+      direction: 'desc'
+    },
+    selectable: true,
+    mobileCardTemplate: 'lease-card'
+  };
+}
+
+// Custom mobile card renderer for leases
+export function LeaseMobileCard({ 
+  lease, 
+  selected, 
+  onSelect, 
+  onEdit, 
+  onDelete, 
+  onViewDocuments,
+  properties,
+  getLeaseDocuments
+}: {
+  lease: Lease;
+  selected: boolean;
+  onSelect: () => void;
+  onEdit: (lease: Lease) => void;
+  onDelete: (lease: Lease) => void;
+  onViewDocuments: (lease: Lease) => void;
+  properties?: Property[];
+  getLeaseDocuments?: (leaseId: string) => any[];
+}) {
+  const property = properties?.find(p => p._id === lease.propertyId);
+  const leaseDocuments = getLeaseDocuments ? getLeaseDocuments(lease._id) : [];
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString();
+  };
+
+  return (
+    <div className="p-4 hover:shadow-md transition-shadow duration-200">
+      <div className="space-y-4">
+        <div className="flex items-start gap-3">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={onSelect}
+            aria-label="Select lease"
+            className="w-4 h-4 rounded border-2 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 checked:bg-primary checked:border-primary focus:ring-2 focus:ring-primary/20 transition-all duration-200 cursor-pointer mt-1"
+          />
+          
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <h3 className="font-semibold text-base truncate">{lease.tenantName}</h3>
+                  {leaseDocuments.length > 0 && (
+                    <Badge variant="outline" className="text-xs shrink-0">
+                      {leaseDocuments.length} doc{leaseDocuments.length !== 1 ? 's' : ''}
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground mb-2">{property?.name || "Unknown Property"}</p>
+                {lease.tenantEmail && (
+                  <p className="text-sm text-muted-foreground">{lease.tenantEmail}</p>
+                )}
+                {lease.tenantPhone && (
+                  <p className="text-sm text-muted-foreground">{lease.tenantPhone}</p>
+                )}
+              </div>
+              
+              <div className="text-right sm:text-right">
+                <p className="font-bold text-lg text-green-600">
+                  ${lease.rent.toLocaleString()}/mo
+                </p>
+                <div className="flex justify-end sm:justify-end mt-1">
+                  <StatusBadge 
+                    status={lease.computedStatus === "active" ? "active" : lease.computedStatus === "expired" ? "expired" : "pending"} 
+                  />
+                </div>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2 text-sm py-3 bg-muted/30 rounded-lg px-3">
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">Start</p>
+                <p className="font-medium">{formatDate(lease.startDate)}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground mb-1">End</p>
+                <p className="font-medium">{formatDate(lease.endDate)}</p>
+              </div>
+              {lease.securityDeposit && (
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Deposit</p>
+                  <p className="font-medium">${lease.securityDeposit.toLocaleString()}</p>
+                </div>
+              )}
+            </div>
+
+            {lease.computedStatus === "active" && lease.daysUntilExpiry !== null && lease.daysUntilExpiry <= 60 && lease.daysUntilExpiry >= 0 && (
+              <div className="flex items-center gap-1 text-orange-500 text-sm mt-2">
+                <AlertCircle className="w-3 h-3" />
+                <span>{lease.daysUntilExpiry} days left</span>
+              </div>
+            )}
+          </div>
+        </div>
+        
+        <div className="flex items-center justify-end pt-3 border-t">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm" className="h-9 px-4 font-medium">
+                <MoreHorizontal className="h-4 w-4 mr-2" />
+                Actions
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {leaseDocuments.length > 0 && (
+                <>
+                  {leaseDocuments.map((doc: any) => (
+                    <DropdownMenuItem key={doc._id} asChild>
+                      <DocumentViewer
+                        storageId={doc.storageId}
+                        fileName={doc.name}
+                      >
+                        <div className="flex items-center w-full cursor-pointer">
+                          <FileText className="h-4 w-4 mr-2" />
+                          View {doc.name}
+                        </div>
+                      </DocumentViewer>
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              <DropdownMenuItem onClick={() => onEdit(lease)}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit Lease
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem 
+                className="text-destructive focus:text-destructive"
+                onClick={() => onDelete(lease)}
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Lease
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Data priority mapping for leases
+export const LeaseDataPriority = {
+  essential: ['tenantName', 'propertyId', 'startDate', 'rent', 'computedStatus'],
+  important: ['endDate', 'securityDeposit'],
+  contextual: ['tenantEmail', 'tenantPhone', 'notes', 'daysUntilExpiry'],
   administrative: ['_id', 'userId', 'createdAt', 'updatedAt']
 } as const;
 

@@ -18,6 +18,7 @@ const DEFAULT_NOTIFICATION_PREFERENCES = {
   pushNotifications: true,
   leaseExpirationAlerts: true,
   paymentReminders: true,
+  utilityBillReminders: true,
 };
 
 const DEFAULT_DISPLAY_PREFERENCES = {
@@ -87,6 +88,7 @@ async function updateUserSettingsHelper(
       pushNotifications?: boolean;
       leaseExpirationAlerts?: boolean;
       paymentReminders?: boolean;
+      utilityBillReminders?: boolean;
     };
     displayPreferences?: {
       dateFormat?: "MM/DD/YYYY" | "DD/MM/YYYY" | "YYYY-MM-DD";
@@ -179,6 +181,7 @@ export const updateUserSettings = mutation({
       pushNotifications: v.optional(v.boolean()),
       leaseExpirationAlerts: v.optional(v.boolean()),
       paymentReminders: v.optional(v.boolean()),
+      utilityBillReminders: v.optional(v.boolean()),
     })),
     displayPreferences: v.optional(v.object({
       dateFormat: v.optional(v.union(v.literal("MM/DD/YYYY"), v.literal("DD/MM/YYYY"), v.literal("YYYY-MM-DD"))),
@@ -210,6 +213,26 @@ export const updateDashboardComponents = mutation({
     return await updateUserSettingsHelper(ctx, {
       userId: args.userId,
       dashboardComponents: args.componentUpdates,
+    });
+  },
+});
+
+// Update notification preferences
+export const updateNotificationPreferences = mutation({
+  args: {
+    userId: v.string(),
+    notificationUpdates: v.object({
+      emailNotifications: v.optional(v.boolean()),
+      pushNotifications: v.optional(v.boolean()),
+      leaseExpirationAlerts: v.optional(v.boolean()),
+      paymentReminders: v.optional(v.boolean()),
+      utilityBillReminders: v.optional(v.boolean()),
+    }),
+  },
+  handler: async (ctx, args) => {
+    return await updateUserSettingsHelper(ctx, {
+      userId: args.userId,
+      notificationPreferences: args.notificationUpdates,
     });
   },
 });

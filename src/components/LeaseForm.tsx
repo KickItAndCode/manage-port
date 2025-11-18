@@ -8,6 +8,8 @@ import { Badge } from "@/components/ui/badge";
 import { SelectNative } from "@/components/ui/select-native";
 import { FormField } from "@/components/ui/form-field";
 import { FormContainer } from "@/components/ui/form-container";
+import { FormGrid } from "@/components/ui/form-grid";
+import { FormActions } from "@/components/ui/form-actions";
 import { Textarea } from "@/components/ui/textarea";
 import { leaseSchema, multiUnitLeaseSchema, type LeaseFormData } from "@/lib/validation";
 import { LeaseDocumentUpload } from "@/components/LeaseDocumentUpload";
@@ -252,7 +254,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
           />
         </FormField>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormGrid cols={2}>
           <FormField
             label="Tenant Email"
             error={errors.tenantEmail?.message}
@@ -274,9 +276,9 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
               {...register("tenantPhone")}
             />
           </FormField>
-        </div>
+        </FormGrid>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormGrid cols={2}>
           <FormField
             label="Start Date"
             required
@@ -300,9 +302,9 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
               required
             />
           </FormField>
-        </div>
+        </FormGrid>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormGrid cols={2}>
           <FormField
             label="Monthly Rent ($)"
             required
@@ -330,7 +332,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
               {...register("securityDeposit", { valueAsNumber: true })}
             />
           </FormField>
-        </div>
+        </FormGrid>
 
         {/* Computed Status Display - Read Only */}
         {startDate && endDate && (
@@ -379,7 +381,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
           />
         </FormField>
 
-        <div className="flex gap-2 justify-end pt-4">
+        <FormActions className="pt-4">
           {onCancel && (
             <Button type="button" variant="outline" onClick={onCancel} disabled={loading || isSubmitting}>
               Cancel
@@ -388,7 +390,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
           <Button type="submit" disabled={loading || isSubmitting}>
             {loading || isSubmitting ? "Saving..." : "Save Lease"}
           </Button>
-        </div>
+        </FormActions>
       </form>
     </FormContainer>
   );

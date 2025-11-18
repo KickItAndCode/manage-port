@@ -187,6 +187,7 @@ export default defineSchema({
       pushNotifications: v.boolean(),
       leaseExpirationAlerts: v.boolean(),
       paymentReminders: v.boolean(),
+      utilityBillReminders: v.boolean(), // Overdue bills and missing readings
     })),
     displayPreferences: v.optional(v.object({
       dateFormat: v.union(v.literal("MM/DD/YYYY"), v.literal("DD/MM/YYYY"), v.literal("YYYY-MM-DD")),

@@ -518,6 +518,39 @@ export const getUtilityBills = query({
   },
 });
 
+// Get a single utility bill
+export const getUtilityBill = query({
+  args: {
+    billId: v.id("utilityBills"),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const bill = await ctx.db.get(args.billId);
+    if (!bill || bill.userId !== args.userId) {
+      return null;
+    }
+    return bill;
+  },
+});
+
+// Get charges for a specific bill
+export const getChargesForBill = query({
+  args: {
+    billId: v.id("utilityBills"),
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const bill = await ctx.db.get(args.billId);
+    if (!bill || bill.userId !== args.userId) {
+      return [];
+    }
+
+    // Use the optimized charge calculation
+    const charges = await calculateChargesForBill(ctx, bill);
+    return charges;
+  },
+});
+
 // Get a utility bill with its calculated charges
 export const getUtilityBillWithCharges = query({
   args: {

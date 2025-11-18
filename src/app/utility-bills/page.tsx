@@ -16,9 +16,11 @@ import { UtilityBillForm } from "@/components/UtilityBillForm";
 import { BulkUtilityBillEntry } from "@/components/BulkUtilityBillEntry";
 import { BillSplitPreview } from "@/components/BillSplitPreview";
 import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
+import { UtilityLedger } from "@/components/UtilityLedger";
 import { LoadingContent } from "@/components/LoadingContent";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ResponsiveTable, BulkActionsToolbar } from "@/components/ui/responsive-table";
+import { EmptyState } from "@/components/ui/empty-state";
 import { 
   createUtilityBillTableConfig, 
   UtilityBillMobileCard, 
@@ -826,19 +828,24 @@ function UtilityBillsContent() {
             config={tableConfig}
             loading={false}
             emptyState={
-              <div className="text-center py-12">
-                <Receipt className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">No Bills Found</h3>
-                <p className="text-muted-foreground mb-4">
-                  {Object.values(filters).some(v => v !== undefined && v !== '' && (!Array.isArray(v) || v.length > 0))
+              <EmptyState
+                icon={Receipt}
+                title="No Bills Found"
+                description={
+                  Object.values(filters).some(v => v !== undefined && v !== '' && (!Array.isArray(v) || v.length > 0))
                     ? "Try adjusting your filters"
-                    : "Start by adding your first utility bill"}
-                </p>
-                <Button onClick={() => setBillDialogOpen(true)}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add First Bill
-                </Button>
-              </div>
+                    : "Start by adding your first utility bill"
+                }
+                action={
+                  !Object.values(filters).some(v => v !== undefined && v !== '' && (!Array.isArray(v) || v.length > 0))
+                    ? {
+                        label: "Add First Bill",
+                        onClick: () => setBillDialogOpen(true),
+                        icon: Plus,
+                      }
+                    : undefined
+                }
+              />
             }
             onSort={handleSort}
             onSelect={setSelectedUtilityBills}
@@ -953,12 +960,12 @@ function UtilityBillsContent() {
 
       {/* View Charges Dialog */}
       <Dialog open={!!viewingBill} onOpenChange={(open) => !open && setViewingBill(null)}>
-        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="text-lg md:text-xl">Bill Charges & Tenant Responsibilities</DialogTitle>
+            <DialogTitle className="text-lg md:text-xl">Bill Details & Charge Ledger</DialogTitle>
           </DialogHeader>
           {viewingBill && (
-            <div className="space-y-4">
+            <div className="space-y-6">
               <div className="bg-muted/50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">{viewingBill.utilityType} - {viewingBill.billMonth}</h3>
@@ -967,6 +974,14 @@ function UtilityBillsContent() {
                 <p className="text-sm text-muted-foreground">{viewingBill.provider}</p>
               </div>
               
+              {/* Utility Ledger - Inspectable calculation breakdown */}
+              <UtilityLedger
+                billId={viewingBill._id}
+                userId={user.id}
+                showEdit={true}
+              />
+              
+              {/* Bill Split Preview */}
               <BillSplitPreview
                 propertyId={viewingBill.propertyId}
                 utilityType={viewingBill.utilityType}

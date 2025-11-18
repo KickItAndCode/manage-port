@@ -32,6 +32,7 @@ import type * as userSettings from "../userSettings.js";
 import type * as utilityAnalytics from "../utilityAnalytics.js";
 import type * as utilityBills from "../utilityBills.js";
 import type * as utilityCharges from "../utilityCharges.js";
+import type * as utilityInsights from "../utilityInsights.js";
 import type * as utilityPayments from "../utilityPayments.js";
 
 /**
@@ -62,6 +63,7 @@ declare const fullApi: ApiFromModules<{
   utilityAnalytics: typeof utilityAnalytics;
   utilityBills: typeof utilityBills;
   utilityCharges: typeof utilityCharges;
+  utilityInsights: typeof utilityInsights;
   utilityPayments: typeof utilityPayments;
 }>;
 export declare const api: FilterApi<

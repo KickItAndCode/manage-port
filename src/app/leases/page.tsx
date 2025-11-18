@@ -12,20 +12,14 @@ import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
-import { FileText, AlertCircle, DollarSign, Archive, Eye, EyeOff, MoreHorizontal, Edit, Trash2 } from "lucide-react";
-import { DocumentViewer } from "@/components/DocumentViewer";
-import { Table, TableHeader, TableBody, TableCell, TableHead, TableRow } from "@/components/ui/table";
+import { Archive, Eye, EyeOff, Layers, Plus } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
-import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
+import { createLeaseTableConfig, LeaseMobileCard, type Lease, type Property } from "@/lib/table-configs";
+import { UtilityResponsibilitySnapshot } from "@/components/UtilityResponsibilitySnapshot";
 import { useLeaseStatuses } from "@/hooks/use-lease-status";
 import { sortLeasesByStatus } from "@/lib/lease-status";
 
@@ -51,6 +45,7 @@ function LeasesPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showExpiredLeases, setShowExpiredLeases] = useState(false);
+  const [selectedLeases, setSelectedLeases] = useState<Lease[]>([]);
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
   // Auto-open modal if coming from property page
@@ -114,6 +109,44 @@ function LeasesPageContent() {
       );
     }
     return <StatusBadge status={status} variant="compact" />;
+  };
+
+  // Handlers for ResponsiveTable
+  const handleEditLease = (lease: Lease) => {
+    setEditLease(lease);
+    setModalOpen(true);
+  };
+
+  const handleDeleteLease = (lease: Lease) => {
+    if (!user) return;
+    confirm({
+      title: "Delete Lease",
+      description: "Delete this lease? This will also delete any associated documents.",
+      variant: "destructive",
+      onConfirm: async () => {
+        setLoading(true);
+        setError(null);
+        try {
+          await deleteLease({ id: lease._id as any, userId: user.id });
+          toast.success("Lease deleted successfully");
+        } catch (err: any) {
+          const errorMessage = formatErrorForToast(err);
+          toast.error(errorMessage);
+          console.error("Delete lease error:", err);
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
+  };
+
+  const handleViewDocuments = (lease: Lease) => {
+    // This will be handled by the mobile card's document viewer
+    // The table config already includes document viewing in the dropdown
+  };
+
+  const handleSort = (column: keyof Lease, direction: "asc" | "desc") => {
+    // Sorting is handled by ResponsiveTable internally
   };
 
   // Handlers
@@ -324,303 +357,70 @@ function LeasesPageContent() {
   if (!user) return <SignedOutSkeleton />;
   if (!properties) return <LeasesLoadingSkeleton />;
 
-  const LeaseTable = ({ leases: leaseList, title }: { leases: any[], title: string }) => {
+  // Create table config for leases
+  const leaseTableConfig = createLeaseTableConfig(
+    handleEditLease,
+    handleDeleteLease,
+    handleViewDocuments,
+    properties as Property[],
+    getLeaseDocuments
+  );
+
+  const LeaseTable = ({ leases: leaseList, title }: { leases: Lease[], title: string }) => {
+    const [selectedItems, setSelectedItems] = useState<Lease[]>([]);
+    
     return (
-    <Card className="p-4 sm:p-6">
-      <h2 className="text-lg font-semibold mb-4">{title}</h2>
-      
-      {/* Mobile Card View */}
-      <div className="lg:hidden space-y-4">
-        {leaseList.map((lease) => {
-          const property = properties?.find((p: any) => p._id === lease.propertyId);
-          const leaseDocuments = getLeaseDocuments(lease._id);
-          return (
-            <Card key={lease._id} className="p-4 border">
-              <div className="space-y-3">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{lease.tenantName}</h3>
-                      {leaseDocuments.length > 0 && (
-                        <Badge variant="outline" className="text-xs">
-                          {leaseDocuments.length} doc{leaseDocuments.length !== 1 ? 's' : ''}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground">{property?.name || "Unknown Property"}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-semibold">${lease.rent.toLocaleString()}/mo</p>
-                    {getStatusBadge(lease)}
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div>
-                    <span className="text-muted-foreground">Start:</span>
-                    <p className="font-medium">{formatDate(lease.startDate)}</p>
-                  </div>
-                  <div>
-                    <span className="text-muted-foreground">End:</span>
-                    <p className="font-medium">{formatDate(lease.endDate)}</p>
-                  </div>
-                  {lease.securityDeposit && (
-                    <div>
-                      <span className="text-muted-foreground">Deposit:</span>
-                      <p className="font-medium">${lease.securityDeposit.toLocaleString()}</p>
-                    </div>
-                  )}
-                </div>
-                
-                {(lease.tenantEmail || lease.tenantPhone) && (
-                  <div className="space-y-1 text-sm text-muted-foreground">
-                    {lease.tenantEmail && <p>{lease.tenantEmail}</p>}
-                    {lease.tenantPhone && <p>{lease.tenantPhone}</p>}
-                  </div>
-                )}
-                
-                {lease.computedStatus === "active" && lease.daysUntilExpiry <= 60 && lease.daysUntilExpiry >= 0 && (
-                  <div className="flex items-center gap-1 text-orange-500 text-sm">
-                    <AlertCircle className="w-3 h-3" />
-                    <span>{lease.daysUntilExpiry} days left</span>
-                  </div>
-                )}
-                
-                <div className="flex items-center justify-end pt-2 border-t">
-                  <div className="flex justify-center">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-8 px-3">
-                          <MoreHorizontal className="h-4 w-4 mr-1" />
-                          Actions
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        {/* View Lease Documents */}
-                        {leaseDocuments.length > 0 && (
-                          <>
-                            {leaseDocuments.map(doc => (
-                              <DropdownMenuItem key={doc._id} asChild>
-                                <DocumentViewer
-                                  storageId={doc.storageId}
-                                  fileName={doc.name}
-                                >
-                                  <div className="flex items-center w-full cursor-pointer">
-                                    <FileText className="h-4 w-4 mr-2" />
-                                    View {doc.name}
-                                  </div>
-                                </DocumentViewer>
-                              </DropdownMenuItem>
-                            ))}
-                            <DropdownMenuSeparator />
-                          </>
-                        )}
-                        <DropdownMenuItem onClick={() => {
-                          setEditLease(lease);
-                          setModalOpen(true);
-                        }}>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit Lease
-                        </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem 
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => {
-                            confirm({
-                              title: "Delete Lease",
-                              description: "Delete this lease? This will also delete any associated documents.",
-                              variant: "destructive",
-                              onConfirm: async () => {
-                                setLoading(true);
-                                setError(null);
-                                try {
-                                  await deleteLease({ id: lease._id as any, userId: user.id });
-                                } catch (err: any) {
-                                  const errorMessage = formatErrorForToast(err);
-                                  toast.error(errorMessage);
-                                  console.error("Delete lease error:", err);
-                                } finally {
-                                  setLoading(false);
-                                }
-                              }
-                            });
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Lease
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                </div>
-              </div>
-            </Card>
-          );
-        })}
-        {leaseList.length === 0 && (
-          <div className="text-center text-muted-foreground py-8">
-            No {title.toLowerCase()} found.
-          </div>
-        )}
-      </div>
-      
-      {/* Desktop Table View */}
-      <div className="hidden lg:block overflow-x-auto">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Tenant</TableHead>
-              <TableHead>Property</TableHead>
-              <TableHead>Term</TableHead>
-              <TableHead>Rent</TableHead>
-              <TableHead>Deposit</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-center w-16">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {leaseList.map((lease) => {
-              const property = properties?.find((p: any) => p._id === lease.propertyId);
-              // daysUntilExpiry is now computed in the lease object
-              const leaseDocuments = getLeaseDocuments(lease._id);
-              return (
-                <TableRow key={lease._id} className="hover:bg-muted/50 transition-colors duration-200">
-                  <TableCell>
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">{lease.tenantName}</p>
-                        {leaseDocuments.length > 0 && (
-                          <Badge variant="outline" className="text-xs">
-                            {leaseDocuments.length} doc{leaseDocuments.length !== 1 ? 's' : ''}
-                          </Badge>
-                        )}
-                      </div>
-                      {lease.tenantEmail && (
-                        <p className="text-sm text-muted-foreground">{lease.tenantEmail}</p>
-                      )}
-                      {lease.tenantPhone && (
-                        <p className="text-sm text-muted-foreground">{lease.tenantPhone}</p>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Tooltip>
-                      <TooltipTrigger>
-                        <span className="truncate max-w-[150px] inline-block">
-                          {property?.name || "Unknown"}
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        {property?.name} - {property?.address}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <p>{formatDate(lease.startDate)} - {formatDate(lease.endDate)}</p>
-                      {lease.computedStatus === "active" && lease.daysUntilExpiry <= 60 && lease.daysUntilExpiry >= 0 && (
-                        <p className="text-orange-500 flex items-center gap-1 mt-1">
-                          <AlertCircle className="w-3 h-3" />
-                          {lease.daysUntilExpiry} days left
-                        </p>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>${lease.rent.toLocaleString()}/mo</TableCell>
-                  <TableCell>
-                    {lease.securityDeposit ? (
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <span className="flex items-center gap-1">
-                            <DollarSign className="w-3 h-3" />
-                            ${lease.securityDeposit.toLocaleString()}
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>Security Deposit</TooltipContent>
-                      </Tooltip>
-                    ) : "-"}
-                  </TableCell>
-                  <TableCell>{getStatusBadge(lease)}</TableCell>
-                  <TableCell>
-                    <div className="flex justify-center">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {/* View Lease Documents */}
-                          {leaseDocuments.length > 0 && (
-                            <>
-                              {leaseDocuments.map(doc => (
-                                <DropdownMenuItem key={doc._id} asChild>
-                                  <DocumentViewer
-                                    storageId={doc.storageId}
-                                    fileName={doc.name}
-                                  >
-                                    <div className="flex items-center w-full cursor-pointer">
-                                      <FileText className="h-4 w-4 mr-2" />
-                                      View {doc.name}
-                                    </div>
-                                  </DocumentViewer>
-                                </DropdownMenuItem>
-                              ))}
-                              <DropdownMenuSeparator />
-                            </>
-                          )}
-                          <DropdownMenuItem onClick={() => {
-                            setEditLease(lease);
-                            setModalOpen(true);
-                          }}>
-                            <Edit className="h-4 w-4 mr-2" />
-                            Edit Lease
-                          </DropdownMenuItem>
-                          <DropdownMenuSeparator />
-                          <DropdownMenuItem 
-                            className="text-destructive focus:text-destructive"
-                            onClick={() => {
-                              confirm({
-                                title: "Delete Lease",
-                                description: "Delete this lease? This will also delete any associated documents.",
-                                variant: "destructive",
-                                onConfirm: async () => {
-                                  setLoading(true);
-                                  setError(null);
-                                  try {
-                                    await deleteLease({ id: lease._id as any, userId: user.id });
-                                  } catch (err: any) {
-                                    const errorMessage = formatErrorForToast(err);
-                                    toast.error(errorMessage);
-                                    console.error("Delete lease error:", err);
-                                  } finally {
-                                    setLoading(false);
-                                  }
-                                }
-                              });
-                            }}
-                          >
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            Delete Lease
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })}
-            {leaseList.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                  No {title.toLowerCase()} found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </div>
-    </Card>
+      <Card className="p-4 sm:p-6">
+        <h2 className="text-lg font-semibold mb-4">{title}</h2>
+        <ResponsiveTable
+          data={leaseList}
+          config={leaseTableConfig}
+          loading={loading}
+          onSort={handleSort}
+          onSelect={setSelectedItems}
+          selectedItems={selectedItems}
+          getItemId={(lease) => lease._id}
+          mobileCardRenderer={(lease, { selected, onSelect }) => (
+            <LeaseMobileCard
+              lease={lease}
+              selected={selected}
+              onSelect={onSelect}
+              onEdit={handleEditLease}
+              onDelete={handleDeleteLease}
+              onViewDocuments={handleViewDocuments}
+              properties={properties as Property[]}
+              getLeaseDocuments={getLeaseDocuments}
+            />
+          )}
+          emptyState={
+            <EmptyState
+              icon={Layers}
+              title={`No ${title.toLowerCase()} found`}
+              description={
+                search || filterProperty
+                  ? "Try adjusting your filters"
+                  : title.includes("Active") || title.includes("Pending")
+                  ? "Add your first lease to get started"
+                  : "No expired leases"
+              }
+              action={
+                (title.includes("Active") || title.includes("Pending")) &&
+                !search &&
+                !filterProperty
+                  ? {
+                      label: "Add Lease",
+                      onClick: () => {
+                        setEditLease(null);
+                        setModalOpen(true);
+                      },
+                      icon: Plus,
+                    }
+                  : undefined
+              }
+            />
+          }
+        />
+      </Card>
     );
   };
 
@@ -737,7 +537,7 @@ function LeasesPageContent() {
       </div>
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editLease ? "Edit Lease" : "Add Lease"}</DialogTitle>
           </DialogHeader>
@@ -746,18 +546,32 @@ function LeasesPageContent() {
               {error}
             </div>
           )}
-          <LeaseForm
-            initial={editLease || (preSelectedPropertyId ? { propertyId: preSelectedPropertyId } : undefined)}
-            onSubmit={handleSubmit}
-            loading={loading}
-            userId={user!.id}
-            onCancel={() => {
-              setModalOpen(false);
-              setEditLease(null);
-              setError(null);
-            }}
-            properties={properties || []}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div>
+              <LeaseForm
+                initial={editLease || (preSelectedPropertyId ? { propertyId: preSelectedPropertyId } : undefined)}
+                onSubmit={handleSubmit}
+                loading={loading}
+                userId={user!.id}
+                onCancel={() => {
+                  setModalOpen(false);
+                  setEditLease(null);
+                  setError(null);
+                }}
+                properties={properties || []}
+              />
+            </div>
+            {editLease && editLease._id && (
+              <div className="lg:sticky lg:top-4 lg:self-start">
+                <UtilityResponsibilitySnapshot
+                  leaseId={editLease._id as any}
+                  userId={user!.id}
+                  showEdit={true}
+                  compact={true}
+                />
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
 

@@ -12,22 +12,28 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Settings, 
-  Monitor, 
-  Sun, 
-  Moon, 
-  BarChart, 
-  DollarSign, 
-  Bell, 
-  Eye, 
+import {
+  Settings,
+  Monitor,
+  Sun,
+  Moon,
+  BarChart,
+  DollarSign,
+  Bell,
+  Eye,
   EyeOff,
   Save,
   RotateCcw,
   Palette,
   Layout,
-  Globe
+  Globe,
+  Mail,
+  Smartphone,
+  Calendar,
+  CreditCard,
+  Receipt,
 } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 export default function SettingsPage() {
   const { user } = useUser();
@@ -39,11 +45,17 @@ export default function SettingsPage() {
   const [localSettings, setLocalSettings] = useState<any>(null);
 
   // Convex hooks
-  const userSettings = useQuery(api.userSettings.getUserSettings, 
+  const userSettings = useQuery(
+    api.userSettings.getUserSettings,
     user ? { userId: user.id } : "skip"
   );
-  const updateDashboardComponents = useMutation(api.userSettings.updateDashboardComponents);
+  const updateDashboardComponents = useMutation(
+    api.userSettings.updateDashboardComponents
+  );
   const updateThemeMutation = useMutation(api.userSettings.updateTheme);
+  const updateNotificationPreferences = useMutation(
+    api.userSettings.updateNotificationPreferences
+  );
 
   useEffect(() => {
     setMounted(true);
@@ -97,14 +109,48 @@ export default function SettingsPage() {
 
   const handleSaveChanges = async () => {
     try {
-      await updateDashboardComponents({
-        userId: user.id,
-        componentUpdates: localSettings.dashboardComponents,
-      });
+      // Save dashboard components if changed
+      if (hasChanges) {
+        await updateDashboardComponents({
+          userId: user.id,
+          componentUpdates: localSettings.dashboardComponents,
+        });
+      }
       setHasChanges(false);
       toast.success("Settings saved successfully");
     } catch (error) {
       toast.error(formatErrorForToast(error));
+    }
+  };
+
+  const handleNotificationToggle = async (key: string, value: boolean) => {
+    try {
+      setLocalSettings((prev: any) => ({
+        ...prev,
+        notificationPreferences: {
+          ...prev.notificationPreferences,
+          [key]: value,
+        },
+      }));
+
+      // Save immediately for notification preferences
+      await updateNotificationPreferences({
+        userId: user.id,
+        notificationUpdates: {
+          [key]: value,
+        },
+      });
+      toast.success("Notification preference updated");
+    } catch (error) {
+      toast.error(formatErrorForToast(error));
+      // Revert on error
+      setLocalSettings((prev: any) => ({
+        ...prev,
+        notificationPreferences: {
+          ...prev.notificationPreferences,
+          [key]: !value,
+        },
+      }));
     }
   };
 
@@ -118,7 +164,7 @@ export default function SettingsPage() {
       showRecentProperties: true,
       showQuickActions: true,
     };
-    
+
     setLocalSettings((prev: any) => ({
       ...prev,
       dashboardComponents: defaultComponents,
@@ -130,61 +176,66 @@ export default function SettingsPage() {
     {
       key: "showMetrics",
       label: "Statistics Cards",
-      description: "Overview metrics like total properties, monthly revenue, and occupancy rate",
+      description:
+        "Overview metrics like total properties, monthly revenue, and occupancy rate",
       icon: BarChart,
-      category: "Analytics"
+      category: "Analytics",
     },
     {
-      key: "showCharts", 
+      key: "showCharts",
       label: "Analytics Charts",
-      description: "Revenue trends, property distribution, and other visualizations",
+      description:
+        "Revenue trends, property distribution, and other visualizations",
       icon: BarChart,
-      category: "Analytics"
+      category: "Analytics",
     },
     {
       key: "showFinancialSummary",
       label: "Financial Summary",
       description: "Detailed breakdown of income, expenses, and net profit",
       icon: DollarSign,
-      category: "Financial"
+      category: "Financial",
     },
     {
       key: "showOutstandingBalances",
       label: "Outstanding Balances",
       description: "Overdue payments and pending transactions",
       icon: DollarSign,
-      category: "Financial"
+      category: "Financial",
     },
     {
       key: "showUtilityAnalytics",
       label: "Utility Analytics",
       description: "Utility cost trends and consumption patterns",
       icon: BarChart,
-      category: "Analytics"
+      category: "Analytics",
     },
     {
       key: "showRecentProperties",
       label: "Recent Properties",
       description: "Latest properties added to your portfolio",
       icon: Layout,
-      category: "Content"
+      category: "Content",
     },
     {
       key: "showQuickActions",
       label: "Quick Actions",
       description: "Shortcuts to frequently used features",
       icon: Layout,
-      category: "Navigation"
+      category: "Navigation",
     },
   ];
 
-  const groupedComponents = dashboardComponents.reduce((acc, component) => {
-    if (!acc[component.category]) {
-      acc[component.category] = [];
-    }
-    acc[component.category].push(component);
-    return acc;
-  }, {} as Record<string, typeof dashboardComponents>);
+  const groupedComponents = dashboardComponents.reduce(
+    (acc, component) => {
+      if (!acc[component.category]) {
+        acc[component.category] = [];
+      }
+      acc[component.category].push(component);
+      return acc;
+    },
+    {} as Record<string, typeof dashboardComponents>
+  );
 
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8">
@@ -231,7 +282,9 @@ export default function SettingsPage() {
                 </p>
                 <div className="flex gap-2">
                   <Button
-                    variant={localSettings.theme === "light" ? "default" : "outline"}
+                    variant={
+                      localSettings.theme === "light" ? "default" : "outline"
+                    }
                     size="sm"
                     onClick={() => handleThemeChange("light")}
                     className="flex items-center gap-2"
@@ -240,7 +293,9 @@ export default function SettingsPage() {
                     Light
                   </Button>
                   <Button
-                    variant={localSettings.theme === "dark" ? "default" : "outline"}
+                    variant={
+                      localSettings.theme === "dark" ? "default" : "outline"
+                    }
                     size="sm"
                     onClick={() => handleThemeChange("dark")}
                     className="flex items-center gap-2"
@@ -249,7 +304,9 @@ export default function SettingsPage() {
                     Dark
                   </Button>
                   <Button
-                    variant={localSettings.theme === "system" ? "default" : "outline"}
+                    variant={
+                      localSettings.theme === "system" ? "default" : "outline"
+                    }
                     size="sm"
                     onClick={() => handleThemeChange("system")}
                     className="flex items-center gap-2"
@@ -275,86 +332,246 @@ export default function SettingsPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {Object.entries(groupedComponents).map(([category, components]) => (
-                  <div key={category}>
-                    <div className="flex items-center gap-2 mb-3">
-                      <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
-                        {category}
-                      </h3>
-                      <Separator className="flex-1" />
-                    </div>
-                    <div className="grid gap-3">
-                      {components.map((component) => {
-                        const Icon = component.icon;
-                        const isVisible = localSettings.dashboardComponents[component.key];
-                        
-                        return (
-                          <div
-                            key={component.key}
-                            className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
-                          >
-                            <div className="flex items-start gap-3 flex-1">
-                              <Icon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
-                              <div className="flex-1 min-w-0">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <Label className="font-medium cursor-pointer">
-                                    {component.label}
-                                  </Label>
-                                  {isVisible ? (
-                                    <Badge variant="secondary" className="text-xs">
-                                      <Eye className="h-3 w-3 mr-1" />
-                                      Visible
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="outline" className="text-xs">
-                                      <EyeOff className="h-3 w-3 mr-1" />
-                                      Hidden
-                                    </Badge>
-                                  )}
+                {Object.entries(groupedComponents).map(
+                  ([category, components]) => (
+                    <div key={category}>
+                      <div className="flex items-center gap-2 mb-3">
+                        <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                          {category}
+                        </h3>
+                        <Separator className="flex-1" />
+                      </div>
+                      <div className="grid gap-3">
+                        {components.map((component) => {
+                          const Icon = component.icon;
+                          const isVisible =
+                            localSettings.dashboardComponents[component.key];
+
+                          return (
+                            <div
+                              key={component.key}
+                              className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors"
+                            >
+                              <div className="flex items-start gap-3 flex-1">
+                                <Icon className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <Label className="font-medium cursor-pointer">
+                                      {component.label}
+                                    </Label>
+                                    {isVisible ? (
+                                      <Badge
+                                        variant="secondary"
+                                        className="text-xs"
+                                      >
+                                        <Eye className="h-3 w-3 mr-1" />
+                                        Visible
+                                      </Badge>
+                                    ) : (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs"
+                                      >
+                                        <EyeOff className="h-3 w-3 mr-1" />
+                                        Hidden
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <p className="text-sm text-muted-foreground">
+                                    {component.description}
+                                  </p>
                                 </div>
-                                <p className="text-sm text-muted-foreground">
-                                  {component.description}
-                                </p>
+                              </div>
+                              <div className="flex-shrink-0 ml-4">
+                                <button
+                                  onClick={() =>
+                                    handleComponentToggle(
+                                      component.key,
+                                      !isVisible
+                                    )
+                                  }
+                                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
+                                    isVisible
+                                      ? "bg-primary"
+                                      : "bg-muted-foreground/30"
+                                  }`}
+                                >
+                                  <span
+                                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                      isVisible
+                                        ? "translate-x-6"
+                                        : "translate-x-1"
+                                    }`}
+                                  />
+                                </button>
                               </div>
                             </div>
-                            <div className="flex-shrink-0 ml-4">
-                              <button
-                                onClick={() => handleComponentToggle(component.key, !isVisible)}
-                                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
-                                  isVisible ? 'bg-primary' : 'bg-muted-foreground/30'
-                                }`}
-                              >
-                                <span
-                                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                                    isVisible ? 'translate-x-6' : 'translate-x-1'
-                                  }`}
-                                />
-                              </button>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          );
+                        })}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  )
+                )}
               </div>
             </CardContent>
           </Card>
 
-
-          {/* Future Settings Placeholder */}
-          <Card className="opacity-60">
+          {/* Notification Preferences */}
+          <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Bell className="h-5 w-5" />
                 Notifications
-                <Badge variant="outline" className="text-xs">Coming Soon</Badge>
               </CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Control how and when you receive alerts and reminders
+              </p>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Notification preferences and alert settings will be available in a future update.
-              </p>
+              <div className="space-y-6">
+                {/* General Notification Channels */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Channels
+                    </h3>
+                    <Separator className="flex-1" />
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-start gap-3 flex-1">
+                        <Mail className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <Label className="font-medium cursor-pointer">
+                            Email Notifications
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receive notifications via email
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={
+                          localSettings.notificationPreferences
+                            ?.emailNotifications ?? true
+                        }
+                        onCheckedChange={(checked) =>
+                          handleNotificationToggle(
+                            "emailNotifications",
+                            checked
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-start gap-3 flex-1">
+                        <Smartphone className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <Label className="font-medium cursor-pointer">
+                            Push Notifications
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Receive browser push notifications
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={
+                          localSettings.notificationPreferences
+                            ?.pushNotifications ?? true
+                        }
+                        onCheckedChange={(checked) =>
+                          handleNotificationToggle("pushNotifications", checked)
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Alert Types */}
+                <div>
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Alert Types
+                    </h3>
+                    <Separator className="flex-1" />
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-start gap-3 flex-1">
+                        <Calendar className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <Label className="font-medium cursor-pointer">
+                            Lease Expiration Alerts
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Get notified when leases are expiring soon
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={
+                          localSettings.notificationPreferences
+                            ?.leaseExpirationAlerts ?? true
+                        }
+                        onCheckedChange={(checked) =>
+                          handleNotificationToggle(
+                            "leaseExpirationAlerts",
+                            checked
+                          )
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-start gap-3 flex-1">
+                        <CreditCard className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <Label className="font-medium cursor-pointer">
+                            Payment Reminders
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Reminders for overdue tenant payments
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={
+                          localSettings.notificationPreferences
+                            ?.paymentReminders ?? true
+                        }
+                        onCheckedChange={(checked) =>
+                          handleNotificationToggle("paymentReminders", checked)
+                        }
+                      />
+                    </div>
+                    <div className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex items-start gap-3 flex-1">
+                        <Receipt className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <Label className="font-medium cursor-pointer">
+                            Utility Bill Reminders
+                          </Label>
+                          <p className="text-sm text-muted-foreground">
+                            Alerts for overdue bills and missing readings
+                          </p>
+                        </div>
+                      </div>
+                      <Switch
+                        checked={
+                          localSettings.notificationPreferences
+                            ?.utilityBillReminders ?? true
+                        }
+                        onCheckedChange={(checked) =>
+                          handleNotificationToggle(
+                            "utilityBillReminders",
+                            checked
+                          )
+                        }
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
 
@@ -363,12 +580,15 @@ export default function SettingsPage() {
               <CardTitle className="flex items-center gap-2">
                 <Globe className="h-5 w-5" />
                 Regional Settings
-                <Badge variant="outline" className="text-xs">Coming Soon</Badge>
+                <Badge variant="outline" className="text-xs">
+                  Coming Soon
+                </Badge>
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground">
-                Date format, currency, timezone, and language preferences will be available in a future update.
+                Date format, currency, timezone, and language preferences will
+                be available in a future update.
               </p>
             </CardContent>
           </Card>
@@ -380,8 +600,12 @@ export default function SettingsPage() {
             <Card className="p-4 shadow-lg border-primary">
               <div className="flex items-center gap-3">
                 <div className="flex-1">
-                  <p className="text-sm font-medium">You have unsaved changes</p>
-                  <p className="text-xs text-muted-foreground">Don&apos;t forget to save your settings</p>
+                  <p className="text-sm font-medium">
+                    You have unsaved changes
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Don&apos;t forget to save your settings
+                  </p>
                 </div>
                 <Button onClick={handleSaveChanges} size="sm">
                   <Save className="h-4 w-4 mr-2" />
