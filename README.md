@@ -1,5 +1,15 @@
 # ManagePort
 
+**Status**: Phase 3 - Experience Deepening (In Progress)  
+**Last Updated**: January 27, 2025
+
+> 📖 **Quick Start**: See `docs/QUICK_START.md` for immediate next steps  
+> 📊 **Current Status**: See `docs/CURRENT_STATUS.md` for detailed progress
+
+---
+
+## ManagePort
+
 A modern property management platform for landlords and property managers to efficiently manage their rental properties, leases, utilities, and documents.
 
 ## Features

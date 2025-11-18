@@ -11,7 +11,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ImageIcon, Wand2, Trash2 } from "lucide-react";
+import { ImageIcon, Wand2, Trash2, Building } from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ResponsiveTable, BulkActionsToolbar } from "@/components/ui/responsive-table";
@@ -531,19 +532,24 @@ function PropertiesContent() {
             </Card>
           )}
           emptyState={
-            <div className="text-center text-muted-foreground py-12">
-              <ImageIcon className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-              <h3 className="text-lg font-medium mb-2 text-foreground">No properties found</h3>
-              <p className="text-muted-foreground mb-6 text-sm">
-                {search || typeFilter || statusFilter ? 
-                  "Try adjusting your filters" : 
-                  "Add your first property to get started"
-                }
-              </p>
-              <p className="text-muted-foreground">
-                Use the Property Wizard from the dashboard to add your first property.
-              </p>
-            </div>
+            <EmptyState
+              icon={Building}
+              title="No properties found"
+              description={
+                search || typeFilter || statusFilter
+                  ? "Try adjusting your filters"
+                  : "Add your first property to get started"
+              }
+              action={
+                !search && !typeFilter && !statusFilter
+                  ? {
+                      label: "Add Property",
+                      onClick: () => setWizardOpen(true),
+                      icon: Wand2,
+                    }
+                  : undefined
+              }
+            />
           }
         />
       </Card>

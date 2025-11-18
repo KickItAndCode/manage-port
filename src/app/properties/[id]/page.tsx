@@ -47,6 +47,7 @@ import { UnitForm } from "@/components/UnitForm";
 import { BulkUnitCreator } from "@/components/BulkUnitCreator";
 import { PropertyUtilityAllocation } from "@/components/PropertyUtilityAllocation";
 import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
+import { UtilityResponsibilitySnapshot } from "@/components/UtilityResponsibilitySnapshot";
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -1137,6 +1138,15 @@ export default function PropertyDetailsPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Utility Responsibility Snapshot */}
+            {property && (
+              <UtilityResponsibilitySnapshot
+                propertyId={property._id as any}
+                userId={user!.id}
+                showEdit={true}
+              />
+            )}
 
             {/* Property Utility Allocation */}
             {property && (property.propertyType === "multi-family" || (propertyWithUnits?.units && propertyWithUnits.units.length > 0)) && (

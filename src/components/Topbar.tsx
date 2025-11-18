@@ -2,6 +2,7 @@
 import { UserButton, useUser } from "@clerk/nextjs";
 import { Sun, Moon } from "lucide-react";
 import { GlobalSearch } from "@/components/GlobalSearch";
+import { QuickActions } from "@/components/ui/quick-actions";
 import Link from "next/link";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
@@ -21,6 +22,9 @@ export function Topbar() {
         <GlobalSearch />
       </div>
       <div className="flex items-center gap-2 sm:gap-4">
+        {isLoaded && isSignedIn && (
+          <QuickActions variant="dropdown" className="hidden sm:flex" />
+        )}
         {mounted && (
           <button
             className="p-2 rounded-full hover:bg-muted/60 text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary transition-colors duration-200"

@@ -24,6 +24,8 @@ import {
 import { InteractiveChart } from "./charts/InteractiveChart";
 import { createEnhancedTooltip } from "./charts/AdvancedTooltip";
 import { formatCurrency, calculateChange } from "@/utils/chartUtils";
+import { MonthlyTrendsChart } from "./charts/MonthlyTrendsChart";
+import { SeasonalInsights } from "./charts/SeasonalInsights";
 
 interface UtilityAnalyticsProps {
   userId: string;
@@ -32,10 +34,16 @@ interface UtilityAnalyticsProps {
 const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
 export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
-  const [timeframe, setTimeframe] = useState("6"); // months
+  const [timeframe, setTimeframe] = useState(6); // months as number
   const router = useRouter();
 
-  // Get utility bills
+  // Get enhanced analytics data from backend
+  const analyticsData = useQuery(api.utilityAnalytics.getEnhancedUtilityAnalytics, {
+    userId,
+    timeframeMonths: timeframe,
+  });
+
+  // Get utility bills for backward compatibility
   const utilityBills = useQuery(api.utilityBills.getUtilityBills, {
     userId,
   });
@@ -54,76 +62,20 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
     }
   };
 
-  const processAnalyticsData = () => {
-    if (!utilityBills || !properties) return null;
-
-    const cutoffDate = new Date();
-    cutoffDate.setMonth(cutoffDate.getMonth() - parseInt(timeframe));
-    const cutoffMonth = cutoffDate.toISOString().slice(0, 7);
-
-    // Filter bills by timeframe
-    const recentBills = utilityBills.filter(bill => bill.billMonth >= cutoffMonth);
-
-    // Monthly trends
-    const monthlyData: Record<string, { month: string; total: number; Electric: number; Water: number; Gas: number; Other: number }> = {};
+  // Enhanced monthly trends data with anomaly detection
+  const enhancedMonthlyTrends = analyticsData?.monthlyTrends.map((month, idx) => {
+    const insights = analyticsData.insights;
+    const anomaly = insights.anomalies.find(a => a.month === month.month);
     
-    recentBills.forEach(bill => {
-      if (!monthlyData[bill.billMonth]) {
-        monthlyData[bill.billMonth] = {
-          month: bill.billMonth,
-          total: 0,
-          Electric: 0,
-          Water: 0,
-          Gas: 0,
-          Other: 0
-        };
-      }
-      monthlyData[bill.billMonth].total += bill.totalAmount;
-      
-      if (bill.utilityType === "Electric") {
-        monthlyData[bill.billMonth].Electric += bill.totalAmount;
-      } else if (bill.utilityType === "Water") {
-        monthlyData[bill.billMonth].Water += bill.totalAmount;
-      } else if (bill.utilityType === "Gas") {
-        monthlyData[bill.billMonth].Gas += bill.totalAmount;
-      } else {
-        monthlyData[bill.billMonth].Other += bill.totalAmount;
-      }
-    });
-
-    const monthlyTrends = Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));
-
-    // Utility type breakdown
-    const utilityTotals: Record<string, number> = {};
-    recentBills.forEach(bill => {
-      utilityTotals[bill.utilityType] = (utilityTotals[bill.utilityType] || 0) + bill.totalAmount;
-    });
-
-    const utilityBreakdown = Object.entries(utilityTotals)
-      .map(([name, value]) => ({ name, value }))
-      .sort((a, b) => b.value - a.value);
-
-
-    // Summary stats
-    const totalCost = recentBills.reduce((sum, bill) => sum + bill.totalAmount, 0);
-    const averageMonthly = monthlyTrends.length > 0 ? totalCost / monthlyTrends.length : 0;
-    const billCount = recentBills.length;
-    const averageBill = billCount > 0 ? totalCost / billCount : 0;
-
     return {
-      monthlyTrends,
-      utilityBreakdown,
-      summary: {
-        totalCost,
-        averageMonthly,
-        billCount,
-        averageBill,
-        timeframeMonths: parseInt(timeframe)
-      }
+      ...month,
+      anomaly: anomaly?.isAnomaly || false,
+      prediction: insights.predictions[month.month],
+      savingsOpportunity: anomaly?.isAnomaly && month.total > insights.averageMonthly 
+        ? month.total - insights.averageMonthly 
+        : undefined,
     };
-  };
-
-  const analyticsData = processAnalyticsData();
+  }) || [];
 
   // Chart drill-down handlers with pre-selected filters
   const handleUtilityTrendDrillDown = (data?: any) => {
@@ -291,7 +243,7 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
           <select
             id="timeframe"
             value={timeframe}
-            onChange={(e) => setTimeframe(e.target.value)}
+            onChange={(e) => setTimeframe(parseInt(e.target.value))}
             className="h-10 px-3 rounded-md border bg-background"
           >
             <option value="3">Last 3 months</option>
@@ -309,7 +261,7 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Cost</p>
-                <p className="text-2xl font-bold">${analyticsData.summary.totalCost.toFixed(0)}</p>
+                <p className="text-2xl font-bold">${analyticsData?.insights.totalSpent.toFixed(0) || 0}</p>
               </div>
               <DollarSign className="w-8 h-8 text-green-600" />
             </div>
@@ -321,7 +273,7 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Avg Monthly</p>
-                <p className="text-2xl font-bold">${analyticsData.summary.averageMonthly.toFixed(0)}</p>
+                <p className="text-2xl font-bold">${analyticsData?.insights.averageMonthly.toFixed(0) || 0}</p>
               </div>
               <Calendar className="w-8 h-8 text-blue-600" />
             </div>
@@ -332,8 +284,8 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Total Bills</p>
-                <p className="text-2xl font-bold">{analyticsData.summary.billCount}</p>
+                <p className="text-sm text-muted-foreground">Consistency</p>
+                <p className="text-2xl font-bold">{analyticsData?.insights.consistencyScore.toFixed(0) || 0}%</p>
               </div>
               <TrendingUp className="w-8 h-8 text-purple-600" />
             </div>
@@ -344,8 +296,8 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Avg Bill</p>
-                <p className="text-2xl font-bold">${analyticsData.summary.averageBill.toFixed(0)}</p>
+                <p className="text-sm text-muted-foreground">Anomalies</p>
+                <p className="text-2xl font-bold">{analyticsData?.insights.anomalies.length || 0}</p>
               </div>
               <TrendingUp className="w-8 h-8 text-orange-600" />
             </div>
@@ -355,35 +307,14 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
 
       {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly Trends */}
-        <InteractiveChart
-          title="Monthly Cost Trends"
-          icon={<TrendingUp className="w-5 h-5" />}
-          onDrillDown={handleUtilityTrendDrillDown}
-          height={300}
-          showNavigationHint={true}
-          drillDownPath="/utility-bills"
-          onNavigate={(path) => router.push(path)}
-        >
-          <LineChart data={analyticsData.monthlyTrends} onClick={(data) => handleUtilityTrendDrillDown(data)}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="month" 
-              fontSize={12}
-              tickFormatter={(value) => value.slice(5)} // Show MM only
-            />
-            <YAxis fontSize={12} />
-            <Tooltip content={utilityTrendTooltipConfig} />
-            <Line 
-              type="monotone" 
-              dataKey="total" 
-              stroke="#10b981" 
-              strokeWidth={2}
-              dot={{ fill: '#10b981', strokeWidth: 0, r: 4 }}
-              activeDot={{ r: 6, stroke: '#10b981', strokeWidth: 2, fill: '#fff' }}
-            />
-          </LineChart>
-        </InteractiveChart>
+        {/* Enhanced Monthly Trends */}
+        <div className="lg:col-span-2">
+          <MonthlyTrendsChart
+            data={enhancedMonthlyTrends}
+            onDrillDown={handleUtilityTrendDrillDown}
+            height={400}
+          />
+        </div>
 
         {/* Utility Type Breakdown */}
         <InteractiveChart
@@ -395,28 +326,40 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
           drillDownPath="/utility-bills"
           onNavigate={(path) => router.push(path)}
         >
-          <PieChart>
-            <Pie
-              data={analyticsData.utilityBreakdown}
-              cx="50%"
-              cy="50%"
-              labelLine={false}
-              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-              outerRadius={80}
-              fill="#8884d8"
-              dataKey="value"
-              onClick={(data) => handleUtilityTypeDrillDown(data)}
-            >
-              {analyticsData.utilityBreakdown.map((entry, index) => (
-                <Cell 
-                  key={`cell-${index}`} 
-                  fill={COLORS[index % COLORS.length]}
-                  className="cursor-pointer hover:opacity-80 transition-opacity"
-                />
-              ))}
-            </Pie>
-            <Tooltip content={utilityTypeTooltipConfig} />
-          </PieChart>
+          {(analyticsData?.utilityBreakdown || []).length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-full py-8">
+              <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4">
+                <PieChartIcon className="w-8 h-8 text-primary/60" />
+              </div>
+              <p className="text-sm text-muted-foreground text-center">
+                No utility type data available.<br />
+                Add utility bills to see breakdown.
+              </p>
+            </div>
+          ) : (
+            <PieChart>
+              <Pie
+                data={analyticsData?.utilityBreakdown || []}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+                onClick={(data) => handleUtilityTypeDrillDown(data)}
+              >
+                {(analyticsData?.utilityBreakdown || []).map((entry, index) => (
+                  <Cell 
+                    key={`cell-${index}`} 
+                    fill={COLORS[index % COLORS.length]}
+                    className="cursor-pointer hover:opacity-80 transition-opacity"
+                  />
+                ))}
+              </Pie>
+              <Tooltip content={utilityTypeTooltipConfig} />
+            </PieChart>
+          )}
         </InteractiveChart>
 
 
@@ -427,9 +370,21 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {analyticsData.utilityBreakdown.slice(0, 5).map((utility, index) => {
+              {(analyticsData?.utilityBreakdown || []).length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                    <PieChartIcon className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    No utility costs to display yet.
+                  </p>
+                </div>
+              ) : (
+                (analyticsData?.utilityBreakdown || []).slice(0, 5).map((utility, index) => {
                 const Icon = getUtilityIcon(utility.name);
-                const percentage = ((utility.value / analyticsData.summary.totalCost) * 100).toFixed(1);
+                const percentage = analyticsData?.insights.totalSpent 
+                  ? ((utility.value / analyticsData.insights.totalSpent) * 100).toFixed(1)
+                  : "0";
                 
                 return (
                   <div key={utility.name} className="flex items-center justify-between">
@@ -450,11 +405,59 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
                     </div>
                   </div>
                 );
-              })}
+              }))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Property Comparison */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Property Costs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {(analyticsData?.propertyComparison || []).length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-12 h-12 bg-muted rounded-full flex items-center justify-center mx-auto mb-3">
+                    <DollarSign className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    No property cost data available yet.
+                  </p>
+                </div>
+              ) : (
+                (analyticsData?.propertyComparison || []).map((property, index) => (
+                <div key={property.propertyId} className="flex items-center justify-between">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium truncate">{property.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {property.billCount} bills • Avg ${property.average.toFixed(0)}
+                    </p>
+                  </div>
+                  <div className="text-right ml-4">
+                    <p className="font-semibold">${property.total.toFixed(0)}</p>
+                    <Badge 
+                      variant={index === 0 ? "destructive" : "outline"} 
+                      className="text-xs"
+                    >
+                      #{index + 1}
+                    </Badge>
+                  </div>
+                </div>
+              )))}
             </div>
           </CardContent>
         </Card>
       </div>
+
+      {/* Seasonal Insights */}
+      {analyticsData?.insights.seasonalPattern && (
+        <SeasonalInsights 
+          pattern={analyticsData.insights.seasonalPattern} 
+          className="mt-6"
+        />
+      )}
     </div>
   );
 }

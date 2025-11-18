@@ -9,6 +9,9 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Slider } from "@/components/ui/slider";
+import { FormField } from "@/components/ui/form-field";
+import { FormGrid } from "@/components/ui/form-grid";
+import { SelectNative } from "@/components/ui/select-native";
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -550,77 +553,84 @@ function BasicInfoStep({ form, isModal = false }: { form: any; isModal?: boolean
         </p>
       </div>
 
-      <div className={cn(
-        "grid gap-6",
-        isModal ? "grid-cols-1 lg:grid-cols-2 gap-4" : "grid-cols-1 md:grid-cols-2"
-      )}>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Property Name</label>
+      <FormGrid cols={isModal ? 2 : 2} gap="lg">
+        <FormField
+          label="Property Name"
+          required
+          error={errors.name?.message}
+        >
           <Input
             {...register("name")}
             placeholder="Enter property name"
           />
-          {errors.name && <span className="text-sm text-destructive">{errors.name.message}</span>}
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Property Type</label>
-          <select
-            className="w-full h-10 px-3 rounded-md border border-input bg-background"
-            {...register("type")}
-          >
+        <FormField
+          label="Property Type"
+          required
+          error={errors.type?.message}
+        >
+          <SelectNative {...register("type")}>
             <option value="">Select property type</option>
             {propertyTypes.map((t) => (
               <option key={t} value={t}>{t}</option>
             ))}
-          </select>
-          {errors.type && <span className="text-sm text-destructive">{errors.type.message}</span>}
-        </div>
+          </SelectNative>
+        </FormField>
 
-        <div className="md:col-span-2 space-y-2">
-          <label className="block text-sm font-medium">Address</label>
+        <FormField
+          label="Address"
+          required
+          error={errors.address?.message}
+          className="md:col-span-2"
+        >
           <Input
             {...register("address")}
             placeholder="Enter property address"
           />
-          {errors.address && <span className="text-sm text-destructive">{errors.address.message}</span>}
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Status</label>
-          <select
-            className="w-full h-10 px-3 rounded-md border border-input bg-background"
-            {...register("status")}
-          >
+        <FormField
+          label="Status"
+          required
+          error={errors.status?.message}
+        >
+          <SelectNative {...register("status")}>
             {statusOptions.map((s) => (
               <option key={s} value={s}>{s}</option>
             ))}
-          </select>
-          {errors.status && <span className="text-sm text-destructive">{errors.status.message}</span>}
-        </div>
+          </SelectNative>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Purchase Date</label>
+        <FormField
+          label="Purchase Date"
+          required
+          error={errors.purchaseDate?.message}
+        >
           <Input
             type="date"
             {...register("purchaseDate")}
           />
-          {errors.purchaseDate && <span className="text-sm text-destructive">{errors.purchaseDate.message}</span>}
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Bedrooms</label>
+        <FormField
+          label="Bedrooms"
+          required
+          error={errors.bedrooms?.message}
+        >
           <Input
             type="number"
             min={0}
             {...register("bedrooms", { valueAsNumber: true })}
             placeholder="0"
           />
-          {errors.bedrooms && <span className="text-sm text-destructive">{errors.bedrooms.message}</span>}
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Bathrooms</label>
+        <FormField
+          label="Bathrooms"
+          required
+          error={errors.bathrooms?.message}
+        >
           <Input
             type="number"
             min={0}
@@ -628,45 +638,46 @@ function BasicInfoStep({ form, isModal = false }: { form: any; isModal?: boolean
             {...register("bathrooms", { valueAsNumber: true })}
             placeholder="0"
           />
-          {errors.bathrooms && <span className="text-sm text-destructive">{errors.bathrooms.message}</span>}
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Square Feet</label>
+        <FormField
+          label="Square Feet"
+          required
+          error={errors.squareFeet?.message}
+        >
           <Input
             type="number"
             min={0}
             {...register("squareFeet", { valueAsNumber: true })}
             placeholder="0"
           />
-          {errors.squareFeet && <span className="text-sm text-destructive">{errors.squareFeet.message}</span>}
-        </div>
+        </FormField>
 
-
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">Monthly Mortgage ($)</label>
+        <FormField
+          label="Monthly Mortgage ($)"
+          error={errors.monthlyMortgage?.message}
+        >
           <Input
             type="number"
             min={0}
             {...register("monthlyMortgage", { valueAsNumber: true })}
             placeholder="Optional"
           />
-          {errors.monthlyMortgage && <span className="text-sm text-destructive">{errors.monthlyMortgage.message}</span>}
-        </div>
+        </FormField>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium">CapEx Reserve ($)</label>
+        <FormField
+          label="CapEx Reserve ($)"
+          error={errors.monthlyCapEx?.message}
+          description="Auto-calculated as 10% of mortgage"
+        >
           <Input
             type="number"
             min={0}
             {...register("monthlyCapEx", { valueAsNumber: true })}
             placeholder="Auto-calculated (10% of mortgage)"
           />
-          <p className="text-xs text-muted-foreground">Auto-calculated as 10% of mortgage</p>
-          {errors.monthlyCapEx && <span className="text-sm text-destructive">{errors.monthlyCapEx.message}</span>}
-        </div>
-
-      </div>
+        </FormField>
+      </FormGrid>
     </div>
   );
 }
