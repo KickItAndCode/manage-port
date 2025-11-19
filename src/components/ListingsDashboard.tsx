@@ -74,9 +74,11 @@ export function ListingsDashboard() {
     user ? { userId: user.id } : "skip"
   );
 
-  const properties = useQuery(api.properties.getProperties, 
-    user ? { userId: user.id } : "skip"
-  ) as Property[] | undefined;
+  const propertiesResult = useQuery(api.properties.getProperties, 
+    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for listings
+  );
+  // Extract properties array from paginated result
+  const properties = (propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : [])) as Property[] | undefined;
 
   // Filter publications
   const filteredPublications = publications?.filter(pub => {

@@ -103,11 +103,13 @@ export function GlobalSearch() {
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const properties = useQuery(
+  const propertiesResult = useQuery(
     api.properties.getProperties,
-    user ? { userId: user.id } : "skip"
+    user ? { userId: user.id, limit: 1000 } : "skip" // Get more properties for search
   );
-
+  
+  // Extract properties array from paginated result
+  const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
 
   // Filter properties based on search
   const filteredProperties = properties?.filter((property: Property) => {

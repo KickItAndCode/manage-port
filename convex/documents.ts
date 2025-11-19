@@ -13,7 +13,7 @@ export const DOCUMENT_TYPES = {
   OTHER: "other",
 } as const;
 
-// Get documents with advanced filtering
+// Get documents with advanced filtering and pagination
 export const getDocuments = query({
   args: {
     userId: v.string(),
@@ -23,6 +23,8 @@ export const getDocuments = query({
     leaseId: v.optional(v.id("leases")),
     search: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
+    limit: v.optional(v.number()), // Number of documents to return
+    offset: v.optional(v.number()), // Number of documents to skip
   },
   handler: async (ctx, args) => {
     let documents = await ctx.db
@@ -64,7 +66,17 @@ export const getDocuments = query({
       new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
     );
 
-    return documents;
+    // Apply pagination
+    const offset = args.offset || 0;
+    const limit = args.limit || 50; // Default to 50 if not specified
+    
+    const paginatedDocuments = documents.slice(offset, offset + limit);
+    
+    return {
+      documents: paginatedDocuments,
+      total: documents.length,
+      hasMore: offset + limit < documents.length,
+    };
   },
 });
 
@@ -563,6 +575,67 @@ export const bulkDeleteDocuments = mutation({
     }
     
     return deletedCount;
+  },
+});
+
+// Bulk update tags for multiple documents
+export const bulkUpdateTags = mutation({
+  args: {
+    documentIds: v.array(v.id("documents")),
+    userId: v.string(),
+    tagsToAdd: v.optional(v.array(v.string())),
+    tagsToRemove: v.optional(v.array(v.string())),
+    tagsToSet: v.optional(v.array(v.string())), // If provided, replaces all tags
+  },
+  handler: async (ctx, args) => {
+    const result = { success: 0, failed: 0 };
+    
+    for (const docId of args.documentIds) {
+      try {
+        const doc = await ctx.db.get(docId);
+        if (!doc || doc.userId !== args.userId) {
+          result.failed++;
+          continue;
+        }
+        
+        let newTags: string[] = [];
+        
+        if (args.tagsToSet !== undefined) {
+          // Replace all tags
+          newTags = args.tagsToSet;
+        } else {
+          // Start with existing tags
+          newTags = doc.tags ? [...doc.tags] : [];
+          
+          // Remove tags
+          if (args.tagsToRemove && args.tagsToRemove.length > 0) {
+            newTags = newTags.filter(tag => !args.tagsToRemove!.includes(tag));
+          }
+          
+          // Add tags (avoid duplicates)
+          if (args.tagsToAdd && args.tagsToAdd.length > 0) {
+            for (const tag of args.tagsToAdd) {
+              const trimmedTag = tag.trim().toLowerCase();
+              if (trimmedTag && !newTags.includes(trimmedTag)) {
+                newTags.push(trimmedTag);
+              }
+            }
+          }
+        }
+        
+        await ctx.db.patch(docId, {
+          tags: newTags,
+          updatedAt: new Date().toISOString(),
+        });
+        
+        result.success++;
+      } catch (error) {
+        console.error(`Error updating tags for document ${docId}:`, error);
+        result.failed++;
+      }
+    }
+    
+    return result;
   },
 });
 

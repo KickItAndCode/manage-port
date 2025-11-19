@@ -5,141 +5,62 @@
 
 ---
 
-## 🎯 Current Priority: TBD
+## 🎯 Current Priority: Performance Optimizations
 
-**Status**: Reviewing next priorities
+**Status**: In Progress
+
+---
+
+## 📋 Next Up: Performance Optimizations (Continued)
+
+**Estimated Time**: 2-3 hours remaining  
+**Status**: In Progress
 
 ### Tasks
 
-1. **Create Activity Timeline Component**
-   - Build timeline UI component showing chronological events
-   - Display events with icons, timestamps, and descriptions
-   - Support for different event types (property, lease, document, utility)
+1. **Add Pagination for Large Lists** ⏳
+   - ✅ Implement pagination for documents list (COMPLETE)
+   - ✅ Add pagination for properties list (COMPLETE)
+   - ⏳ Add pagination for leases list
+   - Add "Load More" or page-based navigation
 
-2. **Add Audit Event Logging Backend**
-   - Create `convex/activityLog.ts` for event storage
-   - Log key actions: property creation, lease changes, document uploads, utility bill entries
-   - Store: userId, entityType, entityId, action, timestamp, metadata
+2. **Optimize Dashboard Queries**
+   - Review and optimize slow queries
+   - Add missing indexes if needed
+   - Implement query result caching where appropriate
 
-3. **Show Property/Lease Activity History**
-   - Query and display activities for specific properties
-   - Query and display activities for specific leases
-   - Link activities to related entities
-
-4. **Add Activity Filters**
-   - Filter by date range (last week, month, quarter, year, all time)
-   - Filter by activity type (property, lease, document, utility)
-   - Filter by property (if viewing all activities)
-   - Search activities by description
+3. **Implement Caching Strategies**
+   - Cache frequently accessed data
+   - Use React Query or similar for client-side caching
+   - Optimize re-renders with React.memo where appropriate
 
 ### Files to Create/Modify
 
 ```
-src/components/
-└── ActivityTimeline.tsx            # NEW - Timeline component
-
-convex/
-└── activityLog.ts                  # NEW - Activity logging and queries
-
 src/app/
-├── properties/[id]/page.tsx        # Add activity timeline section
-└── leases/[id]/page.tsx            # Add activity timeline section (if exists)
-```
-
-### Success Criteria
-
-- [x] Activity timeline shows last 30 days of events
-- [x] All property/lease/document/utility actions are logged
-- [x] Timeline filters work correctly
-- [x] Timeline loads in <1s for typical user
-
-### ✅ Completed (January 27, 2025)
-
-- ✅ Created `activityLog` table in schema
-- ✅ Created `convex/activityLog.ts` with logging and query functions
-- ✅ Created `ActivityTimeline.tsx` component with filters (date range, type, search)
-- ✅ Added activity logging to property mutations (create, update, delete)
-- ✅ Added activity logging to document uploads
-- ✅ Added activity logging to utility bill creation
-- ✅ Integrated ActivityTimeline into property detail page sidebar
-
----
-
-## 📋 Next Up: Notification Center UI (Track 3)
-
-**Estimated Time**: 2-3 hours  
-**Status**: ✅ COMPLETE (January 27, 2025)
-
-### Tasks
-
-1. **Build Notification Center Component**
-   - Create notification center UI (dropdown or sidebar panel)
-   - Display list of notifications with icons and timestamps
-   - Group by read/unread status
-
-2. **Show Notification History**
-   - Query notifications from backend
-   - Display notification types: Lease Expiration, Payment Reminders, Utility Bill Reminders
-   - Show notification details and related entities
-
-3. **Add Mark as Read/Unread Functionality**
-   - Toggle read status for individual notifications
-   - Mark all as read button
-   - Visual distinction between read/unread
-
-4. **Real-time Notification Updates**
-   - Use Convex subscriptions for live updates
-   - Show notification badge with count
-   - Animate new notifications appearing
-
-5. **Notification Generation**
-   - Generate notifications from utility reminders (overdue bills, missing readings)
-   - Generate lease expiration notifications
-   - Integrate notification generation into cron jobs or on-demand triggers
-
-### Files Created/Modified
-
-```
-src/components/
-├── NotificationCenter.tsx          # ✅ Created - Notification center component
-└── ui/scroll-area.tsx              # ✅ Created - ScrollArea component
+├── documents/page.tsx                # ✅ Pagination added
+├── properties/page.tsx                # ✅ Pagination added
+└── leases/page.tsx                   # ⏳ Add pagination
 
 convex/
-├── notifications.ts                # ✅ Created - Notification queries and mutations
-├── utilityInsights.ts              # ✅ Modified - Added notification generation
-└── leases.ts                       # ✅ Modified - Added lease expiration notifications
-
-src/components/
-└── ResponsiveSidebar.tsx          # ✅ Modified - Added notification bell icon/badge
+├── documents.ts                      # ✅ Pagination support added
+├── properties.ts                      # ✅ Pagination support added
+├── dashboard.ts                       # ⏳ Optimize queries
+└── [various].ts                      # ⏳ Add indexes if needed
 ```
 
 ### Success Criteria
 
-- [x] Notification center shows all alerts in one place
-- [x] Real-time alerts appear via Convex subscriptions
-- [x] Mark as read/unread works correctly
-- [x] Notification badge shows unread count
-- [x] Notification generation for utility reminders
-- [x] Notification generation for lease expirations
-
-### ✅ Completed (January 27, 2025)
-
-- ✅ Created `notifications` table in schema
-- ✅ Created `convex/notifications.ts` with queries and mutations
-- ✅ Created `NotificationCenter.tsx` component with popover UI
-- ✅ Added notification bell icon/badge to `ResponsiveSidebar`
-- ✅ Integrated real-time updates using Convex subscriptions (via `useQuery`)
-- ✅ Added `generateNotificationsFromReminders` mutation for utility reminders
-- ✅ Added `generateLeaseExpirationNotifications` mutation for lease expirations
+- [x] Documents list pagination works smoothly (COMPLETE)
+- [x] Properties list pagination works smoothly (COMPLETE)
+- [ ] Leases list pagination works smoothly
+- [ ] Dashboard loads in <1s for typical user
+- [ ] Large lists (100+ items) load efficiently
+- [ ] No unnecessary re-renders
 
 ---
 
 ## 🔮 Future Tasks (Lower Priority)
-
-### Bulk Tagging Operations (Track 2)
-- Add UI for selecting multiple documents
-- Bulk tag assignment interface
-- Estimated: 1-2 hours
 
 ### Email/SMS Integration (Track 3)
 - Integrate email service (SendGrid, Resend, etc.)
@@ -147,21 +68,43 @@ src/components/
 - Scheduled digest emails
 - Estimated: 4-6 hours (requires external service setup)
 
-### Scheduled Reminder Cron Jobs (Track 3)
-- Cron jobs for overdue bill checks
-- Missing reading reminders
-- Lease expiration alerts
-- Estimated: 2-3 hours (after email/SMS integration)
-
 ### Performance Optimizations
 - Optimize dashboard queries
 - Add pagination for large lists
 - Implement caching strategies
 - Estimated: 3-4 hours
 
+### Scheduled Reminder Cron Jobs (Track 3) - Low Priority
+- Cron jobs for overdue bill checks
+- Missing reading reminders
+- Lease expiration alerts
+- **Note**: Moved to low priority - notifications can be generated on-demand instead
+- Estimated: 2-3 hours (optional, not needed immediately)
+
 ---
 
 ## ✅ Recently Completed
+
+### Properties Pagination (January 27, 2025)
+- ✅ Added pagination support to `getProperties` query (limit/offset)
+- ✅ Added pagination UI to properties page (page numbers, Previous/Next)
+- ✅ Auto-resets to page 1 when filters change
+- ✅ Shows property count and page info
+- ✅ Works with existing client-side filtering
+
+### Documents Pagination (January 27, 2025)
+- ✅ Added pagination support to `getDocuments` query (limit/offset)
+- ✅ Added pagination UI to documents page (page numbers, Previous/Next)
+- ✅ Auto-resets to page 1 when filters change
+- ✅ Shows document count and page info
+- ✅ Handles search results separately (no pagination needed)
+
+### Bulk Tagging Operations (January 27, 2025)
+- ✅ Bulk tag update mutation with add/remove support
+- ✅ Bulk tag edit dialog with TagAutocomplete components
+- ✅ Integrated into existing bulk actions toolbar
+- ✅ Toast notifications for success/failure feedback
+- ✅ Handles partial failures gracefully
 
 ### Notification Center UI (January 27, 2025)
 - ✅ Notification system backend (schema, queries, mutations)

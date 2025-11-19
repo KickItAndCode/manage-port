@@ -28,9 +28,14 @@ function LeasesPageContent() {
   const searchParams = useSearchParams();
   const preSelectedPropertyId = searchParams.get('propertyId');
   
-  const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
+  const propertiesResult = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
+  const properties = propertiesResult?.properties || propertiesResult || [];
+  
   const leasesFromDb = useQuery(api.leases.getLeases, user ? { userId: user.id } : "skip");
-  const allDocuments = useQuery(api.documents.getDocuments, user ? { userId: user.id } : "skip");
+  
+  // Get all documents (without pagination for lease document filtering)
+  const allDocumentsResult = useQuery(api.documents.getDocuments, user ? { userId: user.id, limit: 1000 } : "skip");
+  const allDocuments = allDocumentsResult?.documents || (Array.isArray(allDocumentsResult) ? allDocumentsResult : []);
   
   // Compute status for all leases
   const leases = useLeaseStatuses(leasesFromDb || []);

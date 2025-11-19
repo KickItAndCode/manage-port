@@ -90,9 +90,11 @@ export function UtilityBillForm({
   const { user } = useUser();
   
   // Fetch properties directly
-  const properties = useQuery(api.properties.getProperties, 
-    user ? { userId: user.id } : "skip"
+  const propertiesResult = useQuery(api.properties.getProperties, 
+    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dropdown
   );
+  // Extract properties array from paginated result
+  const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
   
   const [propertyId, setPropertyId] = useState(initial?.propertyId || "");
   const [utilityType, setUtilityType] = useState(initial?.utilityType || "");

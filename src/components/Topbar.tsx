@@ -17,8 +17,8 @@ export function Topbar() {
   }, []);
 
   return (
-    <header className="flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 border-b border-border bg-card text-foreground shadow-md transition-colors duration-300">
-      <div className="flex-1 flex items-center gap-2 sm:gap-4 ml-12 sm:ml-0">
+    <header className="relative z-50 flex items-center justify-between px-4 sm:px-6 lg:px-8 py-4 border-b border-border bg-card text-foreground shadow-md transition-colors duration-300">
+      <div className="flex-1 flex items-center gap-2 sm:gap-4 pl-12 md:pl-0">
         <GlobalSearch />
       </div>
       <div className="flex items-center gap-2 sm:gap-4">

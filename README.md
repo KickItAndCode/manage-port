@@ -1,10 +1,12 @@
 # ManagePort
 
 **Status**: Phase 3 - Experience Deepening (In Progress)  
-**Last Updated**: January 27, 2025
+**Last Updated**: January 27, 2025  
+**Package Manager**: Bun
 
 > 📖 **Quick Start**: See `docs/QUICK_START.md` for immediate next steps  
-> 📊 **Current Status**: See `docs/CURRENT_STATUS.md` for detailed progress
+> 📊 **Current Status**: See `docs/CURRENT_STATUS.md` for detailed progress  
+> 📦 **Bun Commands**: See `docs/BUN_COMMANDS.md` for command reference
 
 ---
 
@@ -32,6 +34,7 @@ A modern property management platform for landlords and property managers to eff
 - **Authentication**: Clerk
 - **Styling**: Tailwind CSS, Radix UI components
 - **File Storage**: Convex file storage
+- **Package Manager**: Bun
 - **Deployment**: Vercel
 
 ## Getting Started
@@ -39,7 +42,7 @@ A modern property management platform for landlords and property managers to eff
 1. Clone the repository
 2. Install dependencies:
    ```bash
-   pnpm install
+   bun install
    ```
 
 3. Set up environment variables:
@@ -48,7 +51,7 @@ A modern property management platform for landlords and property managers to eff
 
 4. Run the development server:
    ```bash
-   pnpm dev
+   bun run dev
    ```
 
 5. Open [http://localhost:3000](http://localhost:3000) to view the application
@@ -61,48 +64,48 @@ This project uses Playwright for end-to-end testing.
 
 ```bash
 # Run all tests
-npm run test
+bun run test
 
 # Run tests with UI (visual test runner)
-npm run test:ui
+bun run test:ui
 
 # Run tests in headed mode (see browser)
-npm run test:headed
+bun run test:headed
 
 # Run basic UI tests (no authentication required)
-npm run test:basic
+bun run test:basic
 
 # Run authentication setup test only
-npm run test:auth-setup
+bun run test:auth-setup
 
 # Run smoke tests for core functionality
-npm run test:smoke
+bun run test:smoke
 ```
 
 ### Browser-Specific Testing
 
 ```bash
 # Test on Chrome only
-npm run test -- --project=chromium
+bun run test -- --project=chromium
 
 # Test on Chrome and Firefox only
-npm run test -- --project="chromium|firefox"
+bun run test -- --project="chromium|firefox"
 
 # Test on mobile devices only
-npm run test -- --project="Mobile Chrome|Mobile Safari"
+bun run test -- --project="Mobile Chrome|Mobile Safari"
 
 # Test without authentication (faster)
-npm run test:no-auth
+bun run test:no-auth
 ```
 
 ### Test Reports
 
 ```bash
 # View last test report
-npm run test:report
+bun run test:report
 
 # Debug failed tests
-npm run test:debug
+bun run test:debug
 ```
 
 ## Project Structure

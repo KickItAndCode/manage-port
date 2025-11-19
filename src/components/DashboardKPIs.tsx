@@ -165,10 +165,11 @@ export function DashboardKPIs({ userId, compact = false, filters }: DashboardKPI
   );
 
   // Get properties to show property name when filter is active
-  const properties = useQuery(
+  const propertiesResult = useQuery(
     api.properties.getProperties,
-    userId ? { userId } : "skip"
+    userId ? { userId, limit: 1000 } : "skip" // Get all properties for KPIs
   );
+  const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
 
   // Get utility bills for property breakdown
   const utilityBills = useQuery(

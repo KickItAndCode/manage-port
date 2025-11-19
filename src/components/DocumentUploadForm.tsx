@@ -98,9 +98,11 @@ export default function DocumentUploadForm({
   const addDocument = useMutation(api.documents.addDocument);
 
   // Queries for dropdowns
-  const properties = useQuery(api.properties.getProperties, 
-    user ? { userId: user.id } : "skip"
+  const propertiesResult = useQuery(api.properties.getProperties, 
+    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dropdown
   );
+  // Extract properties array from paginated result
+  const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
   const leases = useQuery(api.leases.getLeases,
     user ? { userId: user.id } : "skip"
   );

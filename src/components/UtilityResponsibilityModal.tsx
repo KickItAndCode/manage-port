@@ -82,7 +82,9 @@ export function UtilityResponsibilityModal({
   const [hasChanges, setHasChanges] = useState(false);
 
   // Get all properties with units
-  const properties = useQuery(api.properties.getProperties, { userId });
+  const propertiesResult = useQuery(api.properties.getProperties, { userId, limit: 1000 }); // Get all properties
+  // Extract properties array from paginated result
+  const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
   
   // Get all active leases
   const allLeases = useQuery(api.leases.getLeases, { userId });

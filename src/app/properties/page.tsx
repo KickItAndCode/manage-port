@@ -1,13 +1,13 @@
 "use client";
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useUser } from "@clerk/nextjs";
+import { Button } from "@/components/ui/button";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { PropertyForm } from "@/components/PropertyForm";
 import { PropertyCreationWizard, type PropertyWizardData } from "@/components/PropertyCreationWizard";
-import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -23,7 +23,26 @@ function PropertiesContent() {
   const { user } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
+  
+  const propertiesResult = useQuery(
+    api.properties.getProperties, 
+    user ? { 
+      userId: user.id,
+      limit: itemsPerPage,
+      offset: (currentPage - 1) * itemsPerPage,
+    } : "skip"
+  );
+  
+  // Extract properties and pagination info
+  const properties = propertiesResult?.properties || [];
+  const totalProperties = propertiesResult?.total || 0;
+  const hasMore = propertiesResult?.hasMore || false;
+  const totalPages = Math.ceil(totalProperties / itemsPerPage);
+  
   const updateProperty = useMutation(api.properties.updateProperty);
   const deleteProperty = useMutation(api.properties.deleteProperty);
   const createPropertyWithUnits = useMutation(api.properties.createPropertyWithUnits);
@@ -35,6 +54,11 @@ function PropertiesContent() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
+  
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search, typeFilter, statusFilter]);
   
   // Handle URL parameters on mount
   useEffect(() => {
@@ -555,6 +579,59 @@ function PropertiesContent() {
             />
           }
         />
+        
+        {/* Pagination */}
+        {totalPages > 1 && (
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t p-4 mt-4">
+            <div className="text-sm text-muted-foreground">
+              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalProperties)} of {totalProperties} properties
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+              >
+                Previous
+              </Button>
+              <div className="flex items-center gap-1">
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum: number;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (currentPage <= 3) {
+                    pageNum = i + 1;
+                  } else if (currentPage >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = currentPage - 2 + i;
+                  }
+                  
+                  return (
+                    <Button
+                      key={pageNum}
+                      variant={currentPage === pageNum ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setCurrentPage(pageNum)}
+                      className="min-w-[2.5rem]"
+                    >
+                      {pageNum}
+                    </Button>
+                  );
+                })}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages || !hasMore}
+              >
+                Next
+              </Button>
+            </div>
+          </div>
+        )}
       </Card>
 
       {/* Bulk Actions Toolbar */}

@@ -82,7 +82,7 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
           isCollapsed && !isMobile && "justify-center"
         )}>
           <div className={cn(
-            "flex items-center gap-2",
+            "flex items-center gap-2 flex-1",
             isCollapsed && !isMobile && "justify-center"
           )}>
             <Building className="text-primary flex-shrink-0" size={24} />
@@ -91,7 +91,21 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
             )}
           </div>
           {(!isCollapsed || isMobile) && (
-            <NotificationCenter />
+            <div className="flex items-center gap-2">
+              <NotificationCenter />
+              {/* Mobile close button integrated in header */}
+              {isMobile && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className="h-8 w-8 -mr-2"
+                  aria-label="Close menu"
+                >
+                  <X size={18} />
+                </Button>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -154,9 +168,10 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
             window.dispatchEvent(new CustomEvent('sidebarToggle'));
           }}
           className={cn(
-            "w-full justify-start hover:bg-primary/10",
+            "w-full justify-start hover:bg-primary/10 relative z-10",
             isCollapsed && "justify-center"
           )}
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
             <ChevronLeft 
               size={18} 
@@ -178,10 +193,13 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
       variant="ghost"
       size="icon"
       onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-      className="fixed top-4 left-4 z-50 md:hidden"
+      className={cn(
+        "fixed top-4 left-4 z-[60] md:hidden",
+        isMobileMenuOpen && "hidden" // Hide when sidebar is open, use close button inside sidebar instead
+      )}
       aria-label="Toggle menu"
     >
-      {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+      <Menu size={24} />
     </Button>
   );
 
@@ -189,7 +207,7 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
   const DesktopSidebar = () => (
     <aside className={cn(
       "hidden md:flex h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
-      "flex-col shadow-xl transition-all duration-300",
+      "flex-col shadow-xl transition-all duration-300 relative z-40",
       isCollapsed ? "w-20" : "w-64"
     )}>
       <div className="flex flex-col h-full py-6 px-4">
@@ -212,7 +230,7 @@ export function ResponsiveSidebar({ onMobileMenuToggle }: ResponsiveSidebarProps
       {/* Sidebar */}
       <aside className={cn(
         "fixed left-0 top-0 h-screen bg-sidebar text-sidebar-foreground border-r border-sidebar-border",
-        "flex flex-col shadow-xl transition-transform duration-300 z-50 md:hidden w-64",
+        "flex flex-col shadow-xl transition-transform duration-300 z-[55] md:hidden w-64",
         isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="flex flex-col h-full py-6 px-4">

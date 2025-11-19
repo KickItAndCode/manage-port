@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "next lint",
     "clean": "./scripts/cleanup-test-data.sh",
-    "precommit": "./scripts/cleanup-test-data.sh && npm run lint",
+    "precommit": "./scripts/cleanup-test-data.sh && bun run lint",
     "test": "playwright test",
     "test:ui": "playwright test --ui",
     "test:debug": "playwright test --debug",

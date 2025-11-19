@@ -387,16 +387,20 @@ async function calculateMonthlyRentFromLeases(ctx: any, propertyId: string, user
 
 // Get all properties for the signed-in user with calculated monthly rent
 export const getProperties = query({
-  args: { userId: v.string() },
+  args: { 
+    userId: v.string(),
+    limit: v.optional(v.number()), // Number of properties to return
+    offset: v.optional(v.number()), // Number of properties to skip
+  },
   handler: async (ctx, args) => {
-    const properties = await ctx.db
+    const allProperties = await ctx.db
       .query("properties")
       .filter((q) => q.eq(q.field("userId"), args.userId))
       .collect();
 
     // Calculate monthly rent for each property from active leases
     const propertiesWithRent = await Promise.all(
-      properties.map(async (property) => {
+      allProperties.map(async (property) => {
         const monthlyRent = await calculateMonthlyRentFromLeases(ctx, property._id, args.userId);
         return {
           ...property,
@@ -405,7 +409,17 @@ export const getProperties = query({
       })
     );
 
-    return propertiesWithRent;
+    // Apply pagination
+    const offset = args.offset || 0;
+    const limit = args.limit || 50; // Default to 50 if not specified
+    
+    const paginatedProperties = propertiesWithRent.slice(offset, offset + limit);
+    
+    return {
+      properties: paginatedProperties,
+      total: propertiesWithRent.length,
+      hasMore: offset + limit < propertiesWithRent.length,
+    };
   },
 });
 

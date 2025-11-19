@@ -251,15 +251,15 @@ When asked to analyze test results or fix test issues, Claude should:
 ## Commands to Run
 
 ### Testing
-- `npm run lint` - Run linting
-- `npm run typecheck` - Run TypeScript type checking
-- `npx playwright test` - Run all Playwright tests
-- `npx playwright test --project=add-property` - Run specific test project
-- `npx playwright show-report` - Show test results at http://localhost:9323/
+- `bun run lint` - Run linting
+- `bun run typecheck` - Run TypeScript type checking (if script exists)
+- `bunx playwright test` - Run all Playwright tests
+- `bunx playwright test --project=add-property` - Run specific test project
+- `bunx playwright show-report` - Show test results at http://localhost:9323/
 
 ### Development
-- `npm run dev` - Start development server
-- `npm run build` - Build the project
+- `bun run dev` - Start development server
+- `bun run build` - Build the project
 
 ### Utility Management
 - `./scripts/import-utility-bills.sh` - Import historical utility bills (production-ready)

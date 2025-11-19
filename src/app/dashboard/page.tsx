@@ -104,10 +104,11 @@ export default function DashboardPage() {
   const addUtilityBill = useMutation(api.utilityBills.addUtilityBill);
 
   // Get additional data for forms
-  const properties = useQuery(
+  const propertiesResult = useQuery(
     api.properties.getProperties,
-    user ? { userId: user.id } : "skip"
+    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dashboard
   );
+  const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
 
   // Check if user has no properties
   const hasNoProperties = properties && properties.length === 0;

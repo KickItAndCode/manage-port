@@ -2,16 +2,17 @@ import * as React from "react"
 
 import { cn } from "@/lib/utils"
 
-function Input({ 
+const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input"> & {
+  "data-testid"?: string
+}>(({ 
   className, 
   type, 
   "data-testid": dataTestId,
   ...props 
-}: React.ComponentProps<"input"> & {
-  "data-testid"?: string
-}) {
+}, ref) => {
   return (
     <input
+      ref={ref}
       type={type}
       data-slot="input"
       data-testid={dataTestId}
@@ -30,6 +31,8 @@ function Input({
       {...props}
     />
   )
-}
+});
+
+Input.displayName = "Input";
 
 export { Input }

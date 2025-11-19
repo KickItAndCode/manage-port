@@ -114,6 +114,28 @@ export default defineSchema({
       "billMonth",
       "utilityType",
     ]),
+  utilityCharges: defineTable({
+    leaseId: v.id("leases"), // Reference to lease
+    utilityBillId: v.id("utilityBills"), // Reference to utility bill
+    unitId: v.optional(v.id("units")), // For multi-unit properties
+    tenantName: v.string(), // Denormalized for performance
+    chargedAmount: v.number(), // Amount tenant is charged
+    responsibilityPercentage: v.number(), // Percentage used for calculation
+    dueDate: v.string(), // When payment is due
+    status: v.union(
+      v.literal("pending"),
+      v.literal("paid"),
+      v.literal("partial")
+    ),
+    createdAt: v.string(),
+    updatedAt: v.optional(v.string()),
+  })
+    .index("by_lease", ["leaseId"])
+    .index("by_bill", ["utilityBillId"])
+    .index("by_status", ["status"])
+    .index("by_due_date", ["dueDate"])
+    .index("by_tenant", ["tenantName"])
+    .index("by_lease_bill", ["leaseId", "utilityBillId"]),
   leaseUtilitySettings: defineTable({
     leaseId: v.id("leases"), // Reference to lease
     utilityType: v.string(), // Must match utilityBills.utilityType
@@ -127,6 +149,7 @@ export default defineSchema({
   utilityPayments: defineTable({
     leaseId: v.id("leases"), // Reference to lease
     utilityBillId: v.id("utilityBills"), // Reference to utility bill
+    chargeId: v.optional(v.id("utilityCharges")), // Reference to specific charge
     tenantName: v.string(), // Denormalized tenant name
     amountPaid: v.number(), // Amount paid in this transaction
     paymentDate: v.string(), // Date of payment
@@ -137,6 +160,7 @@ export default defineSchema({
   })
     .index("by_lease", ["leaseId"])
     .index("by_bill", ["utilityBillId"])
+    .index("by_charge", ["chargeId"])
     .index("by_date", ["paymentDate"])
     .index("by_method", ["paymentMethod"])
     .index("by_lease_bill", ["leaseId", "utilityBillId"]),

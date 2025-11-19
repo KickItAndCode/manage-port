@@ -39,10 +39,11 @@ export function DashboardFilters({
   onFiltersChange,
   compact = false,
 }: DashboardFiltersProps) {
-  const properties = useQuery(
+  const propertiesResult = useQuery(
     api.properties.getProperties,
-    userId ? { userId } : "skip"
+    userId ? { userId, limit: 1000 } : "skip" // Get all properties for filters
   );
+  const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
 
   const hasActiveFilters = useMemo(() => {
     return (

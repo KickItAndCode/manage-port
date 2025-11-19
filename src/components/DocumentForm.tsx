@@ -39,9 +39,11 @@ export function DocumentForm({ document, open, onOpenChange, onSave }: DocumentF
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Queries
-  const properties = useQuery(api.properties.getProperties, 
-    user ? { userId: user.id } : "skip"
+  const propertiesResult = useQuery(api.properties.getProperties, 
+    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dropdown
   );
+  // Extract properties array from paginated result
+  const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
   
   const leases = useQuery(api.leases.getLeases, 
     user ? { userId: user.id } : "skip"

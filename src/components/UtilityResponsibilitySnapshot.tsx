@@ -73,19 +73,19 @@ export function UtilityResponsibilitySnapshot({
 }: UtilityResponsibilitySnapshotProps) {
   const router = useRouter();
 
-  // Get leases - either by property or specific lease
-  const leases = useQuery(
-    propertyId 
-      ? api.leases.getLeasesByProperty
-      : leaseId
-      ? api.leases.getLeases
-      : null,
-    propertyId 
-      ? { propertyId, userId }
-      : leaseId
-      ? { userId, propertyId: undefined }
-      : "skip"
+  // Get leases - either by property or all leases
+  const leasesByProperty = useQuery(
+    api.leases.getLeasesByProperty,
+    propertyId ? { propertyId, userId } : "skip"
   );
+  
+  const allLeases = useQuery(
+    api.leases.getLeases,
+    (!propertyId && userId) ? { userId } : "skip"
+  );
+  
+  // Use leasesByProperty if propertyId provided, otherwise use allLeases
+  const leases = propertyId ? leasesByProperty : allLeases;
 
   // Filter to specific lease if provided
   const filteredLeases = leaseId && leases 
@@ -93,22 +93,22 @@ export function UtilityResponsibilitySnapshot({
     : leases;
 
   // Get utility settings
-  const utilitySettings = useQuery(
-    propertyId
-      ? api.leaseUtilitySettings.getUtilitySettingsByProperty
-      : leaseId
-      ? api.leaseUtilitySettings.getLeaseUtilities
-      : null,
-    propertyId
-      ? { propertyId, userId }
-      : leaseId
-      ? { leaseId, userId }
-      : "skip"
+  const utilitySettingsByProperty = useQuery(
+    api.leaseUtilitySettings.getUtilitySettingsByProperty,
+    propertyId ? { propertyId, userId } : "skip"
   );
+  
+  const utilitySettingsByLease = useQuery(
+    api.leaseUtilitySettings.getLeaseUtilities,
+    leaseId ? { leaseId, userId } : "skip"
+  );
+  
+  // Use property settings if propertyId provided, otherwise use lease settings
+  const utilitySettings = propertyId ? utilitySettingsByProperty : utilitySettingsByLease;
 
   // Get units for property to resolve unit identifiers
   const units = useQuery(
-    propertyId && api.units.getUnitsByProperty,
+    api.units.getUnitsByProperty,
     propertyId ? { propertyId, userId } : "skip"
   );
 
