@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, memo, useCallback } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Id } from "@/../convex/_generated/dataModel";
@@ -33,7 +33,7 @@ interface DashboardFiltersProps {
  * - Date range filter
  * - Status filter
  */
-export function DashboardFilters({
+export const DashboardFilters = memo(function DashboardFilters({
   userId,
   filters,
   onFiltersChange,
@@ -53,30 +53,39 @@ export function DashboardFilters({
     );
   }, [filters]);
 
-  const handlePropertyChange = (propertyId: string) => {
-    onFiltersChange({
-      ...filters,
-      propertyId: propertyId ? (propertyId as Id<"properties">) : undefined,
-    });
-  };
+  const handlePropertyChange = useCallback(
+    (propertyId: string) => {
+      onFiltersChange({
+        ...filters,
+        propertyId: propertyId ? (propertyId as Id<"properties">) : undefined,
+      });
+    },
+    [filters, onFiltersChange]
+  );
 
-  const handleDateRangeChange = (range: string) => {
-    onFiltersChange({
-      ...filters,
-      dateRange: range === "all" ? undefined : (range as DashboardFilters["dateRange"]),
-    });
-  };
+  const handleDateRangeChange = useCallback(
+    (range: string) => {
+      onFiltersChange({
+        ...filters,
+        dateRange: range === "all" ? undefined : (range as DashboardFilters["dateRange"]),
+      });
+    },
+    [filters, onFiltersChange]
+  );
 
-  const handleStatusChange = (status: string) => {
-    onFiltersChange({
-      ...filters,
-      status: status === "all" ? undefined : (status as DashboardFilters["status"]),
-    });
-  };
+  const handleStatusChange = useCallback(
+    (status: string) => {
+      onFiltersChange({
+        ...filters,
+        status: status === "all" ? undefined : (status as DashboardFilters["status"]),
+      });
+    },
+    [filters, onFiltersChange]
+  );
 
-  const handleClearFilters = () => {
+  const handleClearFilters = useCallback(() => {
     onFiltersChange({});
-  };
+  }, [onFiltersChange]);
 
   if (!properties || properties.length === 0) {
     return null;
@@ -179,5 +188,5 @@ export function DashboardFilters({
       </CardContent>
     </Card>
   );
-}
+});
 

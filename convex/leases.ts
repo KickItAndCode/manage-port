@@ -54,7 +54,9 @@ export const getLease = query({
 export const getLeases = query({
   args: { 
     userId: v.string(), 
-    propertyId: v.optional(v.id("properties")) 
+    propertyId: v.optional(v.id("properties")),
+    limit: v.optional(v.number()), // Number of leases to return
+    offset: v.optional(v.number()), // Number of leases to skip
   },
   handler: async (ctx, args) => {
     let q = ctx.db
@@ -69,9 +71,20 @@ export const getLeases = query({
       filteredLeases = leases.filter(l => l.propertyId === args.propertyId);
     }
     
+    // Sort by start date (newest first)
+    filteredLeases.sort((a, b) => 
+      new Date(b.startDate).getTime() - new Date(a.startDate).getTime()
+    );
+    
+    // Apply pagination
+    const offset = args.offset || 0;
+    const limit = args.limit || 50; // Default to 50 if not specified
+    
+    const paginatedLeases = filteredLeases.slice(offset, offset + limit);
+    
     // Add unit information to each lease
     const leasesWithUnits = await Promise.all(
-      filteredLeases.map(async (lease) => {
+      paginatedLeases.map(async (lease) => {
         let unit = null;
         if (lease.unitId) {
           unit = await ctx.db.get(lease.unitId);
@@ -80,7 +93,11 @@ export const getLeases = query({
       })
     );
     
-    return leasesWithUnits;
+    return {
+      leases: leasesWithUnits,
+      total: filteredLeases.length,
+      hasMore: offset + limit < filteredLeases.length,
+    };
   },
 });
 

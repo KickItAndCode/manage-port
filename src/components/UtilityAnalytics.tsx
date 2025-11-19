@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, memo } from "react";
 import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "@/../convex/_generated/api";
@@ -8,18 +8,28 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell 
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
 } from "recharts";
-import { 
-  TrendingUp, 
-  DollarSign, 
-  Zap, 
-  Droplets, 
+import {
+  TrendingUp,
+  DollarSign,
+  Zap,
+  Droplets,
   Flame,
   Calendar,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
 } from "lucide-react";
 import { InteractiveChart } from "./charts/InteractiveChart";
 import { createEnhancedTooltip } from "./charts/AdvancedTooltip";
@@ -31,17 +41,22 @@ interface UtilityAnalyticsProps {
   userId: string;
 }
 
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"];
 
-export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
+export const UtilityAnalytics = memo(function UtilityAnalytics({
+  userId,
+}: UtilityAnalyticsProps) {
   const [timeframe, setTimeframe] = useState(6); // months as number
   const router = useRouter();
 
   // Get enhanced analytics data from backend
-  const analyticsData = useQuery(api.utilityAnalytics.getEnhancedUtilityAnalytics, {
-    userId,
-    timeframeMonths: timeframe,
-  });
+  const analyticsData = useQuery(
+    api.utilityAnalytics.getEnhancedUtilityAnalytics,
+    {
+      userId,
+      timeframeMonths: timeframe,
+    }
+  );
 
   // Get utility bills for backward compatibility
   const utilityBills = useQuery(api.utilityBills.getUtilityBills, {
@@ -55,73 +70,78 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
 
   const getUtilityIcon = (type: string) => {
     switch (type) {
-      case "Electric": return Zap;
-      case "Water": return Droplets;
-      case "Gas": return Flame;
-      default: return DollarSign;
+      case "Electric":
+        return Zap;
+      case "Water":
+        return Droplets;
+      case "Gas":
+        return Flame;
+      default:
+        return DollarSign;
     }
   };
 
   // Enhanced monthly trends data with anomaly detection
-  const enhancedMonthlyTrends = analyticsData?.monthlyTrends.map((month, idx) => {
-    const insights = analyticsData.insights;
-    const anomaly = insights.anomalies.find(a => a.month === month.month);
-    
-    return {
-      ...month,
-      anomaly: anomaly?.isAnomaly || false,
-      prediction: insights.predictions[month.month],
-      savingsOpportunity: anomaly?.isAnomaly && month.total > insights.averageMonthly 
-        ? month.total - insights.averageMonthly 
-        : undefined,
-    };
-  }) || [];
+  const enhancedMonthlyTrends =
+    analyticsData?.monthlyTrends.map((month, idx) => {
+      const insights = analyticsData.insights;
+      const anomaly = insights.anomalies.find((a) => a.month === month.month);
+
+      return {
+        ...month,
+        anomaly: anomaly?.isAnomaly || false,
+        prediction: insights.predictions[month.month],
+        savingsOpportunity:
+          anomaly?.isAnomaly && month.total > insights.averageMonthly
+            ? month.total - insights.averageMonthly
+            : undefined,
+      };
+    }) || [];
 
   // Chart drill-down handlers with pre-selected filters
   const handleUtilityTrendDrillDown = (data?: any) => {
     const month = data?.month || data?.activeLabel;
     const params = new URLSearchParams();
     if (month) {
-      params.set('month', month);
+      params.set("month", month);
     }
-    const url = `/utility-bills${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = `/utility-bills${params.toString() ? `?${params.toString()}` : ""}`;
     router.push(url);
     // Scroll to top after navigation
-    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
   };
 
   const handleUtilityTypeDrillDown = (data?: any) => {
     const utilityType = data?.name || data?.activeLabel;
     const params = new URLSearchParams();
     if (utilityType) {
-      params.set('utilityType', utilityType);
+      params.set("utilityType", utilityType);
     }
-    const url = `/utility-bills${params.toString() ? `?${params.toString()}` : ''}`;
+    const url = `/utility-bills${params.toString() ? `?${params.toString()}` : ""}`;
     router.push(url);
     // Scroll to top after navigation
-    setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 100);
+    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
   };
-
 
   // Enhanced tooltip configurations
   const utilityTrendTooltipConfig = createEnhancedTooltip({
-    getLabel: (payload, label) => 'Monthly Utility Cost',
+    getLabel: (payload, label) => "Monthly Utility Cost",
     formatValue: (value) => {
-      if (typeof value === 'number') {
+      if (typeof value === "number") {
         return formatCurrency(value);
       }
-      return value?.toString() || 'N/A';
-    }
+      return value?.toString() || "N/A";
+    },
   });
 
   const utilityTypeTooltipConfig = createEnhancedTooltip({
-    getLabel: (payload, label) => `${label || 'Utility'} Cost`,
+    getLabel: (payload, label) => `${label || "Utility"} Cost`,
     formatValue: (value) => {
-      if (typeof value === 'number') {
+      if (typeof value === "number") {
         return formatCurrency(value);
       }
-      return value?.toString() || 'N/A';
-    }
+      return value?.toString() || "N/A";
+    },
   });
 
   // Loading skeleton component
@@ -261,19 +281,23 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Total Cost</p>
-                <p className="text-2xl font-bold">${analyticsData?.insights.totalSpent.toFixed(0) || 0}</p>
+                <p className="text-2xl font-bold">
+                  ${analyticsData?.insights.totalSpent.toFixed(0) || 0}
+                </p>
               </div>
               <DollarSign className="w-8 h-8 text-green-600" />
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Avg Monthly</p>
-                <p className="text-2xl font-bold">${analyticsData?.insights.averageMonthly.toFixed(0) || 0}</p>
+                <p className="text-2xl font-bold">
+                  ${analyticsData?.insights.averageMonthly.toFixed(0) || 0}
+                </p>
               </div>
               <Calendar className="w-8 h-8 text-blue-600" />
             </div>
@@ -285,7 +309,9 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Consistency</p>
-                <p className="text-2xl font-bold">{analyticsData?.insights.consistencyScore.toFixed(0) || 0}%</p>
+                <p className="text-2xl font-bold">
+                  {analyticsData?.insights.consistencyScore.toFixed(0) || 0}%
+                </p>
               </div>
               <TrendingUp className="w-8 h-8 text-purple-600" />
             </div>
@@ -297,7 +323,9 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Anomalies</p>
-                <p className="text-2xl font-bold">{analyticsData?.insights.anomalies.length || 0}</p>
+                <p className="text-2xl font-bold">
+                  {analyticsData?.insights.anomalies.length || 0}
+                </p>
               </div>
               <TrendingUp className="w-8 h-8 text-orange-600" />
             </div>
@@ -332,7 +360,8 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
                 <PieChartIcon className="w-8 h-8 text-primary/60" />
               </div>
               <p className="text-sm text-muted-foreground text-center">
-                No utility type data available.<br />
+                No utility type data available.
+                <br />
                 Add utility bills to see breakdown.
               </p>
             </div>
@@ -343,15 +372,17 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }) =>
+                  `${name} ${(percent * 100).toFixed(0)}%`
+                }
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
                 onClick={(data) => handleUtilityTypeDrillDown(data)}
               >
                 {(analyticsData?.utilityBreakdown || []).map((entry, index) => (
-                  <Cell 
-                    key={`cell-${index}`} 
+                  <Cell
+                    key={`cell-${index}`}
                     fill={COLORS[index % COLORS.length]}
                     className="cursor-pointer hover:opacity-80 transition-opacity"
                   />
@@ -361,7 +392,6 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
             </PieChart>
           )}
         </InteractiveChart>
-
 
         {/* Top Utility Types */}
         <Card>
@@ -380,32 +410,45 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
                   </p>
                 </div>
               ) : (
-                (analyticsData?.utilityBreakdown || []).slice(0, 5).map((utility, index) => {
-                const Icon = getUtilityIcon(utility.name);
-                const percentage = analyticsData?.insights.totalSpent 
-                  ? ((utility.value / analyticsData.insights.totalSpent) * 100).toFixed(1)
-                  : "0";
-                
-                return (
-                  <div key={utility.name} className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-2 rounded-lg bg-muted">
-                        <Icon className="w-4 h-4" />
+                (analyticsData?.utilityBreakdown || [])
+                  .slice(0, 5)
+                  .map((utility, index) => {
+                    const Icon = getUtilityIcon(utility.name);
+                    const percentage = analyticsData?.insights.totalSpent
+                      ? (
+                          (utility.value / analyticsData.insights.totalSpent) *
+                          100
+                        ).toFixed(1)
+                      : "0";
+
+                    return (
+                      <div
+                        key={utility.name}
+                        className="flex items-center justify-between"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-lg bg-muted">
+                            <Icon className="w-4 h-4" />
+                          </div>
+                          <div>
+                            <p className="font-medium">{utility.name}</p>
+                            <p className="text-sm text-muted-foreground">
+                              {percentage}% of total
+                            </p>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold">
+                            ${utility.value.toFixed(0)}
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            #{index + 1}
+                          </Badge>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium">{utility.name}</p>
-                        <p className="text-sm text-muted-foreground">{percentage}% of total</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <p className="font-semibold">${utility.value.toFixed(0)}</p>
-                      <Badge variant="outline" className="text-xs">
-                        #{index + 1}
-                      </Badge>
-                    </div>
-                  </div>
-                );
-              }))}
+                    );
+                  })
+              )}
             </div>
           </CardContent>
         </Card>
@@ -427,25 +470,34 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
                   </p>
                 </div>
               ) : (
-                (analyticsData?.propertyComparison || []).map((property, index) => (
-                <div key={property.propertyId} className="flex items-center justify-between">
-                  <div className="min-w-0 flex-1">
-                    <p className="font-medium truncate">{property.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {property.billCount} bills • Avg ${property.average.toFixed(0)}
-                    </p>
-                  </div>
-                  <div className="text-right ml-4">
-                    <p className="font-semibold">${property.total.toFixed(0)}</p>
-                    <Badge 
-                      variant={index === 0 ? "destructive" : "outline"} 
-                      className="text-xs"
+                (analyticsData?.propertyComparison || []).map(
+                  (property, index) => (
+                    <div
+                      key={property.propertyId}
+                      className="flex items-center justify-between"
                     >
-                      #{index + 1}
-                    </Badge>
-                  </div>
-                </div>
-              )))}
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium truncate">{property.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {property.billCount} bills • Avg $
+                          {property.average.toFixed(0)}
+                        </p>
+                      </div>
+                      <div className="text-right ml-4">
+                        <p className="font-semibold">
+                          ${property.total.toFixed(0)}
+                        </p>
+                        <Badge
+                          variant={index === 0 ? "destructive" : "outline"}
+                          className="text-xs"
+                        >
+                          #{index + 1}
+                        </Badge>
+                      </div>
+                    </div>
+                  )
+                )
+              )}
             </div>
           </CardContent>
         </Card>
@@ -453,11 +505,11 @@ export function UtilityAnalytics({ userId }: UtilityAnalyticsProps) {
 
       {/* Seasonal Insights */}
       {analyticsData?.insights.seasonalPattern && (
-        <SeasonalInsights 
-          pattern={analyticsData.insights.seasonalPattern} 
+        <SeasonalInsights
+          pattern={analyticsData.insights.seasonalPattern}
           className="mt-6"
         />
       )}
     </div>
   );
-}
+});

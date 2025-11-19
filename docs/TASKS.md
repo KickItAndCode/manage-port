@@ -5,34 +5,44 @@
 
 ---
 
-## 🎯 Current Priority: Performance Optimizations
+## 🎯 Current Priority: Additional Performance Optimizations
 
-**Status**: In Progress
+**Status**: Ready to Start  
+**Estimated Time**: 1-2 hours
 
 ---
 
-## 📋 Next Up: Performance Optimizations (Continued)
+## 📋 Next Up: Additional Performance Optimizations
 
-**Estimated Time**: 2-3 hours remaining  
-**Status**: In Progress
+**Priority**: Medium  
+**Status**: Pending
 
-### Tasks
+### Task Details
 
-1. **Add Pagination for Large Lists** ⏳
-   - ✅ Implement pagination for documents list (COMPLETE)
-   - ✅ Add pagination for properties list (COMPLETE)
-   - ⏳ Add pagination for leases list
-   - Add "Load More" or page-based navigation
+Review and optimize remaining performance opportunities, test caching improvements, and monitor dashboard performance.
 
-2. **Optimize Dashboard Queries**
-   - Review and optimize slow queries
-   - Add missing indexes if needed
-   - Implement query result caching where appropriate
+**Steps**:
+1. Review other queries for optimization opportunities
+2. Test dashboard load times and re-render behavior
+3. Consider implementing query result caching if needed
+4. Monitor dashboard load times in production
+5. Profile with React DevTools to verify improvements
 
-3. **Implement Caching Strategies**
-   - Cache frequently accessed data
-   - Use React Query or similar for client-side caching
-   - Optimize re-renders with React.memo where appropriate
+**Success Criteria**:
+- [ ] Dashboard loads in <1s for typical user
+- [ ] Large lists (100+ items) load efficiently
+- [ ] No unnecessary re-renders (verified with React DevTools)
+- [ ] Performance metrics documented
+
+---
+
+## 📋 Future Tasks
+
+### Additional Performance Optimizations
+- Review other queries for optimization opportunities
+- Consider implementing query result caching if needed
+- Monitor dashboard load times in production
+- Estimated: 1-2 hours
 
 ### Files to Create/Modify
 
@@ -40,21 +50,23 @@
 src/app/
 ├── documents/page.tsx                # ✅ Pagination added
 ├── properties/page.tsx                # ✅ Pagination added
-└── leases/page.tsx                   # ⏳ Add pagination
+└── leases/page.tsx                   # ✅ Pagination added
 
 convex/
 ├── documents.ts                      # ✅ Pagination support added
 ├── properties.ts                      # ✅ Pagination support added
-├── dashboard.ts                       # ⏳ Optimize queries
-└── [various].ts                      # ⏳ Add indexes if needed
+├── leases.ts                         # ✅ Pagination support added
+├── dashboard.ts                       # ✅ Queries optimized
+└── schema.ts                         # ✅ Indexes added
 ```
 
 ### Success Criteria
 
 - [x] Documents list pagination works smoothly (COMPLETE)
 - [x] Properties list pagination works smoothly (COMPLETE)
-- [ ] Leases list pagination works smoothly
-- [ ] Dashboard loads in <1s for typical user
+- [x] Leases list pagination works smoothly (COMPLETE)
+- [x] Dashboard queries optimized with indexes (COMPLETE)
+- [ ] Dashboard loads in <1s for typical user (needs testing)
 - [ ] Large lists (100+ items) load efficiently
 - [ ] No unnecessary re-renders
 
@@ -84,6 +96,39 @@ convex/
 ---
 
 ## ✅ Recently Completed
+
+### Caching Strategies Implementation (January 27, 2025)
+- ✅ Added React.memo to expensive components (UtilityAnomalies, UtilityReminders, OutstandingBalances, UtilityAnalytics, InteractiveChart)
+- ✅ Memoized userId prop to ensure stable reference
+- ✅ Added useCallback for stable function references (handleChartNavigate, chart handlers)
+- ✅ Memoized chart icons to prevent re-creation on every render
+- ✅ Optimized component prop drilling (replaced user.id with memoized userId)
+- ✅ Reduced unnecessary re-renders through proper memoization
+
+### Dashboard Query Optimizations (January 27, 2025)
+- ✅ Added `by_user` index to properties table
+- ✅ Refactored dashboard queries to use indexes instead of `.filter()`
+- ✅ Optimized properties query to use `by_user` index
+- ✅ Optimized leases query to use `by_user` or `by_property` index
+- ✅ Optimized utility bills query to use `by_user` or `by_property` index
+- ✅ Optimized units query to batch query by propertyId using `by_property` index
+- ✅ Changed from O(n) table scans to O(log n) index lookups
+
+### Leases Pagination (January 27, 2025)
+- ✅ Added pagination support to `getLeases` query (limit/offset)
+- ✅ Added pagination UI to leases page (page numbers, Previous/Next)
+- ✅ Auto-resets to page 1 when filters change
+- ✅ Shows lease count and page info
+- ✅ Updated all components using `getLeases` to handle paginated response
+- ✅ Components needing all leases use `limit: 1000` to fetch everything
+
+### UI Improvements & Bug Fixes (January 27, 2025)
+- ✅ Fixed dropdown menu hover states - now uses primary/90 teal color matching navbar
+- ✅ Fixed search input focus issues - added focus restoration and sessionStorage persistence
+- ✅ Fixed search input blocking - removed form wrapper, improved debouncing (600ms)
+- ✅ Added forwardRef support to Input component for proper ref forwarding
+- ✅ Fixed duplicate Button import in properties page
+- ✅ Improved mobile sidebar UI and z-index management
 
 ### Properties Pagination (January 27, 2025)
 - ✅ Added pagination support to `getProperties` query (limit/offset)

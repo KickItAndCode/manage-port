@@ -87,7 +87,7 @@
 
 ### Track 2: Documents & Activity ✅
 
-**Status**: Core Features Complete
+**Status**: Complete
 
 **Completed** (January 27, 2025):
 - ✅ Enhanced drag/drop UX with animations and visual feedback
@@ -95,42 +95,79 @@
 - ✅ Tag autocomplete component with suggestions
 - ✅ Integrated previews into documents page
 - ✅ Backend function to fetch all tags for autocomplete
-
-**Remaining**:
-- Property/lease activity timelines
-- Audit event logging
-- Bulk tagging operations (optional enhancement)
+- ✅ Property/lease activity timelines (ActivityTimeline component)
+- ✅ Audit event logging (activityLog table and mutations)
+- ✅ Bulk tagging operations (bulk tag update mutation and UI)
+- ✅ Documents pagination (limit/offset support)
+- ✅ Properties pagination (limit/offset support)
 
 **Dependencies**: Requires unified components (Phase 1 - ✅ Complete)
 
 ---
 
-### Track 3: Communication & Automation ⏳
+### Track 3: Communication & Automation ✅
 
-**Status**: Foundation Complete
+**Status**: Complete
 
 **Completed**:
 - ✅ Notification preferences UI
 - ✅ Utility reminders detection
 - ✅ Alert system foundation
+- ✅ Real-time notification center UI (NotificationCenter component)
+- ✅ Notification generation for utility reminders
+- ✅ Notification generation for lease expirations
+- ✅ Integrated notification bell into sidebar
 
-**Planned**:
-- Real-time notification center UI
-- Email/SMS digest system (requires external service)
-- Scheduled reminder cron jobs (deferred until email/SMS integration)
+**Future** (Lower Priority):
+- Email/SMS digest system (requires external service setup)
+- Scheduled reminder cron jobs (deferred - notifications can be generated on-demand)
 
 **Dependencies**: Relies on Phase 2 alert system (✅ Complete)
 
 ---
 
-## 🐛 Recent Fixes (January 27, 2025)
+## 🐛 Recent Fixes & Optimizations (January 27, 2025)
 
-1. **Occupancy Rate Calculation Bug** ✅
+7. **React Hooks Error Fix** ✅
+   - **Issue**: "Rendered fewer hooks than expected" error in DashboardKPIs
+   - **Fix**: Moved all hooks before early return, ensuring consistent hook order
+   - **Result**: Hooks error resolved, component renders correctly
+
+8. **Caching Strategies Implementation** ✅
+   - **Added**: React.memo to expensive components (UtilityAnomalies, UtilityReminders, OutstandingBalances, UtilityAnalytics, InteractiveChart)
+   - **Added**: Memoized userId prop for stable reference
+   - **Added**: useCallback for stable function references (handleChartNavigate, chart handlers)
+   - **Added**: Memoized chart icons to prevent re-creation
+   - **Result**: Reduced unnecessary re-renders, improved dashboard performance
+
+## 🐛 Previous Fixes (January 27, 2025)
+
+1. **Dropdown Menu Hover States** ✅
+   - **Issue**: Hover states not visible in light mode, didn't match navbar styling
+   - **Fix**: Updated to use `hover:bg-primary/90` with teal color matching navbar
+   - **Result**: Consistent hover styling across all dropdown menus, visible in both light and dark modes
+
+2. **Search Input Focus & Page Refresh** ✅
+   - **Issue**: Page refreshing while typing, losing focus, blocking input
+   - **Fix**: Removed form wrapper, increased debounce to 600ms, added focus restoration with refs, added sessionStorage persistence
+   - **Result**: Smooth typing experience, focus maintained during re-renders, search value persists across refreshes
+
+3. **Input Component Ref Support** ✅
+   - **Issue**: Input component didn't forward refs properly
+   - **Fix**: Converted to React.forwardRef
+   - **Result**: Refs work correctly for focus management
+
+4. **Pagination Query Compatibility** ✅
+   - **Issue**: Components expecting arrays but receiving paginated objects
+   - **Fix**: Updated all components to extract data arrays from paginated responses
+   - **Result**: All components handle paginated queries correctly
+
+5. **Occupancy Rate Calculation Bug** ✅
    - **Issue**: Showing 200% when 2 leases on 1 property
    - **Fix**: Now calculates based on units instead of properties
    - **Result**: Properly capped at 100%, shows "X active leases of Y units"
 
-2. **Sidebar Structure** ✅
+6. **Sidebar Structure** ✅
    - **Issue**: Sidebar ended abruptly, poor footer placement
    - **Fix**: Redesigned with proper flex layout (Header → Navigation → Footer)
    - **Result**: Collapse button in dedicated footer section with border separator
@@ -141,7 +178,13 @@
 
 **👉 See [TASKS.md](./TASKS.md) for detailed task breakdown and next steps**
 
-**Current Priority**: Notification Center UI (Track 3) - 2-3 hours estimated
+**Current Priority**: Additional Performance Optimizations - 1-2 hours estimated
+
+**Next Steps**:
+1. Review other queries for optimization opportunities
+2. Test dashboard load times and re-render behavior
+3. Monitor dashboard performance metrics
+4. Profile with React DevTools to verify improvements
 
 ---
 
@@ -200,6 +243,7 @@
 
 **Current Status**:
 - Phase 3 Track 1 (Actionable Dashboards) - ✅ Complete
-- Phase 3 Track 2 (Documents & Activity) - Core features complete, working on activity timelines
-- Phase 3 Track 3 (Communication & Automation) - Foundation ready, notification center next
+- Phase 3 Track 2 (Documents & Activity) - ✅ Complete (activity timelines done)
+- Phase 3 Track 3 (Communication & Automation) - ✅ Complete (notification center done)
+- **Next Priority**: Leases Pagination (see TASKS.md for details)
 

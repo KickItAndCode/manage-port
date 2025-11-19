@@ -13,32 +13,35 @@ const RATE_LIMITS = {
 } as const;
 
 // Check rate limit for user
-function checkRateLimit(userId: string, operation: keyof typeof RATE_LIMITS): void {
+function checkRateLimit(
+  userId: string,
+  operation: keyof typeof RATE_LIMITS
+): void {
   // Cleanup expired records occasionally (every ~100 calls)
   if (Math.random() < 0.01) {
     cleanupExpiredRateLimits();
   }
-  
+
   const limit = RATE_LIMITS[operation];
   const now = Date.now();
   const key = `${operation}:${userId}`;
-  
+
   let record = rateLimitStore.get(key);
-  
+
   // Reset if window has expired
   if (!record || now > record.resetTime) {
     record = { count: 0, resetTime: now + limit.windowMs };
   }
-  
+
   // Check if limit exceeded
   if (record.count >= limit.maxRequests) {
     throw new ConvexError({
       code: "RATE_LIMIT_EXCEEDED",
       message: `Too many ${operation} requests. Please wait and try again.`,
-      retryAfter: Math.ceil((record.resetTime - now) / 1000)
+      retryAfter: Math.ceil((record.resetTime - now) / 1000),
     });
   }
-  
+
   // Increment count
   record.count++;
   rateLimitStore.set(key, record);
@@ -56,12 +59,24 @@ function cleanupExpiredRateLimits(): void {
 
 // Validation helpers
 const validatePropertyType = (type: string): boolean => {
-  const validTypes = ["Single Family", "Duplex", "Apartment", "Condo", "Townhouse", "Other"];
+  const validTypes = [
+    "Single Family",
+    "Duplex",
+    "Apartment",
+    "Condo",
+    "Townhouse",
+    "Other",
+  ];
   return validTypes.includes(type);
 };
 
 const validatePropertyStatus = (status: string): boolean => {
-  const validStatuses = ["Available", "Occupied", "Maintenance", "Under Contract"];
+  const validStatuses = [
+    "Available",
+    "Occupied",
+    "Maintenance",
+    "Under Contract",
+  ];
   return validStatuses.includes(status);
 };
 
@@ -71,7 +86,7 @@ const validatePropertyData = (args: any) => {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message: "Property name must be between 2 and 100 characters",
-      field: "name"
+      field: "name",
     });
   }
 
@@ -80,7 +95,7 @@ const validatePropertyData = (args: any) => {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message: "Address must be between 5 and 200 characters",
-      field: "address"
+      field: "address",
     });
   }
 
@@ -89,7 +104,7 @@ const validatePropertyData = (args: any) => {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message: "Invalid property type",
-      field: "type"
+      field: "type",
     });
   }
 
@@ -98,16 +113,20 @@ const validatePropertyData = (args: any) => {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message: "Invalid property status",
-      field: "status"
+      field: "status",
     });
   }
 
   // Numeric validations
-  if (args.bedrooms < 0 || args.bedrooms > 20 || !Number.isInteger(args.bedrooms)) {
+  if (
+    args.bedrooms < 0 ||
+    args.bedrooms > 20 ||
+    !Number.isInteger(args.bedrooms)
+  ) {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message: "Bedrooms must be a whole number between 0 and 20",
-      field: "bedrooms"
+      field: "bedrooms",
     });
   }
 
@@ -115,18 +134,21 @@ const validatePropertyData = (args: any) => {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message: "Bathrooms must be between 0 and 20",
-      field: "bathrooms"
+      field: "bathrooms",
     });
   }
 
-  if (args.squareFeet < 50 || args.squareFeet > 50000 || !Number.isInteger(args.squareFeet)) {
+  if (
+    args.squareFeet < 50 ||
+    args.squareFeet > 50000 ||
+    !Number.isInteger(args.squareFeet)
+  ) {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message: "Square feet must be a whole number between 50 and 50,000",
-      field: "squareFeet"
+      field: "squareFeet",
     });
   }
-
 
   // Date validation
   const purchaseDate = new Date(args.purchaseDate);
@@ -135,7 +157,7 @@ const validatePropertyData = (args: any) => {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message: "Purchase date must be a valid date in the past",
-      field: "purchaseDate"
+      field: "purchaseDate",
     });
   }
 
@@ -147,7 +169,7 @@ const validatePropertyData = (args: any) => {
       throw new ConvexError({
         code: "VALIDATION_ERROR",
         message: "Image URL must be a valid URL",
-        field: "imageUrl"
+        field: "imageUrl",
       });
     }
   }
@@ -171,14 +193,14 @@ export const addProperty = mutation({
   handler: async (ctx, args) => {
     // Check rate limit
     checkRateLimit(args.userId, "addProperty");
-    
+
     // Validate input data
     validatePropertyData(args);
 
     // Check if property name already exists for this user
     const existingProperty = await ctx.db
       .query("properties")
-      .filter((q) => 
+      .filter((q) =>
         q.and(
           q.eq(q.field("userId"), args.userId),
           q.eq(q.field("name"), args.name)
@@ -190,7 +212,7 @@ export const addProperty = mutation({
       throw new ConvexError({
         code: "DUPLICATE_ERROR",
         message: "A property with this name already exists",
-        field: "name"
+        field: "name",
       });
     }
 
@@ -214,7 +236,7 @@ export const addProperty = mutation({
     } catch (error) {
       throw new ConvexError({
         code: "DATABASE_ERROR",
-        message: "Failed to create property"
+        message: "Failed to create property",
       });
     }
   },
@@ -235,35 +257,52 @@ export const createPropertyWithUnits = mutation({
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
     userId: v.string(),
-    
+
     // Property type and units
-    propertyType: v.union(v.literal("single-family"), v.literal("multi-family")),
-    units: v.optional(v.array(v.object({
-      identifier: v.string(),
-      displayName: v.string(),
-      customName: v.boolean(),
-    }))),
-    
+    propertyType: v.union(
+      v.literal("single-family"),
+      v.literal("multi-family")
+    ),
+    units: v.optional(
+      v.array(
+        v.object({
+          identifier: v.string(),
+          displayName: v.string(),
+          customName: v.boolean(),
+        })
+      )
+    ),
+
     // Utility setup
     setupUtilities: v.optional(v.boolean()),
-    utilityPreset: v.optional(v.union(v.literal("owner-pays"), v.literal("tenant-pays"), v.literal("custom"))),
-    customSplit: v.optional(v.array(v.object({
-      unitId: v.string(),
-      unitName: v.string(),
-      percentage: v.number(),
-    }))),
+    utilityPreset: v.optional(
+      v.union(
+        v.literal("owner-pays"),
+        v.literal("tenant-pays"),
+        v.literal("custom")
+      )
+    ),
+    customSplit: v.optional(
+      v.array(
+        v.object({
+          unitId: v.string(),
+          unitName: v.string(),
+          percentage: v.number(),
+        })
+      )
+    ),
   },
   handler: async (ctx, args) => {
     // Check rate limit
     checkRateLimit(args.userId, "addProperty");
-    
+
     // Validate basic property data
     validatePropertyData(args);
 
     // Check if property name already exists for this user
     const existingProperty = await ctx.db
       .query("properties")
-      .filter((q) => 
+      .filter((q) =>
         q.and(
           q.eq(q.field("userId"), args.userId),
           q.eq(q.field("name"), args.name)
@@ -275,7 +314,7 @@ export const createPropertyWithUnits = mutation({
       throw new ConvexError({
         code: "DUPLICATE_ERROR",
         message: "A property with this name already exists",
-        field: "name"
+        field: "name",
       });
     }
 
@@ -294,24 +333,26 @@ export const createPropertyWithUnits = mutation({
         monthlyMortgage: args.monthlyMortgage,
         monthlyCapEx: args.monthlyCapEx,
         propertyType: args.propertyType,
-        
+
         // Save utility wizard settings as property defaults
         utilityPreset: args.utilityPreset,
-        utilityDefaults: args.customSplit?.map(split => ({
+        utilityDefaults: args.customSplit?.map((split) => ({
           unitIdentifier: split.unitId,
           unitName: split.unitName,
           percentage: split.percentage,
         })),
-        
+
         createdAt: new Date().toISOString(),
       });
 
       // Create units
-      const units = args.units || [{
-        identifier: "Main",
-        displayName: "Main Unit",
-        customName: false,
-      }];
+      const units = args.units || [
+        {
+          identifier: "Main",
+          displayName: "Main Unit",
+          customName: false,
+        },
+      ];
 
       // Log activity
       await logActivity(ctx, {
@@ -319,9 +360,9 @@ export const createPropertyWithUnits = mutation({
         entityType: ACTIVITY_TYPES.PROPERTY,
         entityId: propertyId,
         action: ACTIVITY_ACTIONS.CREATED,
-        description: `Property "${args.name}" created with ${units.length} unit${units.length !== 1 ? 's' : ''}`,
-        metadata: { 
-          propertyName: args.name, 
+        description: `Property "${args.name}" created with ${units.length} unit${units.length !== 1 ? "s" : ""}`,
+        metadata: {
+          propertyName: args.name,
           address: args.address,
           unitsCreated: units.length,
           propertyType: args.propertyType,
@@ -335,10 +376,11 @@ export const createPropertyWithUnits = mutation({
           unitIdentifier: unit.identifier,
           displayName: unit.displayName,
           status: "available",
-          isDefault: unit.identifier === "Main" && args.propertyType === "single-family",
+          isDefault:
+            unit.identifier === "Main" && args.propertyType === "single-family",
           createdAt: new Date().toISOString(),
         });
-        
+
         createdUnits.push({
           id: unitId,
           identifier: unit.identifier,
@@ -348,8 +390,15 @@ export const createPropertyWithUnits = mutation({
 
       // Set up utility responsibilities if requested
       if (args.setupUtilities && args.customSplit) {
-        const UTILITY_TYPES = ["Electric", "Water", "Gas", "Sewer", "Trash", "Internet"];
-        
+        const UTILITY_TYPES = [
+          "Electric",
+          "Water",
+          "Gas",
+          "Sewer",
+          "Trash",
+          "Internet",
+        ];
+
         // Legacy: Unit utility responsibilities are now managed through lease settings
         // Custom utility splits are configured when creating leases for specific units
       }
@@ -358,22 +407,26 @@ export const createPropertyWithUnits = mutation({
         propertyId,
         unitsCreated: createdUnits.length,
         utilitiesConfigured: args.setupUtilities,
-        message: `Property created successfully with ${createdUnits.length} unit${createdUnits.length !== 1 ? 's' : ''}`,
+        message: `Property created successfully with ${createdUnits.length} unit${createdUnits.length !== 1 ? "s" : ""}`,
       };
     } catch (error) {
       throw new ConvexError({
         code: "DATABASE_ERROR",
-        message: "Failed to create property with units"
+        message: "Failed to create property with units",
       });
     }
   },
 });
 
 // Helper function to calculate monthly rent from active leases
-async function calculateMonthlyRentFromLeases(ctx: any, propertyId: string, userId: string): Promise<number> {
+async function calculateMonthlyRentFromLeases(
+  ctx: any,
+  propertyId: string,
+  userId: string
+): Promise<number> {
   const activeLeases = await ctx.db
     .query("leases")
-    .filter((q: any) => 
+    .filter((q: any) =>
       q.and(
         q.eq(q.field("propertyId"), propertyId),
         q.eq(q.field("userId"), userId),
@@ -382,12 +435,15 @@ async function calculateMonthlyRentFromLeases(ctx: any, propertyId: string, user
     )
     .collect();
 
-  return activeLeases.reduce((total: number, lease: any) => total + (lease.rent || 0), 0);
+  return activeLeases.reduce(
+    (total: number, lease: any) => total + (lease.rent || 0),
+    0
+  );
 }
 
 // Get all properties for the signed-in user with calculated monthly rent
 export const getProperties = query({
-  args: { 
+  args: {
     userId: v.string(),
     limit: v.optional(v.number()), // Number of properties to return
     offset: v.optional(v.number()), // Number of properties to skip
@@ -401,10 +457,14 @@ export const getProperties = query({
     // Calculate monthly rent for each property from active leases
     const propertiesWithRent = await Promise.all(
       allProperties.map(async (property) => {
-        const monthlyRent = await calculateMonthlyRentFromLeases(ctx, property._id, args.userId);
+        const monthlyRent = await calculateMonthlyRentFromLeases(
+          ctx,
+          property._id,
+          args.userId
+        );
         return {
           ...property,
-          monthlyRent
+          monthlyRent,
         };
       })
     );
@@ -412,9 +472,12 @@ export const getProperties = query({
     // Apply pagination
     const offset = args.offset || 0;
     const limit = args.limit || 50; // Default to 50 if not specified
-    
-    const paginatedProperties = propertiesWithRent.slice(offset, offset + limit);
-    
+
+    const paginatedProperties = propertiesWithRent.slice(
+      offset,
+      offset + limit
+    );
+
     return {
       properties: paginatedProperties,
       total: propertiesWithRent.length,
@@ -425,9 +488,9 @@ export const getProperties = query({
 
 // Get property with units and calculated monthly rent
 export const getPropertyWithUnits = query({
-  args: { 
+  args: {
     propertyId: v.id("properties"),
-    userId: v.string() 
+    userId: v.string(),
   },
   handler: async (ctx, args) => {
     const property = await ctx.db.get(args.propertyId);
@@ -436,7 +499,11 @@ export const getPropertyWithUnits = query({
     }
 
     // Calculate monthly rent from active leases
-    const monthlyRent = await calculateMonthlyRentFromLeases(ctx, args.propertyId, args.userId);
+    const monthlyRent = await calculateMonthlyRentFromLeases(
+      ctx,
+      args.propertyId,
+      args.userId
+    );
 
     // Get all units for this property
     const units = await ctx.db
@@ -459,7 +526,7 @@ export const getPropertyWithUnits = query({
     return {
       ...property,
       monthlyRent,
-      units: unitsWithLeases.sort((a, b) => 
+      units: unitsWithLeases.sort((a, b) =>
         a.unitIdentifier.localeCompare(b.unitIdentifier)
       ),
     };
@@ -477,27 +544,27 @@ export const convertToMultiUnit = mutation({
     if (!property) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Property not found"
+        message: "Property not found",
       });
     }
 
     if (property.userId !== args.userId) {
       throw new ConvexError({
         code: "FORBIDDEN",
-        message: "You don't have permission to modify this property"
+        message: "You don't have permission to modify this property",
       });
     }
 
     if (property.propertyType === "multi-family") {
       throw new ConvexError({
         code: "INVALID_STATE",
-        message: "Property is already multi-family"
+        message: "Property is already multi-family",
       });
     }
 
     // Update property type
-    await ctx.db.patch(args.propertyId, { 
-      propertyType: "multi-family" 
+    await ctx.db.patch(args.propertyId, {
+      propertyType: "multi-family",
     });
 
     return { success: true };
@@ -523,7 +590,7 @@ export const updateProperty = mutation({
   handler: async (ctx, args) => {
     // Check rate limit
     checkRateLimit(args.userId, "updateProperty");
-    
+
     // Validate input data
     validatePropertyData(args);
 
@@ -532,21 +599,21 @@ export const updateProperty = mutation({
     if (!property) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Property not found"
+        message: "Property not found",
       });
     }
-    
+
     if (property.userId !== args.userId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
-        message: "You don't have permission to update this property"
+        message: "You don't have permission to update this property",
       });
     }
 
     // Check for duplicate name (excluding current property)
     const existingProperty = await ctx.db
       .query("properties")
-      .filter((q) => 
+      .filter((q) =>
         q.and(
           q.eq(q.field("userId"), args.userId),
           q.eq(q.field("name"), args.name),
@@ -559,7 +626,7 @@ export const updateProperty = mutation({
       throw new ConvexError({
         code: "DUPLICATE_ERROR",
         message: "A property with this name already exists",
-        field: "name"
+        field: "name",
       });
     }
 
@@ -591,7 +658,7 @@ export const updateProperty = mutation({
     } catch (error) {
       throw new ConvexError({
         code: "DATABASE_ERROR",
-        message: "Failed to update property"
+        message: "Failed to update property",
       });
     }
   },
@@ -603,20 +670,20 @@ export const deleteProperty = mutation({
   handler: async (ctx, args) => {
     // Check rate limit
     checkRateLimit(args.userId, "deleteProperty");
-    
+
     // Check if property exists and user owns it
     const property = await ctx.db.get(args.id);
     if (!property) {
       throw new ConvexError({
         code: "NOT_FOUND",
-        message: "Property not found"
+        message: "Property not found",
       });
     }
-    
+
     if (property.userId !== args.userId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
-        message: "You don't have permission to delete this property"
+        message: "You don't have permission to delete this property",
       });
     }
 
@@ -632,7 +699,7 @@ export const deleteProperty = mutation({
       });
 
       // Delete all associated data in correct order to maintain referential integrity
-      
+
       // 1. Delete all leases (including documents associated with leases)
       const leases = await ctx.db
         .query("leases")
@@ -645,35 +712,37 @@ export const deleteProperty = mutation({
           .query("documents")
           .filter((q) => q.eq(q.field("leaseId"), lease._id))
           .collect();
-        
+
         for (const doc of leaseDocuments) {
-          if (doc.userId === args.userId) { // Only delete user's documents
+          if (doc.userId === args.userId) {
+            // Only delete user's documents
             await ctx.db.delete(doc._id);
           }
         }
-        
+
         // Delete utility payments for this lease (no longer delete charges since they're calculated on-demand)
         const utilityPayments = await ctx.db
           .query("utilityPayments")
           .filter((q) => q.eq(q.field("leaseId"), lease._id))
           .collect();
-        
+
         for (const payment of utilityPayments) {
           await ctx.db.delete(payment._id);
         }
-        
+
         // Delete lease utility settings for this lease
         const leaseUtilitySettings = await ctx.db
           .query("leaseUtilitySettings")
           .filter((q) => q.eq(q.field("leaseId"), lease._id))
           .collect();
-        
+
         for (const setting of leaseUtilitySettings) {
           await ctx.db.delete(setting._id);
         }
-        
+
         // Delete the lease itself
-        if (lease.userId === args.userId) { // Only delete user's leases
+        if (lease.userId === args.userId) {
+          // Only delete user's leases
           await ctx.db.delete(lease._id);
         }
       }
@@ -683,9 +752,10 @@ export const deleteProperty = mutation({
         .query("propertyImages")
         .filter((q) => q.eq(q.field("propertyId"), args.id))
         .collect();
-      
+
       for (const image of propertyImages) {
-        if (image.userId === args.userId) { // Only delete user's images
+        if (image.userId === args.userId) {
+          // Only delete user's images
           await ctx.db.delete(image._id);
         }
       }
@@ -695,9 +765,10 @@ export const deleteProperty = mutation({
         .query("documents")
         .filter((q) => q.eq(q.field("propertyId"), args.id))
         .collect();
-      
+
       for (const document of documents) {
-        if (document.userId === args.userId) { // Only delete user's documents
+        if (document.userId === args.userId) {
+          // Only delete user's documents
           await ctx.db.delete(document._id);
         }
       }
@@ -707,9 +778,10 @@ export const deleteProperty = mutation({
         .query("utilityBills")
         .filter((q) => q.eq(q.field("propertyId"), args.id))
         .collect();
-      
+
       for (const bill of utilityBills) {
-        if (bill.userId === args.userId) { // Only delete user's bills
+        if (bill.userId === args.userId) {
+          // Only delete user's bills
           await ctx.db.delete(bill._id);
         }
       }
@@ -729,15 +801,15 @@ export const deleteProperty = mutation({
 
       // 7. Finally delete the property itself
       await ctx.db.delete(args.id);
-      
-      return { 
-        success: true, 
-        message: `Property "${property.name}" and all associated data have been deleted successfully.`
+
+      return {
+        success: true,
+        message: `Property "${property.name}" and all associated data have been deleted successfully.`,
       };
     } catch (error) {
       throw new ConvexError({
         code: "DATABASE_ERROR",
-        message: "Failed to delete property"
+        message: "Failed to delete property",
       });
     }
   },
@@ -754,17 +826,21 @@ export const getProperty = query({
       }
 
       // Calculate monthly rent from active leases
-      const monthlyRent = await calculateMonthlyRentFromLeases(ctx, args.id, args.userId);
+      const monthlyRent = await calculateMonthlyRentFromLeases(
+        ctx,
+        args.id,
+        args.userId
+      );
 
       return {
         ...property,
-        monthlyRent
+        monthlyRent,
       };
     } catch (error) {
       throw new ConvexError({
         code: "DATABASE_ERROR",
-        message: "Failed to retrieve property"
+        message: "Failed to retrieve property",
       });
     }
   },
-}); 
+});

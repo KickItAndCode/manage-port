@@ -31,7 +31,35 @@ function LeasesPageContent() {
   const propertiesResult = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
   const properties = propertiesResult?.properties || propertiesResult || [];
   
-  const leasesFromDb = useQuery(api.leases.getLeases, user ? { userId: user.id } : "skip");
+  // State declarations
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editLease, setEditLease] = useState<any>(null);
+  const [search, setSearch] = useState("");
+  const [filterProperty, setFilterProperty] = useState("");
+  
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 25;
+  
+  // Determine if we should use pagination (only when not searching)
+  const isSearchMode = !!search;
+  
+  // Query leases with pagination when not searching, or fetch all when searching
+  const leasesResult = useQuery(
+    api.leases.getLeases,
+    user ? {
+      userId: user.id,
+      propertyId: filterProperty ? (filterProperty as any) : undefined,
+      limit: isSearchMode ? 1000 : itemsPerPage,
+      offset: isSearchMode ? 0 : (currentPage - 1) * itemsPerPage,
+    } : "skip"
+  );
+  
+  // Extract leases and pagination info
+  const leasesFromDb = leasesResult?.leases || (Array.isArray(leasesResult) ? leasesResult : []);
+  const totalLeases = leasesResult?.total || (Array.isArray(leasesResult) ? leasesResult.length : 0);
+  const hasMore = leasesResult?.hasMore || false;
+  const totalPages = Math.ceil(totalLeases / itemsPerPage);
   
   // Get all documents (without pagination for lease document filtering)
   const allDocumentsResult = useQuery(api.documents.getDocuments, user ? { userId: user.id, limit: 1000 } : "skip");
@@ -42,11 +70,6 @@ function LeasesPageContent() {
   const addLease = useMutation(api.leases.addLease);
   const updateLease = useMutation(api.leases.updateLease);
   const deleteLease = useMutation(api.leases.deleteLease);
-
-  const [modalOpen, setModalOpen] = useState(false);
-  const [editLease, setEditLease] = useState<any>(null);
-  const [search, setSearch] = useState("");
-  const [filterProperty, setFilterProperty] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showExpiredLeases, setShowExpiredLeases] = useState(false);
@@ -65,11 +88,17 @@ function LeasesPageContent() {
     }
   }, [preSelectedPropertyId, properties]);
 
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterProperty]);
+
   // Days until expiry is now computed in the lease object
 
-  // Filtering
+  // Filtering (client-side search for tenant name, property filter is server-side)
   const filtered = (leases || []).filter((l: any) => {
     if (search && !l.tenantName.toLowerCase().includes(search.toLowerCase())) return false;
+    // filterProperty is already handled server-side, but keep this for safety
     if (filterProperty && l.propertyId !== filterProperty) return false;
     return true;
   });
@@ -540,6 +569,59 @@ function LeasesPageContent() {
           </div>
         )}
       </div>
+
+      {/* Pagination - Only show when not in search mode and there are multiple pages */}
+      {!isSearchMode && totalPages > 1 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t p-4 mt-4">
+          <div className="text-sm text-muted-foreground">
+            Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalLeases)} of {totalLeases} leases
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                let pageNum: number;
+                if (totalPages <= 5) {
+                  pageNum = i + 1;
+                } else if (currentPage <= 3) {
+                  pageNum = i + 1;
+                } else if (currentPage >= totalPages - 2) {
+                  pageNum = totalPages - 4 + i;
+                } else {
+                  pageNum = currentPage - 2 + i;
+                }
+                
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={currentPage === pageNum ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCurrentPage(pageNum)}
+                    className="min-w-[2.5rem]"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages || !hasMore}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Dialog open={modalOpen} onOpenChange={setModalOpen}>
         <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">

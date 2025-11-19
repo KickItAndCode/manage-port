@@ -103,9 +103,11 @@ export default function DocumentUploadForm({
   );
   // Extract properties array from paginated result
   const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
-  const leases = useQuery(api.leases.getLeases,
-    user ? { userId: user.id } : "skip"
+  const leasesResult = useQuery(api.leases.getLeases,
+    user ? { userId: user.id, limit: 1000 } : "skip" // Get all leases for dropdown
   );
+  // Extract leases array from paginated result
+  const leases = leasesResult?.leases || (Array.isArray(leasesResult) ? leasesResult : []);
   const utilityBills = useQuery(api.utilityBills.getUtilityBills,
     user && formData.selectedPropertyId ? { 
       userId: user.id, 

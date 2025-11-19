@@ -5,20 +5,20 @@ import { api } from "@/../convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Building2, 
-  DollarSign, 
-  TrendingUp, 
+import {
+  Building2,
+  DollarSign,
+  TrendingUp,
   TrendingDown,
   Users,
   Receipt,
   AlertCircle,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
-import { useMemo } from "react";
+import { useMemo, memo, useCallback } from "react";
 import { DashboardFilters as DashboardFiltersType } from "./DashboardFilters";
 
 interface DashboardKPIsProps {
@@ -45,7 +45,7 @@ interface KPICardProps {
   compact?: boolean;
 }
 
-function KPICard({
+const KPICard = memo(function KPICard({
   title,
   value,
   subtitle,
@@ -56,14 +56,18 @@ function KPICard({
   onClick,
   compact = false,
 }: KPICardProps) {
-  const formattedValue = typeof value === "number" 
-    ? value.toLocaleString("en-US", { 
-        style: "currency", 
-        currency: "USD",
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      })
-    : value;
+  const formattedValue = useMemo(
+    () =>
+      typeof value === "number"
+        ? value.toLocaleString("en-US", {
+            style: "currency",
+            currency: "USD",
+            minimumFractionDigits: 0,
+            maximumFractionDigits: 0,
+          })
+        : value,
+    [value]
+  );
 
   return (
     <Card
@@ -77,46 +81,60 @@ function KPICard({
       <CardContent className={cn("p-4 sm:p-6", compact && "p-3")}>
         <div className="flex items-start justify-between">
           <div className="flex-1 min-w-0">
-            <p className={cn(
-              "text-muted-foreground mb-1",
-              compact ? "text-xs" : "text-sm"
-            )}>
+            <p
+              className={cn(
+                "text-muted-foreground mb-1",
+                compact ? "text-xs" : "text-sm"
+              )}
+            >
               {title}
             </p>
-            <p className={cn(
-              "font-bold text-foreground mb-1",
-              compact ? "text-lg" : "text-2xl"
-            )}>
+            <p
+              className={cn(
+                "font-bold text-foreground mb-1",
+                compact ? "text-lg" : "text-2xl"
+              )}
+            >
               {formattedValue}
             </p>
             {subtitle && (
-              <p className={cn(
-                "text-muted-foreground",
-                compact ? "text-xs" : "text-sm"
-              )}>
+              <p
+                className={cn(
+                  "text-muted-foreground",
+                  compact ? "text-xs" : "text-sm"
+                )}
+              >
                 {subtitle}
               </p>
             )}
             {trend && (
-              <div className={cn(
-                "flex items-center gap-1 mt-2",
-                compact ? "text-xs" : "text-sm"
-              )}>
-                {trend.isPositive ? (
-                  <ArrowUpRight className={cn(
-                    "text-success",
-                    compact ? "h-3 w-3" : "h-4 w-4"
-                  )} />
-                ) : (
-                  <ArrowDownRight className={cn(
-                    "text-destructive",
-                    compact ? "h-3 w-3" : "h-4 w-4"
-                  )} />
+              <div
+                className={cn(
+                  "flex items-center gap-1 mt-2",
+                  compact ? "text-xs" : "text-sm"
                 )}
-                <span className={cn(
-                  trend.isPositive ? "text-success" : "text-destructive",
-                  "font-medium"
-                )}>
+              >
+                {trend.isPositive ? (
+                  <ArrowUpRight
+                    className={cn(
+                      "text-success",
+                      compact ? "h-3 w-3" : "h-4 w-4"
+                    )}
+                  />
+                ) : (
+                  <ArrowDownRight
+                    className={cn(
+                      "text-destructive",
+                      compact ? "h-3 w-3" : "h-4 w-4"
+                    )}
+                  />
+                )}
+                <span
+                  className={cn(
+                    trend.isPositive ? "text-success" : "text-destructive",
+                    "font-medium"
+                  )}
+                >
                   {Math.abs(trend.value)}%
                 </span>
                 <span className="text-muted-foreground ml-1">
@@ -125,38 +143,38 @@ function KPICard({
               </div>
             )}
           </div>
-          <div className={cn(
-            "rounded-lg p-2 sm:p-3 flex-shrink-0",
-            bgColor
-          )}>
-            <Icon className={cn(
-              iconColor,
-              compact ? "h-5 w-5" : "h-6 w-6"
-            )} />
+          <div className={cn("rounded-lg p-2 sm:p-3 flex-shrink-0", bgColor)}>
+            <Icon className={cn(iconColor, compact ? "h-5 w-5" : "h-6 w-6")} />
           </div>
         </div>
       </CardContent>
     </Card>
   );
-}
+});
 
 /**
  * Dashboard KPIs Component
- * 
+ *
  * Displays key performance indicators: occupancy, rent collected,
  * utility spend, and net income with trends and quick navigation.
  */
-export function DashboardKPIs({ userId, compact = false, filters }: DashboardKPIsProps) {
+export const DashboardKPIs = memo(function DashboardKPIs({
+  userId,
+  compact = false,
+  filters,
+}: DashboardKPIsProps) {
   const router = useRouter();
 
   const metrics = useQuery(
     api.dashboard.getDashboardMetrics,
-    userId ? { 
-      userId,
-      propertyId: filters?.propertyId,
-      dateRange: filters?.dateRange,
-      status: filters?.status,
-    } : "skip"
+    userId
+      ? {
+          userId,
+          propertyId: filters?.propertyId,
+          dateRange: filters?.dateRange,
+          status: filters?.status,
+        }
+      : "skip"
   );
 
   const utilityInsights = useQuery(
@@ -169,7 +187,9 @@ export function DashboardKPIs({ userId, compact = false, filters }: DashboardKPI
     api.properties.getProperties,
     userId ? { userId, limit: 1000 } : "skip" // Get all properties for KPIs
   );
-  const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
+  const properties =
+    propertiesResult?.properties ||
+    (Array.isArray(propertiesResult) ? propertiesResult : []);
 
   // Get utility bills for property breakdown
   const utilityBills = useQuery(
@@ -180,15 +200,87 @@ export function DashboardKPIs({ userId, compact = false, filters }: DashboardKPI
   // Get property name when property filter is active
   const selectedProperty = useMemo(() => {
     if (!filters?.propertyId || !properties) return null;
-    return properties.find(p => p._id === filters.propertyId);
+    return properties.find((p) => p._id === filters.propertyId);
   }, [filters?.propertyId, properties]);
 
+  // Calculate net income (memoized) - safe with optional chaining
+  const netIncome = useMemo(
+    () =>
+      metrics
+        ? metrics.totalMonthlyRent -
+          metrics.totalUtilityCost -
+          metrics.totalMonthlyMortgage -
+          metrics.totalMonthlyCapEx
+        : 0,
+    [
+      metrics?.totalMonthlyRent,
+      metrics?.totalUtilityCost,
+      metrics?.totalMonthlyMortgage,
+      metrics?.totalMonthlyCapEx,
+    ]
+  );
+
+  // Calculate occupancy percentage (cap at 100%) - memoized - safe with optional chaining
+  const occupancyPercentage = useMemo(
+    () => (metrics ? Math.min(Math.round(metrics.occupancyRate), 100) : 0),
+    [metrics?.occupancyRate]
+  );
+
+  // Calculate average utility spend per property - already memoized - safe with optional chaining
+  const avgUtilityPerProperty = useMemo(() => {
+    if (!metrics || metrics.totalProperties === 0) return 0;
+    return metrics.totalUtilityCost / metrics.totalProperties;
+  }, [metrics?.totalUtilityCost, metrics?.totalProperties]);
+
+  // Calculate trend for occupancy (simplified - would need historical data) - memoized - safe with optional chaining
+  const occupancyTrend = useMemo(
+    () =>
+      metrics && metrics.occupancyRate >= 80
+        ? { value: 5, label: "vs target", isPositive: true }
+        : metrics && metrics.occupancyRate >= 50
+          ? { value: 10, label: "vs target", isPositive: false }
+          : undefined,
+    [metrics?.occupancyRate]
+  );
+
+  // Memoize navigation handlers - all hooks must be called before early return
+  const handleOccupancyClick = useCallback(() => {
+    if (selectedProperty) {
+      router.push(`/leases?propertyId=${selectedProperty._id}`);
+    } else {
+      router.push("/leases");
+    }
+  }, [selectedProperty, router]);
+
+  const handleRentClick = useCallback(() => {
+    if (selectedProperty) {
+      router.push(`/leases?propertyId=${selectedProperty._id}`);
+    } else {
+      router.push("/leases");
+    }
+  }, [selectedProperty, router]);
+
+  const handleUtilityClick = useCallback(() => {
+    if (selectedProperty) {
+      router.push(`/utility-bills?propertyId=${selectedProperty._id}`);
+    } else {
+      router.push("/utility-bills");
+    }
+  }, [selectedProperty, router]);
+
+  const handleNetIncomeClick = useCallback(() => {
+    router.push("/dashboard");
+  }, [router]);
+
+  // Early return after all hooks are called
   if (!metrics) {
     return (
-      <div className={cn(
-        "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6",
-        compact && "gap-2"
-      )}>
+      <div
+        className={cn(
+          "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6",
+          compact && "gap-2"
+        )}
+      >
         {Array.from({ length: 4 }).map((_, i) => (
           <Card key={i} className={cn(compact && "p-3")}>
             <CardContent className={cn("p-4 sm:p-6", compact && "p-3")}>
@@ -202,33 +294,13 @@ export function DashboardKPIs({ userId, compact = false, filters }: DashboardKPI
     );
   }
 
-  // Calculate net income
-  const netIncome = metrics.totalMonthlyRent - 
-    metrics.totalUtilityCost - 
-    metrics.totalMonthlyMortgage - 
-    metrics.totalMonthlyCapEx;
-
-  // Calculate occupancy percentage (cap at 100%)
-  const occupancyPercentage = Math.min(Math.round(metrics.occupancyRate), 100);
-
-  // Calculate average utility spend per property
-  const avgUtilityPerProperty = useMemo(() => {
-    if (!metrics || metrics.totalProperties === 0) return 0;
-    return metrics.totalUtilityCost / metrics.totalProperties;
-  }, [metrics]);
-
-  // Calculate trend for occupancy (simplified - would need historical data)
-  const occupancyTrend = metrics.occupancyRate >= 80 
-    ? { value: 5, label: "vs target", isPositive: true }
-    : metrics.occupancyRate >= 50
-    ? { value: 10, label: "vs target", isPositive: false }
-    : undefined;
-
   return (
-    <div className={cn(
-      "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6",
-      compact && "gap-2"
-    )}>
+    <div
+      className={cn(
+        "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6",
+        compact && "gap-2"
+      )}
+    >
       {/* Occupancy Rate */}
       <KPICard
         title="Occupancy Rate"
@@ -237,20 +309,14 @@ export function DashboardKPIs({ userId, compact = false, filters }: DashboardKPI
           selectedProperty
             ? selectedProperty.name
             : metrics.totalUnits > 0
-            ? `${metrics.activeLeases} active lease${metrics.activeLeases !== 1 ? "s" : ""} of ${metrics.totalUnits} unit${metrics.totalUnits !== 1 ? "s" : ""}`
-            : `${metrics.activeLeases} active lease${metrics.activeLeases !== 1 ? "s" : ""} of ${metrics.totalProperties} propert${metrics.totalProperties !== 1 ? "ies" : "y"}`
+              ? `${metrics.activeLeases} active lease${metrics.activeLeases !== 1 ? "s" : ""} of ${metrics.totalUnits} unit${metrics.totalUnits !== 1 ? "s" : ""}`
+              : `${metrics.activeLeases} active lease${metrics.activeLeases !== 1 ? "s" : ""} of ${metrics.totalProperties} propert${metrics.totalProperties !== 1 ? "ies" : "y"}`
         }
         trend={occupancyTrend}
         icon={Building2}
         iconColor="text-blue-600 dark:text-blue-400"
         bgColor="bg-blue-50 dark:bg-blue-950/20"
-        onClick={() => {
-          if (selectedProperty) {
-            router.push(`/leases?propertyId=${selectedProperty._id}`);
-          } else {
-            router.push("/leases");
-          }
-        }}
+        onClick={handleOccupancyClick}
         compact={compact}
       />
 
@@ -266,13 +332,7 @@ export function DashboardKPIs({ userId, compact = false, filters }: DashboardKPI
         icon={DollarSign}
         iconColor="text-green-600 dark:text-green-400"
         bgColor="bg-green-50 dark:bg-green-950/20"
-        onClick={() => {
-          if (selectedProperty) {
-            router.push(`/leases?propertyId=${selectedProperty._id}`);
-          } else {
-            router.push("/leases");
-          }
-        }}
+        onClick={handleRentClick}
         compact={compact}
       />
 
@@ -284,8 +344,8 @@ export function DashboardKPIs({ userId, compact = false, filters }: DashboardKPI
           selectedProperty
             ? selectedProperty.name
             : metrics.totalProperties > 0
-            ? `Avg $${Math.round(avgUtilityPerProperty)}/property`
-            : "No properties"
+              ? `Avg $${Math.round(avgUtilityPerProperty)}/property`
+              : "No properties"
         }
         trend={
           utilityInsights?.anomalyCount && utilityInsights.anomalyCount > 0
@@ -299,13 +359,7 @@ export function DashboardKPIs({ userId, compact = false, filters }: DashboardKPI
         icon={Receipt}
         iconColor="text-orange-600 dark:text-orange-400"
         bgColor="bg-orange-50 dark:bg-orange-950/20"
-        onClick={() => {
-          if (selectedProperty) {
-            router.push(`/utility-bills?propertyId=${selectedProperty._id}`);
-          } else {
-            router.push("/utility-bills");
-          }
-        }}
+        onClick={handleUtilityClick}
         compact={compact}
       />
 
@@ -317,10 +371,9 @@ export function DashboardKPIs({ userId, compact = false, filters }: DashboardKPI
         icon={TrendingUp}
         iconColor={netIncome > 0 ? "text-success" : "text-destructive"}
         bgColor={netIncome > 0 ? "bg-success/10" : "bg-destructive/10"}
-        onClick={() => router.push("/dashboard")}
+        onClick={handleNetIncomeClick}
         compact={compact}
       />
     </div>
   );
-}
-
+});

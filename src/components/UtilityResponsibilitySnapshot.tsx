@@ -79,10 +79,12 @@ export function UtilityResponsibilitySnapshot({
     propertyId ? { propertyId, userId } : "skip"
   );
   
-  const allLeases = useQuery(
+  const allLeasesResult = useQuery(
     api.leases.getLeases,
-    (!propertyId && userId) ? { userId } : "skip"
+    (!propertyId && userId) ? { userId, limit: 1000 } : "skip" // Get all leases
   );
+  // Extract leases array from paginated result
+  const allLeases = allLeasesResult?.leases || (Array.isArray(allLeasesResult) ? allLeasesResult : []);
   
   // Use leasesByProperty if propertyId provided, otherwise use allLeases
   const leases = propertyId ? leasesByProperty : allLeases;

@@ -53,45 +53,68 @@ export const getDashboardMetrics = query({
     status: v.optional(v.union(v.literal("all"), v.literal("active"), v.literal("expired"), v.literal("pending"))),
   },
   handler: async (ctx, args) => {
-    // Build property filter
-    let propertyQuery = ctx.db
-      .query("properties")
-      .filter((q) => q.eq(q.field("userId"), args.userId));
-    
-    // Get all properties (filtered by propertyId if provided)
-    const allProperties = await propertyQuery.collect();
-    const properties = args.propertyId 
-      ? allProperties.filter(p => p._id === args.propertyId)
-      : allProperties;
+    // Get properties using index (optimized)
+    let properties;
+    if (args.propertyId) {
+      // If filtering by specific property, get it directly
+      const property = await ctx.db.get(args.propertyId);
+      properties = property && property.userId === args.userId ? [property] : [];
+    } else {
+      // Use index for userId query
+      properties = await ctx.db
+        .query("properties")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .collect();
+    }
 
-    // Get all leases (filtered by propertyId if provided)
-    let leaseQuery = ctx.db
-      .query("leases")
-      .filter((q) => q.eq(q.field("userId"), args.userId));
-    
-    const allLeases = await leaseQuery.collect();
-    let leases = args.propertyId
-      ? allLeases.filter(l => l.propertyId === args.propertyId)
-      : allLeases;
+    // Get leases using index (optimized)
+    let leases;
+    if (args.propertyId) {
+      // Use propertyId index for filtered query
+      leases = await ctx.db
+        .query("leases")
+        .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+        .filter((q) => q.eq(q.field("userId"), args.userId))
+        .collect();
+    } else {
+      // Use userId index
+      leases = await ctx.db
+        .query("leases")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .collect();
+    }
 
-    // Get all utility bills (filtered by propertyId if provided)
-    let utilityBillQuery = ctx.db
-      .query("utilityBills")
-      .filter((q) => q.eq(q.field("userId"), args.userId));
-    
-    const allUtilityBills = await utilityBillQuery.collect();
-    let utilityBills = args.propertyId
-      ? allUtilityBills.filter(bill => bill.propertyId === args.propertyId)
-      : allUtilityBills;
+    // Get utility bills using index (optimized)
+    let utilityBills;
+    if (args.propertyId) {
+      // Use propertyId index for filtered query
+      utilityBills = await ctx.db
+        .query("utilityBills")
+        .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+        .filter((q) => q.eq(q.field("userId"), args.userId))
+        .collect();
+    } else {
+      // Use userId index
+      utilityBills = await ctx.db
+        .query("utilityBills")
+        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .collect();
+    }
 
     // Calculate metrics
     const totalProperties = properties.length;
     const totalSquareFeet = properties.reduce((sum, p) => sum + p.squareFeet, 0);
     
-    // Get all units for properties
+    // Get units using index (optimized) - batch query by propertyId
     const propertyIds = properties.map(p => p._id);
-    const allUnits = await ctx.db.query("units").collect();
-    const units = allUnits.filter(u => propertyIds.includes(u.propertyId));
+    const unitsPromises = propertyIds.map(propertyId =>
+      ctx.db
+        .query("units")
+        .withIndex("by_property", (q) => q.eq("propertyId", propertyId))
+        .collect()
+    );
+    const unitsArrays = await Promise.all(unitsPromises);
+    const units = unitsArrays.flat();
     const totalUnits = units.length;
     
     // Apply date range filter to leases

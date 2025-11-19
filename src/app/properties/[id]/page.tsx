@@ -81,10 +81,12 @@ export default function PropertyDetailsPage() {
     api.properties.getProperty,
     user && isValidPropertyId ? { id: propertyId as any, userId: user.id } : "skip"
   );
-  const leases = useQuery(
+  const leasesResult = useQuery(
     api.leases.getLeases,
-    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
+    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any, limit: 1000 } : "skip" // Get all leases for property
   );
+  // Extract leases array from paginated result
+  const leases = leasesResult?.leases || (Array.isArray(leasesResult) ? leasesResult : []);
   const documentsResult = useQuery(
     api.documents.getDocuments,
     user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any, limit: 1000 } : "skip"

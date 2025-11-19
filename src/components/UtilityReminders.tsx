@@ -1,9 +1,16 @@
 "use client";
 
+import { memo } from "react";
 import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "@/../convex/_generated/api";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -30,10 +37,10 @@ interface UtilityRemindersProps {
 
 /**
  * Utility Reminders Component
- * 
+ *
  * Displays overdue bills and missing utility readings
  */
-export function UtilityReminders({
+export const UtilityReminders = memo(function UtilityReminders({
   userId,
   propertyId,
   compact = false,
@@ -65,7 +72,9 @@ export function UtilityReminders({
     return (
       <Card>
         <CardHeader className={cn(compact && "pb-3")}>
-          <CardTitle className={cn("flex items-center gap-2", compact && "text-base")}>
+          <CardTitle
+            className={cn("flex items-center gap-2", compact && "text-base")}
+          >
             <Clock className="h-5 w-5 text-success" />
             Utility Reminders
           </CardTitle>
@@ -87,12 +96,15 @@ export function UtilityReminders({
 
   const displayOverdue = overdueBills.slice(0, Math.ceil(maxItems / 2));
   const displayMissing = missingReadings.slice(0, Math.floor(maxItems / 2));
-  const remainingCount = totalReminders - displayOverdue.length - displayMissing.length;
+  const remainingCount =
+    totalReminders - displayOverdue.length - displayMissing.length;
 
   return (
     <Card>
       <CardHeader className={cn(compact && "pb-3")}>
-        <CardTitle className={cn("flex items-center gap-2", compact && "text-base")}>
+        <CardTitle
+          className={cn("flex items-center gap-2", compact && "text-base")}
+        >
           <AlertCircle className="h-5 w-5 text-destructive" />
           Utility Reminders
           {totalReminders > 0 && (
@@ -103,9 +115,11 @@ export function UtilityReminders({
         </CardTitle>
         {!compact && (
           <CardDescription>
-            {overdueBills.length > 0 && `${overdueBills.length} overdue bill${overdueBills.length !== 1 ? 's' : ''}`}
+            {overdueBills.length > 0 &&
+              `${overdueBills.length} overdue bill${overdueBills.length !== 1 ? "s" : ""}`}
             {overdueBills.length > 0 && missingReadings.length > 0 && " • "}
-            {missingReadings.length > 0 && `${missingReadings.length} missing reading${missingReadings.length !== 1 ? 's' : ''}`}
+            {missingReadings.length > 0 &&
+              `${missingReadings.length} missing reading${missingReadings.length !== 1 ? "s" : ""}`}
           </CardDescription>
         )}
       </CardHeader>
@@ -122,8 +136,8 @@ export function UtilityReminders({
                 bill.daysOverdue >= 30
                   ? "high"
                   : bill.daysOverdue >= 14
-                  ? "medium"
-                  : "low";
+                    ? "medium"
+                    : "low";
 
               const severityColors = {
                 high: "border-destructive bg-destructive/5",
@@ -140,20 +154,32 @@ export function UtilityReminders({
               return (
                 <Alert
                   key={bill.billId}
-                  className={cn("cursor-pointer hover:opacity-80 transition-opacity", severityColors[severity])}
-                  onClick={() => router.push(`/utility-bills?billId=${bill.billId}`)}
+                  className={cn(
+                    "cursor-pointer hover:opacity-80 transition-opacity",
+                    severityColors[severity]
+                  )}
+                  onClick={() =>
+                    router.push(`/utility-bills?billId=${bill.billId}`)
+                  }
                 >
-                  <AlertCircle className={cn(
-                    "h-4 w-4",
-                    severity === "high" && "text-destructive",
-                    severity === "medium" && "text-orange-600",
-                    severity === "low" && "text-yellow-600"
-                  )} />
+                  <AlertCircle
+                    className={cn(
+                      "h-4 w-4",
+                      severity === "high" && "text-destructive",
+                      severity === "medium" && "text-orange-600",
+                      severity === "low" && "text-yellow-600"
+                    )}
+                  />
                   <AlertTitle className="space-y-1">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm">{bill.propertyName}</span>
-                        <Badge variant={severityBadges[severity] as any} className="text-xs">
+                        <span className="font-medium text-sm">
+                          {bill.propertyName}
+                        </span>
+                        <Badge
+                          variant={severityBadges[severity] as any}
+                          className="text-xs"
+                        >
                           {bill.daysOverdue}d overdue
                         </Badge>
                       </div>
@@ -189,13 +215,19 @@ export function UtilityReminders({
               <Alert
                 key={`${reading.propertyId}-${reading.utilityType}-${reading.expectedMonth}`}
                 className="cursor-pointer hover:opacity-80 transition-opacity border-orange-500 bg-orange-500/5"
-                onClick={() => router.push(`/utility-bills?propertyId=${reading.propertyId}&month=${reading.expectedMonth}`)}
+                onClick={() =>
+                  router.push(
+                    `/utility-bills?propertyId=${reading.propertyId}&month=${reading.expectedMonth}`
+                  )
+                }
               >
                 <FileText className="h-4 w-4 text-orange-600" />
                 <AlertTitle className="space-y-1">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-sm">{reading.propertyName}</span>
+                      <span className="font-medium text-sm">
+                        {reading.propertyName}
+                      </span>
                       <Badge variant="secondary" className="text-xs">
                         {reading.daysSinceLastBill}d since last
                       </Badge>
@@ -205,12 +237,20 @@ export function UtilityReminders({
                 <AlertDescription className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
                     <span className="text-muted-foreground">
-                      {reading.utilityType} - {format(new Date(reading.expectedMonth + "-01"), "MMM yyyy")}
+                      {reading.utilityType} -{" "}
+                      {format(
+                        new Date(reading.expectedMonth + "-01"),
+                        "MMM yyyy"
+                      )}
                     </span>
                   </div>
                   {reading.lastBillMonth && (
                     <div className="text-xs text-muted-foreground">
-                      Last bill: {format(new Date(reading.lastBillMonth + "-01"), "MMM yyyy")}
+                      Last bill:{" "}
+                      {format(
+                        new Date(reading.lastBillMonth + "-01"),
+                        "MMM yyyy"
+                      )}
                     </div>
                   )}
                 </AlertDescription>
@@ -233,5 +273,4 @@ export function UtilityReminders({
       </CardContent>
     </Card>
   );
-}
-
+});

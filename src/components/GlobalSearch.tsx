@@ -4,7 +4,14 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
-import { Search, MapPin, DollarSign, X, ArrowRight, ImageIcon } from "lucide-react";
+import {
+  Search,
+  MapPin,
+  DollarSign,
+  X,
+  ArrowRight,
+  ImageIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PropertyImage } from "@/components/PropertyImage";
@@ -23,12 +30,12 @@ interface Property {
 }
 
 // Component for individual search result item to handle cover image query
-function SearchResultItem({ 
-  property, 
-  index, 
-  selectedIndex, 
-  onNavigate, 
-  onMouseEnter 
+function SearchResultItem({
+  property,
+  index,
+  selectedIndex,
+  onNavigate,
+  onMouseEnter,
 }: {
   property: Property;
   index: number;
@@ -37,8 +44,9 @@ function SearchResultItem({
   onMouseEnter: (index: number) => void;
 }) {
   const { user } = useUser();
-  
-  const coverImage = useQuery(api.propertyImages.getCoverImage, 
+
+  const coverImage = useQuery(
+    api.propertyImages.getCoverImage,
     user ? { propertyId: property._id as any, userId: user.id } : "skip"
   );
 
@@ -65,7 +73,7 @@ function SearchResultItem({
           </div>
         )}
       </div>
-      
+
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2">
           <h4 className="font-semibold text-sm truncate">{property.name}</h4>
@@ -81,12 +89,13 @@ function SearchResultItem({
           <span>{property.type}</span>
           <span className="flex items-center gap-1">
             <DollarSign className="h-3 w-3" />
-            {property.monthlyRent > 0 
-              ? `$${property.monthlyRent.toLocaleString()}` 
-              : '$0'
-            }
+            {property.monthlyRent > 0
+              ? `$${property.monthlyRent.toLocaleString()}`
+              : "$0"}
           </span>
-          <span>{property.bedrooms}BR/{property.bathrooms}BA</span>
+          <span>
+            {property.bedrooms}BR/{property.bathrooms}BA
+          </span>
         </div>
       </div>
       <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0 mt-3" />
@@ -107,26 +116,33 @@ export function GlobalSearch() {
     api.properties.getProperties,
     user ? { userId: user.id, limit: 1000 } : "skip" // Get more properties for search
   );
-  
+
   // Extract properties array from paginated result
-  const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
+  const properties =
+    propertiesResult?.properties ||
+    (Array.isArray(propertiesResult) ? propertiesResult : []);
 
   // Filter properties based on search
-  const filteredProperties = properties?.filter((property: Property) => {
-    if (!search) return false;
-    const searchLower = search.toLowerCase();
-    return (
-      property.name.toLowerCase().includes(searchLower) ||
-      property.address.toLowerCase().includes(searchLower) ||
-      property.type.toLowerCase().includes(searchLower) ||
-      property.status.toLowerCase().includes(searchLower)
-    );
-  }).slice(0, 5); // Limit to 5 results
+  const filteredProperties = properties
+    ?.filter((property: Property) => {
+      if (!search) return false;
+      const searchLower = search.toLowerCase();
+      return (
+        property.name.toLowerCase().includes(searchLower) ||
+        property.address.toLowerCase().includes(searchLower) ||
+        property.type.toLowerCase().includes(searchLower) ||
+        property.status.toLowerCase().includes(searchLower)
+      );
+    })
+    .slice(0, 5); // Limit to 5 results
 
   // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+      if (
+        searchRef.current &&
+        !searchRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     };
@@ -136,43 +152,49 @@ export function GlobalSearch() {
   }, []);
 
   // Navigation function
-  const navigateToProperty = useCallback((propertyId: string) => {
-    router.push(`/properties/${propertyId}`);
-    setSearch("");
-    setIsOpen(false);
-    setSelectedIndex(0);
-  }, [router]);
+  const navigateToProperty = useCallback(
+    (propertyId: string) => {
+      router.push(`/properties/${propertyId}`);
+      setSearch("");
+      setIsOpen(false);
+      setSelectedIndex(0);
+    },
+    [router]
+  );
 
   // Handle keyboard navigation
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (!filteredProperties || filteredProperties.length === 0) return;
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (!filteredProperties || filteredProperties.length === 0) return;
 
-    switch (e.key) {
-      case "ArrowDown":
-        e.preventDefault();
-        setSelectedIndex((prev) => 
-          prev < filteredProperties.length - 1 ? prev + 1 : 0
-        );
-        break;
-      case "ArrowUp":
-        e.preventDefault();
-        setSelectedIndex((prev) => 
-          prev > 0 ? prev - 1 : filteredProperties.length - 1
-        );
-        break;
-      case "Enter":
-        e.preventDefault();
-        if (filteredProperties[selectedIndex]) {
-          navigateToProperty(filteredProperties[selectedIndex]._id);
-        }
-        break;
-      case "Escape":
-        e.preventDefault();
-        setIsOpen(false);
-        inputRef.current?.blur();
-        break;
-    }
-  }, [filteredProperties, selectedIndex, navigateToProperty]);
+      switch (e.key) {
+        case "ArrowDown":
+          e.preventDefault();
+          setSelectedIndex((prev) =>
+            prev < filteredProperties.length - 1 ? prev + 1 : 0
+          );
+          break;
+        case "ArrowUp":
+          e.preventDefault();
+          setSelectedIndex((prev) =>
+            prev > 0 ? prev - 1 : filteredProperties.length - 1
+          );
+          break;
+        case "Enter":
+          e.preventDefault();
+          if (filteredProperties[selectedIndex]) {
+            navigateToProperty(filteredProperties[selectedIndex]._id);
+          }
+          break;
+        case "Escape":
+          e.preventDefault();
+          setIsOpen(false);
+          inputRef.current?.blur();
+          break;
+      }
+    },
+    [filteredProperties, selectedIndex, navigateToProperty]
+  );
 
   const handleSearchChange = (value: string) => {
     setSearch(value);
@@ -181,7 +203,10 @@ export function GlobalSearch() {
   };
 
   return (
-    <div ref={searchRef} className="relative w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg">
+    <div
+      ref={searchRef}
+      className="relative w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg"
+    >
       <div className="relative">
         <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
         <Input
@@ -234,15 +259,17 @@ export function GlobalSearch() {
       )}
 
       {/* No Results */}
-      {isOpen && search && (!filteredProperties || filteredProperties.length === 0) && (
-        <div className="absolute top-full mt-2 w-full bg-card border border-border rounded-lg shadow-lg p-8 text-center z-50">
-          <Search className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
-          <p className="text-sm font-medium">No properties found</p>
-          <p className="text-xs text-muted-foreground mt-1">
-            Try searching by name, address, or type
-          </p>
-        </div>
-      )}
+      {isOpen &&
+        search &&
+        (!filteredProperties || filteredProperties.length === 0) && (
+          <div className="absolute top-full mt-2 w-full bg-card border border-border rounded-lg shadow-lg p-8 text-center z-50">
+            <Search className="h-12 w-12 text-muted-foreground/30 mx-auto mb-3" />
+            <p className="text-sm font-medium">No properties found</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Try searching by name, address, or type
+            </p>
+          </div>
+        )}
     </div>
   );
 }

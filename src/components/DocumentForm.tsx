@@ -45,9 +45,11 @@ export function DocumentForm({ document, open, onOpenChange, onSave }: DocumentF
   // Extract properties array from paginated result
   const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
   
-  const leases = useQuery(api.leases.getLeases, 
-    user ? { userId: user.id } : "skip"
+  const leasesResult = useQuery(api.leases.getLeases, 
+    user ? { userId: user.id, limit: 1000 } : "skip" // Get all leases for dropdown
   );
+  // Extract leases array from paginated result
+  const leases = leasesResult?.leases || (Array.isArray(leasesResult) ? leasesResult : []);
 
   // Mutations
   const updateDocument = useMutation(api.documents.updateDocument);

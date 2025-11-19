@@ -1,10 +1,10 @@
 "use client";
-import React, { useState, useCallback } from 'react';
-import { ResponsiveContainer } from 'recharts';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { ExternalLink } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState, useCallback, memo } from "react";
+import { ResponsiveContainer } from "recharts";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ExternalLink } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface InteractiveChartProps {
   title: string;
@@ -18,7 +18,7 @@ interface InteractiveChartProps {
   drillDownPath?: string;
 }
 
-export function InteractiveChart({
+export const InteractiveChart = memo(function InteractiveChart({
   title,
   icon,
   children,
@@ -27,21 +27,24 @@ export function InteractiveChart({
   height = 300,
   className,
   showNavigationHint = false,
-  drillDownPath
+  drillDownPath,
 }: InteractiveChartProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isDrilling, setIsDrilling] = useState(false);
 
-  const handleDrillDown = useCallback(async (data?: any) => {
-    if (!onDrillDown) return;
-    
-    setIsDrilling(true);
-    try {
-      await onDrillDown(data);
-    } finally {
-      setIsDrilling(false);
-    }
-  }, [onDrillDown]);
+  const handleDrillDown = useCallback(
+    async (data?: any) => {
+      if (!onDrillDown) return;
+
+      setIsDrilling(true);
+      try {
+        await onDrillDown(data);
+      } finally {
+        setIsDrilling(false);
+      }
+    },
+    [onDrillDown]
+  );
 
   const handleNavigate = useCallback(() => {
     if (drillDownPath && onNavigate) {
@@ -50,7 +53,7 @@ export function InteractiveChart({
   }, [drillDownPath, onNavigate]);
 
   return (
-    <Card 
+    <Card
       className={cn(
         "relative transition-all duration-200",
         isHovered && onDrillDown && "shadow-md scale-[1.01]",
@@ -66,7 +69,7 @@ export function InteractiveChart({
             {icon}
             {title}
           </CardTitle>
-          
+
           {/* Navigation hint */}
           {showNavigationHint && drillDownPath && (
             <Button
@@ -84,7 +87,7 @@ export function InteractiveChart({
           )}
         </div>
       </CardHeader>
-      
+
       <CardContent className="pt-0">
         {/* Loading overlay */}
         {isDrilling && (
@@ -95,23 +98,23 @@ export function InteractiveChart({
             </div>
           </div>
         )}
-        
+
         {/* Chart container with enhanced interactions */}
-        <div 
+        <div
           className={cn(
             "transition-all duration-200",
             `h-[${height}px]`,
             onDrillDown && "cursor-pointer"
           )}
-          role="img" 
-          aria-label={`${title} chart - ${onDrillDown ? 'Click to explore details' : 'Data visualization'}`}
+          role="img"
+          aria-label={`${title} chart - ${onDrillDown ? "Click to explore details" : "Data visualization"}`}
           onClick={onDrillDown ? () => handleDrillDown() : undefined}
         >
           <ResponsiveContainer width="100%" height="100%">
             {children}
           </ResponsiveContainer>
         </div>
-        
+
         {/* Interactive hint */}
         {onDrillDown && isHovered && (
           <div className="absolute bottom-4 right-4 bg-primary/90 text-primary-foreground text-xs px-2 py-1 rounded opacity-90 pointer-events-none">
@@ -121,29 +124,32 @@ export function InteractiveChart({
       </CardContent>
     </Card>
   );
-}
+});
 
 // Hook for drill-down navigation
 export function useChartDrillDown() {
   const [drillDownHistory, setDrillDownHistory] = useState<string[]>([]);
-  const [currentPath, setCurrentPath] = useState<string>('/dashboard');
+  const [currentPath, setCurrentPath] = useState<string>("/dashboard");
 
-  const navigateTo = useCallback((path: string) => {
-    setDrillDownHistory(prev => [...prev, currentPath]);
-    setCurrentPath(path);
-    // Use Next.js router for actual navigation
-    if (typeof window !== 'undefined') {
-      window.history.pushState(null, '', path);
-    }
-  }, [currentPath]);
+  const navigateTo = useCallback(
+    (path: string) => {
+      setDrillDownHistory((prev) => [...prev, currentPath]);
+      setCurrentPath(path);
+      // Use Next.js router for actual navigation
+      if (typeof window !== "undefined") {
+        window.history.pushState(null, "", path);
+      }
+    },
+    [currentPath]
+  );
 
   const navigateBack = useCallback(() => {
     if (drillDownHistory.length > 0) {
       const previousPath = drillDownHistory[drillDownHistory.length - 1];
-      setDrillDownHistory(prev => prev.slice(0, -1));
+      setDrillDownHistory((prev) => prev.slice(0, -1));
       setCurrentPath(previousPath);
-      if (typeof window !== 'undefined') {
-        window.history.pushState(null, '', previousPath);
+      if (typeof window !== "undefined") {
+        window.history.pushState(null, "", previousPath);
       }
     }
   }, [drillDownHistory]);
@@ -155,6 +161,6 @@ export function useChartDrillDown() {
     navigateBack,
     canGoBack,
     currentPath,
-    drillDownHistory
+    drillDownHistory,
   };
 }

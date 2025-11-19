@@ -1,20 +1,27 @@
 "use client";
 
+import { memo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Id } from "@/../convex/_generated/dataModel";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { 
-  AlertTriangle, 
-  TrendingUp, 
+import {
+  AlertTriangle,
+  TrendingUp,
   TrendingDown,
   ArrowRight,
   Receipt,
   Building,
-  CheckCircle
+  CheckCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -31,10 +38,10 @@ interface UtilityAnomaliesProps {
 
 /**
  * Utility Anomalies Component
- * 
+ *
  * Displays detected utility bill spikes and anomalies
  */
-export function UtilityAnomalies({
+export const UtilityAnomalies = memo(function UtilityAnomalies({
   userId,
   propertyId,
   compact = false,
@@ -66,7 +73,9 @@ export function UtilityAnomalies({
     return (
       <Card>
         <CardHeader className={cn(compact && "pb-3")}>
-          <CardTitle className={cn("flex items-center gap-2", compact && "text-base")}>
+          <CardTitle
+            className={cn("flex items-center gap-2", compact && "text-base")}
+          >
             <AlertTriangle className="h-5 w-5 text-success" />
             Utility Anomalies
           </CardTitle>
@@ -91,13 +100,16 @@ export function UtilityAnomalies({
       <CardHeader className={cn(compact && "pb-3")}>
         <div className="flex items-center justify-between">
           <div>
-            <CardTitle className={cn("flex items-center gap-2", compact && "text-base")}>
+            <CardTitle
+              className={cn("flex items-center gap-2", compact && "text-base")}
+            >
               <AlertTriangle className="h-5 w-5 text-destructive" />
               Utility Anomalies
             </CardTitle>
             {!compact && (
               <CardDescription>
-                {insights.anomalyCount} spike{insights.anomalyCount !== 1 ? "s" : ""} detected
+                {insights.anomalyCount} spike
+                {insights.anomalyCount !== 1 ? "s" : ""} detected
                 {insights.highSeverityAnomalies > 0 && (
                   <span className="text-destructive ml-1">
                     ({insights.highSeverityAnomalies} high severity)
@@ -130,20 +142,32 @@ export function UtilityAnomalies({
           return (
             <Alert
               key={anomaly.billId}
-              className={cn("cursor-pointer hover:bg-muted/50 transition-colors", severityColors[anomaly.severity])}
-              onClick={() => router.push(`/utility-bills?billId=${anomaly.billId}`)}
+              className={cn(
+                "cursor-pointer hover:bg-muted/50 transition-colors",
+                severityColors[anomaly.severity]
+              )}
+              onClick={() =>
+                router.push(`/utility-bills?billId=${anomaly.billId}`)
+              }
             >
-              <AlertTriangle className={cn(
-                "h-4 w-4",
-                anomaly.severity === "high" && "text-destructive",
-                anomaly.severity === "medium" && "text-orange-600",
-                anomaly.severity === "low" && "text-yellow-600"
-              )} />
+              <AlertTriangle
+                className={cn(
+                  "h-4 w-4",
+                  anomaly.severity === "high" && "text-destructive",
+                  anomaly.severity === "medium" && "text-orange-600",
+                  anomaly.severity === "low" && "text-yellow-600"
+                )}
+              />
               <AlertDescription className="space-y-1">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{anomaly.propertyName}</span>
-                    <Badge variant={severityBadges[anomaly.severity] as any} className="text-xs">
+                    <span className="font-medium text-sm">
+                      {anomaly.propertyName}
+                    </span>
+                    <Badge
+                      variant={severityBadges[anomaly.severity] as any}
+                      className="text-xs"
+                    >
                       {anomaly.severity.toUpperCase()}
                     </Badge>
                   </div>
@@ -155,17 +179,20 @@ export function UtilityAnomalies({
                   <span className="text-muted-foreground">
                     {anomaly.utilityType}: ${anomaly.amount.toFixed(2)}
                   </span>
-                  <span className={cn(
-                    "font-semibold",
-                    anomaly.severity === "high" && "text-destructive",
-                    anomaly.severity === "medium" && "text-orange-600",
-                    anomaly.severity === "low" && "text-yellow-600"
-                  )}>
+                  <span
+                    className={cn(
+                      "font-semibold",
+                      anomaly.severity === "high" && "text-destructive",
+                      anomaly.severity === "medium" && "text-orange-600",
+                      anomaly.severity === "low" && "text-yellow-600"
+                    )}
+                  >
                     +{anomaly.percentageIncrease}%
                   </span>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Previous 3-month average: ${anomaly.previousAverage.toFixed(2)}
+                  Previous 3-month average: $
+                  {anomaly.previousAverage.toFixed(2)}
                 </div>
               </AlertDescription>
             </Alert>
@@ -186,5 +213,4 @@ export function UtilityAnomalies({
       </CardContent>
     </Card>
   );
-}
-
+});

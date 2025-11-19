@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
@@ -72,17 +72,193 @@ const STATUS_COLORS = {
   Other: "#6b7280", // Gray - neutral
 };
 
+// Comprehensive dashboard loading skeleton that matches the actual layout
+const DashboardLoadingSkeleton = () => (
+  <main
+    className="min-h-screen bg-background text-foreground p-3 sm:p-6 lg:p-8 transition-colors duration-300"
+    role="main"
+  >
+    <div className="max-w-7xl mx-auto">
+      {/* Header skeleton */}
+      <header className="mb-4 sm:mb-8">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+          <div className="min-w-0">
+            <Skeleton className="h-8 sm:h-9 w-48" />
+            <Skeleton className="h-4 w-80 mt-1" />
+          </div>
+          <div className="flex justify-end items-center sm:flex-col sm:items-end gap-2">
+            <div className="text-right space-y-1">
+              <Skeleton className="h-3 w-24" />
+              <Skeleton className="h-5 sm:h-6 w-20" />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Stat Cards skeleton */}
+      <section className="mb-4 sm:mb-8">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <Card key={index} className="p-3 sm:p-6 border-l-4 border-border">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
+                <div className="min-w-0 flex-1">
+                  <Skeleton className="h-3 w-20 mb-1" />
+                  <Skeleton className="h-6 sm:h-8 w-16 mb-2" />
+                  <Skeleton className="h-5 w-24" />
+                </div>
+                <Skeleton className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl self-end sm:self-auto" />
+              </div>
+            </Card>
+          ))}
+        </div>
+      </section>
+
+      {/* Quick Actions skeleton */}
+      <section className="mb-4 sm:mb-8">
+        <Card className="p-3 sm:p-6">
+          <div className="flex items-center gap-2 mb-3 sm:mb-4">
+            <Skeleton className="h-5 sm:h-6 w-32" />
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <div
+                key={i}
+                className="flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg border border-border min-h-[80px] sm:min-h-[100px]"
+              >
+                <Skeleton className="h-6 w-6 rounded" />
+                <div className="text-center space-y-1">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-3 w-16" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </section>
+
+      {/* Outstanding Balances skeleton */}
+      <section className="mb-4 sm:mb-8">
+        <Card>
+          <CardContent className="p-6">
+            <div className="animate-pulse space-y-4">
+              <div className="flex items-center justify-between mb-4">
+                <Skeleton className="h-6 w-40" />
+                <Skeleton className="h-10 w-32" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
+
+      {/* Charts Grid skeleton */}
+      <section className="mb-4 sm:mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
+          {/* Monthly Revenue Trend skeleton */}
+          <Card className="p-3 sm:p-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Skeleton className="h-5 sm:h-6 w-44" />
+            </div>
+            <Skeleton className="h-[200px] sm:h-[300px] w-full" />
+          </Card>
+
+          {/* Properties by Type skeleton */}
+          <Card className="p-3 sm:p-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Skeleton className="h-5 sm:h-6 w-40" />
+            </div>
+            <Skeleton className="h-[200px] sm:h-[300px] w-full" />
+          </Card>
+        </div>
+      </section>
+
+      {/* Additional Charts skeleton */}
+      <section className="mb-4 sm:mb-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
+          {/* Properties by Status skeleton */}
+          <Card className="p-3 sm:p-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Skeleton className="h-5 sm:h-6 w-44" />
+            </div>
+            <Skeleton className="h-[200px] sm:h-[300px] w-full" />
+          </Card>
+
+          {/* Financial Summary skeleton */}
+          <Card className="p-3 sm:p-6">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
+              <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
+              <Skeleton className="h-5 sm:h-6 w-36" />
+            </div>
+            <div className="space-y-2 sm:space-y-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div
+                  key={i}
+                  className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-4 rounded-lg gap-1 sm:gap-0"
+                >
+                  <Skeleton className="h-4 w-32" />
+                  <Skeleton className="h-4 sm:h-5 w-20" />
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </section>
+
+      {/* Utility Analytics skeleton */}
+      <section className="mb-6 sm:mb-8">
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex items-center justify-between">
+            <div>
+              <Skeleton className="h-8 w-48 mb-2" />
+              <Skeleton className="h-4 w-64" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-4 w-20" />
+              <Skeleton className="h-10 w-32" />
+            </div>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <Card key={i}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-8 w-16" />
+                    </div>
+                    <Skeleton className="h-8 w-8 rounded-full" />
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+);
+
 export default function DashboardPage() {
-  const { user } = useUser();
+  const { user, isLoaded: isUserLoaded } = useUser();
   const router = useRouter();
-  const metrics = useQuery(api.dashboard.getDashboardMetrics, {
-    userId: user?.id ?? "",
-  });
+  const metrics = useQuery(
+    api.dashboard.getDashboardMetrics,
+    user?.id ? { userId: user.id } : "skip"
+  );
 
   // Get user settings for component visibility
   const userSettings = useQuery(
     api.userSettings.getUserSettings,
-    user ? { userId: user.id } : "skip"
+    user?.id ? { userId: user.id } : "skip"
   );
 
   // Modal states
@@ -106,316 +282,227 @@ export default function DashboardPage() {
   // Get additional data for forms
   const propertiesResult = useQuery(
     api.properties.getProperties,
-    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dashboard
+    user?.id ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dashboard
   );
-  const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
+  const properties =
+    propertiesResult?.properties ||
+    (Array.isArray(propertiesResult) ? propertiesResult : []);
 
   // Check if user has no properties
-  const hasNoProperties = properties && properties.length === 0;
+  const hasNoProperties = !properties || properties.length === 0;
 
-  // Get selected property name for context-aware actions
-  const selectedProperty = dashboardFilters?.propertyId
-    ? properties?.find((p) => p._id === dashboardFilters.propertyId)
-    : null;
+  // Memoize userId to ensure stable reference
+  const userId = useMemo(() => user?.id ?? "", [user?.id]);
 
-  // Comprehensive dashboard loading skeleton that matches the actual layout
-  const DashboardLoadingSkeleton = () => (
-    <main
-      className="min-h-screen bg-background text-foreground p-3 sm:p-6 lg:p-8 transition-colors duration-300"
-      role="main"
-    >
-      <div className="max-w-7xl mx-auto">
-        {/* Header skeleton */}
-        <header className="mb-4 sm:mb-8">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
-            <div className="min-w-0">
-              <Skeleton className="h-8 sm:h-9 w-48" />
-              <Skeleton className="h-4 w-80 mt-1" />
-            </div>
-            <div className="flex justify-end items-center sm:flex-col sm:items-end gap-2">
-              <div className="text-right space-y-1">
-                <Skeleton className="h-3 w-24" />
-                <Skeleton className="h-5 sm:h-6 w-20" />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Stat Cards skeleton */}
-        <section className="mb-4 sm:mb-8">
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Card key={index} className="p-3 sm:p-6 border-l-4 border-border">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0">
-                  <div className="min-w-0 flex-1">
-                    <Skeleton className="h-3 w-20 mb-1" />
-                    <Skeleton className="h-6 sm:h-8 w-16 mb-2" />
-                    <Skeleton className="h-5 w-24" />
-                  </div>
-                  <Skeleton className="h-10 w-10 sm:h-12 sm:w-12 rounded-xl self-end sm:self-auto" />
-                </div>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        {/* Quick Actions skeleton */}
-        <section className="mb-4 sm:mb-8">
-          <Card className="p-3 sm:p-6">
-            <div className="flex items-center gap-2 mb-3 sm:mb-4">
-              <Skeleton className="h-5 sm:h-6 w-32" />
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div
-                  key={i}
-                  className="flex flex-col items-center gap-2 p-4 sm:p-4 rounded-lg border border-border min-h-[80px] sm:min-h-[100px]"
-                >
-                  <Skeleton className="h-6 w-6 rounded" />
-                  <div className="text-center space-y-1">
-                    <Skeleton className="h-4 w-20" />
-                    <Skeleton className="h-3 w-16" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </Card>
-        </section>
-
-        {/* Outstanding Balances skeleton */}
-        <section className="mb-4 sm:mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="animate-pulse space-y-4">
-                <div className="flex items-center justify-between mb-4">
-                  <Skeleton className="h-6 w-40" />
-                  <Skeleton className="h-10 w-32" />
-                </div>
-                <div className="space-y-2">
-                  <Skeleton className="h-20 w-full" />
-                  <Skeleton className="h-20 w-full" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Charts Grid skeleton */}
-        <section className="mb-4 sm:mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
-            {/* Monthly Revenue Trend skeleton */}
-            <Card className="p-3 sm:p-6">
-              <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
-                <Skeleton className="h-5 sm:h-6 w-44" />
-              </div>
-              <Skeleton className="h-[200px] sm:h-[300px] w-full" />
-            </Card>
-
-            {/* Properties by Type skeleton */}
-            <Card className="p-3 sm:p-6">
-              <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
-                <Skeleton className="h-5 sm:h-6 w-40" />
-              </div>
-              <Skeleton className="h-[200px] sm:h-[300px] w-full" />
-            </Card>
-          </div>
-        </section>
-
-        {/* Additional Charts skeleton */}
-        <section className="mb-4 sm:mb-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
-            {/* Properties by Status skeleton */}
-            <Card className="p-3 sm:p-6">
-              <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
-                <Skeleton className="h-5 sm:h-6 w-44" />
-              </div>
-              <Skeleton className="h-[200px] sm:h-[300px] w-full" />
-            </Card>
-
-            {/* Financial Summary skeleton */}
-            <Card className="p-3 sm:p-6">
-              <div className="flex items-center gap-2 mb-3 sm:mb-4">
-                <Skeleton className="h-4 w-4 sm:h-5 sm:w-5" />
-                <Skeleton className="h-5 sm:h-6 w-36" />
-              </div>
-              <div className="space-y-2 sm:space-y-4">
-                {Array.from({ length: 4 }).map((_, i) => (
-                  <div
-                    key={i}
-                    className="flex flex-col sm:flex-row sm:justify-between sm:items-center p-2 sm:p-4 rounded-lg gap-1 sm:gap-0"
-                  >
-                    <Skeleton className="h-4 w-32" />
-                    <Skeleton className="h-4 sm:h-5 w-20" />
-                  </div>
-                ))}
-              </div>
-            </Card>
-          </div>
-        </section>
-
-        {/* Utility Analytics skeleton */}
-        <section className="mb-6 sm:mb-8">
-          <div className="space-y-6">
-            {/* Header */}
-            <div className="flex items-center justify-between">
-              <div>
-                <Skeleton className="h-8 w-48 mb-2" />
-                <Skeleton className="h-4 w-64" />
-              </div>
-              <div className="flex items-center gap-2">
-                <Skeleton className="h-4 w-20" />
-                <Skeleton className="h-10 w-32" />
-              </div>
-            </div>
-
-            {/* Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <Card key={i}>
-                  <CardContent className="p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-2">
-                        <Skeleton className="h-4 w-20" />
-                        <Skeleton className="h-8 w-16" />
-                      </div>
-                      <Skeleton className="h-8 w-8 rounded-full" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-      </div>
-    </main>
+  // Get selected property name for context-aware actions (memoized)
+  const selectedProperty = useMemo(
+    () =>
+      dashboardFilters?.propertyId
+        ? properties?.find((p) => p._id === dashboardFilters.propertyId)
+        : null,
+    [dashboardFilters?.propertyId, properties]
   );
 
-  if (!user || !metrics || !userSettings) {
+  // Memoize stat cards to prevent recalculation on every render (safe with optional chaining)
+  const statCards = useMemo(
+    () =>
+      metrics
+        ? [
+            {
+              title: "Total Properties",
+              value: metrics.totalProperties,
+              icon: Building2,
+              color: "text-blue-600 dark:text-blue-400",
+              bgColor: "bg-blue-50 dark:bg-blue-950/20",
+              borderColor: "border-blue-200 dark:border-blue-800",
+              trend: "+2 this month",
+              trendPositive: true,
+            },
+            {
+              title: "Monthly Revenue",
+              value: `$${metrics.totalMonthlyRent.toLocaleString()}`,
+              icon: DollarSign,
+              color: "text-green-600 dark:text-green-400",
+              bgColor: "bg-green-50 dark:bg-green-950/20",
+              borderColor: "border-green-200 dark:border-green-800",
+              trend: `+${((metrics.totalMonthlyRent / 10000) * 100).toFixed(1)}%`,
+              trendPositive: true,
+            },
+            {
+              title: "Occupancy Rate",
+              value: `${metrics.occupancyRate.toFixed(1)}%`,
+              icon: Percent,
+              color: "text-purple-600 dark:text-purple-400",
+              bgColor: "bg-purple-50 dark:bg-purple-950/20",
+              borderColor: "border-purple-200 dark:border-purple-800",
+              trend:
+                metrics.occupancyRate >= 90
+                  ? "Excellent"
+                  : metrics.occupancyRate >= 75
+                    ? "Good"
+                    : "Needs attention",
+              trendPositive: metrics.occupancyRate >= 75,
+            },
+            {
+              title: "Security Deposits",
+              value: `$${metrics.totalSecurityDeposits.toLocaleString()}`,
+              icon: Users,
+              color: "text-orange-600 dark:text-orange-400",
+              bgColor: "bg-orange-50 dark:bg-orange-950/20",
+              borderColor: "border-orange-200 dark:border-orange-800",
+              trend: `${metrics.activeLeases} active`,
+              trendPositive: true,
+            },
+          ]
+        : [],
+    [
+      metrics?.totalProperties,
+      metrics?.totalMonthlyRent,
+      metrics?.occupancyRate,
+      metrics?.totalSecurityDeposits,
+      metrics?.activeLeases,
+    ]
+  );
+
+  // Memoize chart data (safe with optional chaining)
+  const typeData = useMemo(
+    () =>
+      metrics?.propertiesByType
+        ? Object.entries(metrics.propertiesByType).map(([type, count]) => ({
+            name: type,
+            value: count,
+          }))
+        : [],
+    [metrics?.propertiesByType]
+  );
+
+  const statusData = useMemo(
+    () =>
+      metrics?.propertiesByStatus
+        ? Object.entries(metrics.propertiesByStatus).map(([status, count]) => ({
+            name: status,
+            value: count,
+          }))
+        : [],
+    [metrics?.propertiesByStatus]
+  );
+
+  // Chart drill-down handlers with pre-selected filters (memoized)
+  const handlePropertyTypeDrillDown = useCallback(
+    (data?: any) => {
+      const propertyType = data?.name || data?.activeLabel;
+      const params = new URLSearchParams();
+      if (propertyType) {
+        params.set("type", propertyType);
+      }
+      const url = `/properties${params.toString() ? `?${params.toString()}` : ""}`;
+      router.push(url);
+      // Scroll to top after navigation
+      setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
+    },
+    [router]
+  );
+
+  const handlePropertyStatusDrillDown = useCallback(
+    (data?: any) => {
+      const status = data?.name || data?.activeLabel;
+      const params = new URLSearchParams();
+      if (status) {
+        params.set("status", status);
+      }
+      const url = `/properties${params.toString() ? `?${params.toString()}` : ""}`;
+      router.push(url);
+      // Scroll to top after navigation
+      setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
+    },
+    [router]
+  );
+
+  const handleRevenueDrillDown = useCallback(
+    (data?: any) => {
+      const month = data?.month || data?.activeLabel;
+      const params = new URLSearchParams();
+      if (month) {
+        params.set("month", month);
+      }
+      const url = `/properties${params.toString() ? `?${params.toString()}` : ""}`;
+      router.push(url);
+      // Scroll to top after navigation
+      setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
+    },
+    [router]
+  );
+
+  // Memoize filter change handler
+  const handleFiltersChange = useCallback(
+    (newFilters: DashboardFiltersType) => {
+      setDashboardFilters(newFilters);
+    },
+    []
+  );
+
+  // Stable navigation handler for charts
+  const handleChartNavigate = useCallback(
+    (path: string) => {
+      router.push(path);
+    },
+    [router]
+  );
+
+  // Memoize chart icons to prevent re-creation on every render
+  const revenueChartIcon = useMemo(
+    () => <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />,
+    []
+  );
+  const propertyTypeChartIcon = useMemo(
+    () => <Home className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />,
+    []
+  );
+  const propertyStatusChartIcon = useMemo(
+    () => <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />,
+    []
+  );
+
+  // Enhanced tooltip configurations (memoized, safe with optional chaining)
+  const revenueTooltipConfig = useMemo(
+    () =>
+      createEnhancedTooltip({
+        getLabel: () => "Monthly Revenue",
+        formatValue: (value) => {
+          if (typeof value === "number") {
+            return formatCurrency(value);
+          }
+          return value?.toString() || "N/A";
+        },
+      }),
+    []
+  );
+
+  const propertyTooltipConfig = useMemo(
+    () =>
+      createEnhancedTooltip({
+        getLabel: (payload, label) => `${label || "Property"} Properties`,
+        formatValue: (value) => {
+          if (typeof value === "number") {
+            return `${value} ${value === 1 ? "property" : "properties"}`;
+          }
+          return value?.toString() || "N/A";
+        },
+      }),
+    []
+  );
+
+  // Show loading skeleton while data is loading
+  // All hooks must be called before any early return
+  // Check isUserLoaded first to ensure Clerk has finished loading
+  if (
+    !isUserLoaded ||
+    !user ||
+    metrics === undefined ||
+    userSettings === undefined
+  ) {
     return <DashboardLoadingSkeleton />;
   }
-
-  const statCards = [
-    {
-      title: "Total Properties",
-      value: metrics.totalProperties,
-      icon: Building2,
-      color: "text-blue-600 dark:text-blue-400",
-      bgColor: "bg-blue-50 dark:bg-blue-950/20",
-      borderColor: "border-blue-200 dark:border-blue-800",
-      trend: "+2 this month",
-      trendPositive: true,
-    },
-    {
-      title: "Monthly Revenue",
-      value: `$${metrics.totalMonthlyRent.toLocaleString()}`,
-      icon: DollarSign,
-      color: "text-green-600 dark:text-green-400",
-      bgColor: "bg-green-50 dark:bg-green-950/20",
-      borderColor: "border-green-200 dark:border-green-800",
-      trend: `+${((metrics.totalMonthlyRent / 10000) * 100).toFixed(1)}%`,
-      trendPositive: true,
-    },
-    {
-      title: "Occupancy Rate",
-      value: `${metrics.occupancyRate.toFixed(1)}%`,
-      icon: Percent,
-      color: "text-purple-600 dark:text-purple-400",
-      bgColor: "bg-purple-50 dark:bg-purple-950/20",
-      borderColor: "border-purple-200 dark:border-purple-800",
-      trend:
-        metrics.occupancyRate >= 90
-          ? "Excellent"
-          : metrics.occupancyRate >= 75
-            ? "Good"
-            : "Needs attention",
-      trendPositive: metrics.occupancyRate >= 75,
-    },
-    {
-      title: "Security Deposits",
-      value: `$${metrics.totalSecurityDeposits.toLocaleString()}`,
-      icon: Users,
-      color: "text-orange-600 dark:text-orange-400",
-      bgColor: "bg-orange-50 dark:bg-orange-950/20",
-      borderColor: "border-orange-200 dark:border-orange-800",
-      trend: `${metrics.activeLeases} active`,
-      trendPositive: true,
-    },
-  ];
-
-  const typeData = Object.entries(metrics.propertiesByType).map(
-    ([type, count]) => ({
-      name: type,
-      value: count,
-    })
-  );
-
-  const statusData = Object.entries(metrics.propertiesByStatus).map(
-    ([status, count]) => ({
-      name: status,
-      value: count,
-    })
-  );
-
-  // Chart drill-down handlers with pre-selected filters
-  const handlePropertyTypeDrillDown = (data?: any) => {
-    const propertyType = data?.name || data?.activeLabel;
-    const params = new URLSearchParams();
-    if (propertyType) {
-      params.set("type", propertyType);
-    }
-    const url = `/properties${params.toString() ? `?${params.toString()}` : ""}`;
-    router.push(url);
-    // Scroll to top after navigation
-    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
-  };
-
-  const handlePropertyStatusDrillDown = (data?: any) => {
-    const status = data?.name || data?.activeLabel;
-    const params = new URLSearchParams();
-    if (status) {
-      params.set("status", status);
-    }
-    const url = `/properties${params.toString() ? `?${params.toString()}` : ""}`;
-    router.push(url);
-    // Scroll to top after navigation
-    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
-  };
-
-  const handleRevenueDrillDown = (data?: any) => {
-    const month = data?.month || data?.activeLabel;
-    const params = new URLSearchParams();
-    if (month) {
-      params.set("month", month);
-    }
-    const url = `/properties${params.toString() ? `?${params.toString()}` : ""}`;
-    router.push(url);
-    // Scroll to top after navigation
-    setTimeout(() => window.scrollTo({ top: 0, behavior: "smooth" }), 100);
-  };
-
-  // Enhanced tooltip configurations
-  const revenueTooltipConfig = createEnhancedTooltip({
-    getLabel: () => "Monthly Revenue",
-    formatValue: (value) => {
-      if (typeof value === "number") {
-        return formatCurrency(value);
-      }
-      return value?.toString() || "N/A";
-    },
-  });
-
-  const propertyTooltipConfig = createEnhancedTooltip({
-    getLabel: (payload, label) => `${label || "Property"} Properties`,
-    formatValue: (value) => {
-      if (typeof value === "number") {
-        return `${value} ${value === 1 ? "property" : "properties"}`;
-      }
-      return value?.toString() || "N/A";
-    },
-  });
 
   return (
     <main
@@ -454,9 +541,9 @@ export default function DashboardPage() {
               Dashboard Filters
             </h2>
             <DashboardFilters
-              userId={user.id}
+              userId={userId}
               filters={dashboardFilters}
-              onFiltersChange={setDashboardFilters}
+              onFiltersChange={handleFiltersChange}
             />
           </section>
         )}
@@ -467,7 +554,7 @@ export default function DashboardPage() {
             <h2 id="kpi-heading" className="sr-only">
               Key Performance Indicators
             </h2>
-            <DashboardKPIs userId={user.id} filters={dashboardFilters} />
+            <DashboardKPIs userId={userId} filters={dashboardFilters} />
           </section>
         )}
 
@@ -647,7 +734,7 @@ export default function DashboardPage() {
             {/* Outstanding Balances */}
             {userSettings.dashboardComponents.showOutstandingBalances && (
               <section className="mb-4 sm:mb-8">
-                <OutstandingBalances userId={user.id} />
+                <OutstandingBalances userId={userId} />
               </section>
             )}
 
@@ -655,12 +742,12 @@ export default function DashboardPage() {
             <section className="mb-4 sm:mb-8">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-6">
                 <UtilityAnomalies
-                  userId={user.id}
+                  userId={userId}
                   compact={false}
                   maxItems={3}
                 />
                 <UtilityReminders
-                  userId={user.id}
+                  userId={userId}
                   compact={false}
                   maxItems={3}
                 />
@@ -680,14 +767,12 @@ export default function DashboardPage() {
                   {/* Monthly Revenue Trend */}
                   <InteractiveChart
                     title="Monthly Revenue Trend"
-                    icon={
-                      <TrendingUp className="h-4 w-4 sm:h-5 sm:w-5 text-green-600" />
-                    }
+                    icon={revenueChartIcon}
                     onDrillDown={handleRevenueDrillDown}
                     height={300}
                     showNavigationHint={true}
                     drillDownPath="/properties"
-                    onNavigate={(path) => router.push(path)}
+                    onNavigate={handleChartNavigate}
                   >
                     <LineChart
                       data={metrics.monthlyIncome}
@@ -720,14 +805,12 @@ export default function DashboardPage() {
                   {/* Properties by Type */}
                   <InteractiveChart
                     title="Properties by Type"
-                    icon={
-                      <Home className="h-4 w-4 sm:h-5 sm:w-5 text-blue-600" />
-                    }
+                    icon={propertyTypeChartIcon}
                     onDrillDown={handlePropertyTypeDrillDown}
                     height={300}
                     showNavigationHint={true}
                     drillDownPath="/properties"
-                    onNavigate={(path) => router.push(path)}
+                    onNavigate={handleChartNavigate}
                   >
                     <PieChart>
                       <Pie
@@ -773,14 +856,12 @@ export default function DashboardPage() {
                   {userSettings.dashboardComponents.showCharts && (
                     <InteractiveChart
                       title="Properties by Status"
-                      icon={
-                        <Calendar className="h-4 w-4 sm:h-5 sm:w-5 text-purple-600" />
-                      }
+                      icon={propertyStatusChartIcon}
                       onDrillDown={handlePropertyStatusDrillDown}
                       height={300}
                       showNavigationHint={true}
                       drillDownPath="/properties"
-                      onNavigate={(path) => router.push(path)}
+                      onNavigate={handleChartNavigate}
                     >
                       <BarChart
                         data={statusData}
@@ -892,7 +973,7 @@ export default function DashboardPage() {
             {/* Utility Analytics */}
             {userSettings.dashboardComponents.showUtilityAnalytics && (
               <section className="mb-6 sm:mb-8">
-                <UtilityAnalytics userId={user.id} />
+                <UtilityAnalytics userId={userId} />
               </section>
             )}
           </>
@@ -959,7 +1040,7 @@ export default function DashboardPage() {
             </DialogHeader>
             <LeaseForm
               properties={properties || []}
-              userId={user.id}
+              userId={userId}
               initial={
                 dashboardFilters?.propertyId
                   ? {
@@ -1054,7 +1135,7 @@ export default function DashboardPage() {
         <UtilityResponsibilityModal
           open={utilityResponsibilityModalOpen}
           onOpenChange={setUtilityResponsibilityModalOpen}
-          userId={user.id}
+          userId={userId}
           defaultPropertyId={dashboardFilters?.propertyId}
         />
       </div>

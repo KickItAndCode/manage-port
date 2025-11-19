@@ -37,7 +37,8 @@ export default defineSchema({
     ),
 
     createdAt: v.string(),
-  }),
+  })
+    .index("by_user", ["userId"]),
   units: defineTable({
     propertyId: v.id("properties"), // Reference to parent property
     unitIdentifier: v.string(), // e.g., "Unit A", "Apt 1", "Suite 101"
