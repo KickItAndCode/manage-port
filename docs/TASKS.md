@@ -19,20 +19,47 @@
 
 ### Task Details
 
-Review and optimize remaining performance opportunities, test caching improvements, and monitor dashboard performance.
+Now that caching strategies are implemented, verify the improvements work correctly and identify any remaining performance opportunities.
 
 **Steps**:
-1. Review other queries for optimization opportunities
-2. Test dashboard load times and re-render behavior
-3. Consider implementing query result caching if needed
-4. Monitor dashboard load times in production
-5. Profile with React DevTools to verify improvements
+1. **Test caching improvements**:
+   - Open React DevTools Profiler
+   - Navigate to dashboard and interact with filters
+   - Verify components only re-render when props actually change
+   - Check that memoized components skip unnecessary renders
+
+2. **Measure dashboard performance**:
+   - Use browser DevTools Network tab to measure load times
+   - Test with different data sizes (small vs large property lists)
+   - Verify dashboard loads in <1s for typical user
+   - Document baseline performance metrics
+
+3. **Review other queries for optimization**:
+   - Check `convex/utilityBills.ts` for query optimization opportunities
+   - Review `convex/leases.ts` for any remaining filter() calls
+   - Look for opportunities to add indexes or batch queries
+
+4. **Profile with React DevTools**:
+   - Record a performance profile of dashboard interactions
+   - Identify any remaining expensive renders
+   - Verify no unnecessary re-renders occur
+
+5. **Consider query result caching** (if needed):
+   - Evaluate if Convex's built-in caching is sufficient
+   - Consider React Query or SWR only if significant benefit
+
+**Files to Review**:
+- `convex/utilityBills.ts` - Check for query optimization opportunities
+- `convex/leases.ts` - Review query patterns
+- `src/app/dashboard/page.tsx` - Profile render performance
+- Other frequently used queries
 
 **Success Criteria**:
-- [ ] Dashboard loads in <1s for typical user
+- [ ] Dashboard loads in <1s for typical user (verified)
 - [ ] Large lists (100+ items) load efficiently
-- [ ] No unnecessary re-renders (verified with React DevTools)
-- [ ] Performance metrics documented
+- [ ] No unnecessary re-renders (verified with React DevTools Profiler)
+- [ ] Performance metrics documented in CURRENT_STATUS.md
+- [ ] Any remaining optimization opportunities identified
 
 ---
 
