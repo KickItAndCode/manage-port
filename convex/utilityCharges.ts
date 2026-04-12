@@ -1,13 +1,34 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+
+/** Shape returned by calculateAllTenantCharges */
+export interface CalculatedTenantCharge {
+  _id: Id<"utilityCharges">;
+  leaseId: Id<"leases">;
+  utilityBillId: Id<"utilityBills">;
+  tenantName: string;
+  propertyName: string;
+  unitIdentifier?: string;
+  utilityType: string;
+  billMonth: string;
+  chargedAmount: number;
+  responsibilityPercentage: number;
+  totalBillAmount: number;
+  paidAmount: number;
+  remainingAmount: number;
+  dueDate?: string;
+  status: string;
+  createdAt: string;
+}
 
 /**
  * Helper function to generate charges for a utility bill
  * This is the core logic that creates stored charges for each tenant
  * based on their lease utility responsibility percentages
  */
-async function generateChargesForBillHelper(ctx: any, billId: string) {
+async function generateChargesForBillHelper(ctx: MutationCtx, billId: Id<"utilityBills">) {
   // 1. Get the bill
   const bill = await ctx.db.get(billId);
   if (!bill) {
@@ -78,12 +99,12 @@ async function generateChargesForBillHelper(ctx: any, billId: string) {
  * Ensure a bill has stored charges (used for automatic generation)
  */
 export async function ensureChargesForBill(
-  ctx: any,
+  ctx: MutationCtx,
   billId: Id<"utilityBills">
 ) {
   const existingCharge = await ctx.db
     .query("utilityCharges")
-    .withIndex("by_bill", (q: any) => q.eq("utilityBillId", billId))
+    .withIndex("by_bill", (q) => q.eq("utilityBillId", billId))
     .first();
 
   if (existingCharge) {
@@ -102,7 +123,7 @@ export async function ensureChargesForBill(
  * Delete and regenerate charges for a bill so stored data matches bill state
  */
 export async function rebuildChargesForBill(
-  ctx: any,
+  ctx: MutationCtx,
   billId: Id<"utilityBills">
 ) {
   await deleteChargesForBillHelper(ctx, billId);
@@ -118,7 +139,7 @@ export async function rebuildChargesForBill(
  * Delete all charges for a bill (used when removing bills)
  */
 export async function deleteChargesForBillInternal(
-  ctx: any,
+  ctx: MutationCtx,
   billId: Id<"utilityBills">
 ) {
   return await deleteChargesForBillHelper(ctx, billId);
@@ -214,7 +235,7 @@ export const updateChargeStatus = mutation({
 /**
  * Helper function to delete charges for a bill
  */
-async function deleteChargesForBillHelper(ctx: any, billId: string) {
+async function deleteChargesForBillHelper(ctx: MutationCtx, billId: Id<"utilityBills">) {
   const charges = await ctx.db
     .query("utilityCharges")
     .withIndex("by_bill", (q) => q.eq("utilityBillId", billId))
@@ -242,7 +263,7 @@ export const deleteChargesForBill = mutation({
 /**
  * Helper function to validate charge percentages for a bill
  */
-async function validateChargePercentages(ctx: any, billId: string) {
+async function validateChargePercentages(ctx: MutationCtx, billId: Id<"utilityBills">) {
   const charges = await ctx.db
     .query("utilityCharges")
     .withIndex("by_bill", (q) => q.eq("utilityBillId", billId))
@@ -254,7 +275,7 @@ async function validateChargePercentages(ctx: any, billId: string) {
 /**
  * Helper function to validate no duplicate charges exist
  */
-async function validateNoDuplicateCharges(ctx: any, billId: string) {
+async function validateNoDuplicateCharges(ctx: MutationCtx, billId: Id<"utilityBills">) {
   const charges = await ctx.db
     .query("utilityCharges")
     .withIndex("by_bill", (q) => q.eq("utilityBillId", billId))
@@ -272,7 +293,7 @@ async function validateNoDuplicateCharges(ctx: any, billId: string) {
 /**
  * Helper function to validate charge amounts are reasonable
  */
-async function validateChargeAmounts(ctx: any, billId: string) {
+async function validateChargeAmounts(ctx: MutationCtx, billId: Id<"utilityBills">) {
   const charges = await ctx.db
     .query("utilityCharges")
     .withIndex("by_bill", (q) => q.eq("utilityBillId", billId))
@@ -341,9 +362,10 @@ export const calculateAllTenantCharges = query({
     // Get user's leases (filtered by property if specified)
     let leases;
     if (args.propertyId) {
+      const propertyId = args.propertyId;
       leases = await ctx.db
         .query("leases")
-        .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+        .withIndex("by_property", (q) => q.eq("propertyId", propertyId))
         .filter((q) => q.eq(q.field("userId"), args.userId))
         .collect();
     } else {
@@ -467,13 +489,14 @@ export const backfillUtilityCharges = mutation({
   handler: async (ctx, args) => {
     let billsQuery = ctx.db
       .query("utilityBills")
-      .withIndex("by_user", (q: any) => q.eq("userId", args.userId));
+      .withIndex("by_user", (q) => q.eq("userId", args.userId));
 
     if (args.propertyId) {
+      const propertyId = args.propertyId;
       billsQuery = ctx.db
         .query("utilityBills")
-        .withIndex("by_property", (q: any) => q.eq("propertyId", args.propertyId))
-        .filter((q: any) => q.eq(q.field("userId"), args.userId));
+        .withIndex("by_property", (q) => q.eq("propertyId", propertyId))
+        .filter((q) => q.eq(q.field("userId"), args.userId));
     }
 
     const bills = await billsQuery.collect();
@@ -491,7 +514,7 @@ export const backfillUtilityCharges = mutation({
 
       const existing = await ctx.db
         .query("utilityCharges")
-        .withIndex("by_bill", (q: any) => q.eq("utilityBillId", bill._id))
+        .withIndex("by_bill", (q) => q.eq("utilityBillId", bill._id))
         .first();
 
       if (existing) {

@@ -1,6 +1,6 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
-import { Doc } from "./_generated/dataModel";
+import { Doc, Id } from "./_generated/dataModel";
 
 // Utility analytics with enhanced insights
 export const getEnhancedUtilityAnalytics = query({
@@ -28,6 +28,9 @@ export const getEnhancedUtilityAnalytics = query({
           seasonalPattern: null,
           anomalies: [],
           predictions: {},
+          highestMonth: null,
+          lowestMonth: null,
+          consistencyScore: 0,
         },
         utilityBreakdown: [],
         propertyComparison: [],
@@ -125,9 +128,9 @@ export const getEnhancedUtilityAnalytics = query({
       .sort((a, b) => b.value - a.value);
 
     // Property comparison (top 5 by cost)
-    const propertyTotals: Record<string, { 
-      propertyId: string; 
-      total: number; 
+    const propertyTotals: Record<string, {
+      propertyId: Id<"properties">;
+      total: number;
       billCount: number;
       utilityTypes: Set<string>;
     }> = {};

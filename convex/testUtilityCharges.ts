@@ -16,10 +16,10 @@ export const testChargeGeneration = mutation({
   },
   handler: async (ctx, args) => {
     const results = {
-      tests: [],
+      tests: [] as string[],
       passed: 0,
       failed: 0,
-      errors: [],
+      errors: [] as string[],
     };
 
     try {

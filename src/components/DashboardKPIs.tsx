@@ -188,8 +188,9 @@ export const DashboardKPIs = memo(function DashboardKPIs({
     userId ? { userId, limit: 1000 } : "skip" // Get all properties for KPIs
   );
   const properties =
-    propertiesResult?.properties ||
-    (Array.isArray(propertiesResult) ? propertiesResult : []);
+    propertiesResult && "properties" in propertiesResult
+      ? propertiesResult.properties
+      : [];
 
   // Get utility bills for property breakdown
   const utilityBills = useQuery(

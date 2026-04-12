@@ -303,7 +303,14 @@ export class UtilityAnalyticsEngine {
     potentialSavings?: number;
     action: string;
   }> {
-    const recommendations = [];
+    const recommendations: Array<{
+      type: 'maintenance' | 'cost_reduction' | 'efficiency' | 'budgeting';
+      priority: 'high' | 'medium' | 'low';
+      title: string;
+      description: string;
+      potentialSavings?: number;
+      action: string;
+    }> = [];
     const metrics = this.calculateMetrics(12);
     const anomalies = this.detectAnomalies();
     

@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 
 // Activity types
@@ -20,8 +21,31 @@ export const ACTIVITY_ACTIONS = {
   EXPIRED: "expired",
 } as const;
 
-// Log an activity
-export const logActivity = mutation({
+// Internal helper — callable from other mutations directly
+export async function logActivity(
+  ctx: MutationCtx,
+  args: {
+    userId: string;
+    entityType: string;
+    entityId: string;
+    action: string;
+    description: string;
+    metadata?: unknown;
+  }
+) {
+  return await ctx.db.insert("activityLog", {
+    userId: args.userId,
+    entityType: args.entityType,
+    entityId: args.entityId,
+    action: args.action,
+    description: args.description,
+    metadata: args.metadata,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+// Public mutation — callable from the client API
+export const logActivityMutation = mutation({
   args: {
     userId: v.string(),
     entityType: v.string(),
@@ -31,15 +55,7 @@ export const logActivity = mutation({
     metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("activityLog", {
-      userId: args.userId,
-      entityType: args.entityType,
-      entityId: args.entityId,
-      action: args.action,
-      description: args.description,
-      metadata: args.metadata,
-      timestamp: new Date().toISOString(),
-    });
+    return await logActivity(ctx, args);
   },
 });
 

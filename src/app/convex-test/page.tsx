@@ -6,7 +6,8 @@ import { useUser } from "@clerk/nextjs";
 export default function ConvexTest() {
   const { user } = useUser();
   const addProperty = useMutation(api.properties.addProperty);
-  const properties = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
+  const propertiesResult = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
+  const properties = propertiesResult?.properties ?? [];
 
   if (!user) return <div>Sign in to test Convex</div>;
 

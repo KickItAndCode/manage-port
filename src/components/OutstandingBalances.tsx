@@ -661,10 +661,12 @@ export const OutstandingBalances = memo(function OutstandingBalances({
               onSubmit={async (data) => {
                 try {
                   await recordPayment({
-                    leaseId: selectedCharge.leaseId,
-                    utilityBillId: selectedCharge.utilityBillId,
-                    tenantName: selectedCharge.tenantName,
-                    ...data,
+                    chargeId: selectedCharge._id,
+                    amountPaid: data.amountPaid,
+                    paymentDate: data.paymentDate,
+                    paymentMethod: data.paymentMethod,
+                    referenceNumber: data.referenceNumber,
+                    notes: data.notes,
                     userId,
                   });
                   const chargeKey = `${selectedCharge.leaseId}-${selectedCharge.utilityBillId}`;

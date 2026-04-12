@@ -43,6 +43,7 @@ interface WizardState {
   selectedStock: string | null;
   stockData: any;
   validationResults: any;
+  financialData: any;
   premiumAnalysis: any;
   portfolioData: any;
   isComplete: boolean;
@@ -93,6 +94,7 @@ export default function WheelWizardPage() {
     selectedStock: null,
     stockData: null,
     validationResults: null,
+    financialData: null,
     premiumAnalysis: null,
     portfolioData: null,
     isComplete: false

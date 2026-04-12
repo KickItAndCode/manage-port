@@ -88,7 +88,7 @@ export function useAnalyticsPerformance(userId: string, timeframeMonths: number)
       monthlyTrends: analyticsData.monthlyTrends.map((month, idx) => {
         // Pre-calculate expensive operations
         const anomaly = analyticsData.insights.anomalies.find(a => a.month === month.month);
-        const prediction = analyticsData.insights.predictions[month.month];
+        const prediction = (analyticsData.insights.predictions as Record<string, number>)[month.month];
         
         return {
           ...month,

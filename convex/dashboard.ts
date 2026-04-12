@@ -70,10 +70,12 @@ export const getDashboardMetrics = query({
     // Get leases using index (optimized)
     let leases;
     if (args.propertyId) {
+      // Capture in const so TypeScript narrows inside the callback
+      const propertyId = args.propertyId;
       // Use propertyId index for filtered query
       leases = await ctx.db
         .query("leases")
-        .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+        .withIndex("by_property", (q) => q.eq("propertyId", propertyId))
         .filter((q) => q.eq(q.field("userId"), args.userId))
         .collect();
     } else {
@@ -87,10 +89,11 @@ export const getDashboardMetrics = query({
     // Get utility bills using index (optimized)
     let utilityBills;
     if (args.propertyId) {
+      const propertyId = args.propertyId;
       // Use propertyId index for filtered query
       utilityBills = await ctx.db
         .query("utilityBills")
-        .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+        .withIndex("by_property", (q) => q.eq("propertyId", propertyId))
         .filter((q) => q.eq(q.field("userId"), args.userId))
         .collect();
     } else {
@@ -150,7 +153,7 @@ export const getDashboardMetrics = query({
       const unitsWithActiveLeases = new Set(
         activeLeases
           .map(l => l.unitId)
-          .filter((id): id is string => id !== undefined)
+          .filter((id): id is Id<"units"> => id !== undefined)
       );
       occupancyRate = (unitsWithActiveLeases.size / totalUnits) * 100;
     } else if (totalProperties > 0) {

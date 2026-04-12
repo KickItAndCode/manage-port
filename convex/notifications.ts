@@ -1,4 +1,5 @@
 import { query, mutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 
 // Notification types
@@ -16,8 +17,63 @@ export const NOTIFICATION_SEVERITY = {
   ERROR: "error",
 } as const;
 
-// Create a notification
-export const createNotification = mutation({
+// Internal helper — callable from other mutations directly
+export async function createNotification(
+  ctx: MutationCtx,
+  args: {
+    userId: string;
+    type: string;
+    title: string;
+    message: string;
+    relatedEntityType?: string;
+    relatedEntityId?: string;
+    actionUrl?: string;
+    severity?: "info" | "warning" | "error";
+    metadata?: unknown;
+  }
+) {
+  // Check if a similar notification already exists (prevent duplicates)
+  let existingQuery = ctx.db
+    .query("notifications")
+    .withIndex("by_user", (q) => q.eq("userId", args.userId))
+    .filter((q) =>
+      q.and(
+        q.eq(q.field("type"), args.type),
+        q.eq(q.field("read"), false)
+      )
+    );
+
+  if (args.relatedEntityId) {
+    const entityId = args.relatedEntityId;
+    existingQuery = existingQuery.filter((q) =>
+      q.eq(q.field("relatedEntityId"), entityId)
+    );
+  }
+
+  const existing = await existingQuery.first();
+
+  // If similar unread notification exists, don't create duplicate
+  if (existing) {
+    return existing._id;
+  }
+
+  return await ctx.db.insert("notifications", {
+    userId: args.userId,
+    type: args.type,
+    title: args.title,
+    message: args.message,
+    read: false,
+    relatedEntityType: args.relatedEntityType,
+    relatedEntityId: args.relatedEntityId,
+    actionUrl: args.actionUrl,
+    severity: args.severity || NOTIFICATION_SEVERITY.INFO,
+    metadata: args.metadata,
+    createdAt: new Date().toISOString(),
+  });
+}
+
+// Public mutation — callable from the client API
+export const createNotificationMutation = mutation({
   args: {
     userId: v.string(),
     type: v.string(),
@@ -30,39 +86,7 @@ export const createNotification = mutation({
     metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    // Check if a similar notification already exists (prevent duplicates)
-    const existing = await ctx.db
-      .query("notifications")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("type"), args.type),
-          q.eq(q.field("read"), false),
-          args.relatedEntityId
-            ? q.eq(q.field("relatedEntityId"), args.relatedEntityId)
-            : undefined
-        )
-      )
-      .first();
-
-    // If similar unread notification exists, don't create duplicate
-    if (existing) {
-      return existing._id;
-    }
-
-    return await ctx.db.insert("notifications", {
-      userId: args.userId,
-      type: args.type,
-      title: args.title,
-      message: args.message,
-      read: false,
-      relatedEntityType: args.relatedEntityType,
-      relatedEntityId: args.relatedEntityId,
-      actionUrl: args.actionUrl,
-      severity: args.severity || NOTIFICATION_SEVERITY.INFO,
-      metadata: args.metadata,
-      createdAt: new Date().toISOString(),
-    });
+    return await createNotification(ctx, args);
   },
 });
 

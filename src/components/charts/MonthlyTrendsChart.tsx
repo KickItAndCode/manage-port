@@ -47,7 +47,7 @@ export function MonthlyTrendsChart({
 
   // Calculate enhanced metrics
   const enhancedData = useMemo(() => {
-    if (!data || data.length === 0) return { data: [], insights: {} };
+    if (!data || data.length === 0) return { data: [] as typeof data, insights: null };
 
     // Calculate moving average for anomaly detection
     const movingAvg = data.map((item, idx) => {

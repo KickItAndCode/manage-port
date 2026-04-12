@@ -650,9 +650,8 @@ export const generateLeaseExpirationNotifications = mutation({
       if (daysUntilExpiry >= 0 && daysUntilExpiry <= warningDays) {
         const property = await ctx.db.get(lease.propertyId);
         const propertyName = property?.name || "Unknown Property";
-        const unitName = lease.unitId
-          ? (await ctx.db.get(lease.unitId))?.name || ""
-          : "";
+        const unit = lease.unitId ? await ctx.db.get(lease.unitId) : null;
+        const unitName = unit?.displayName || unit?.unitIdentifier || "";
 
         // Determine severity based on days until expiration
         let severity: "info" | "warning" | "error" = "info";

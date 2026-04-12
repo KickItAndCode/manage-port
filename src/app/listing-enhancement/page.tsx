@@ -58,9 +58,10 @@ export default function ListingEnhancementPage() {
   const [activeVersion, setActiveVersion] = useState<string | null>(null);
 
   // Get user properties for context
-  const properties = useQuery(api.properties.getProperties, 
+  const propertiesResult = useQuery(api.properties.getProperties,
     user ? { userId: user.id } : "skip"
   );
+  const properties = propertiesResult?.properties ?? [];
 
   const styles = [
     { 

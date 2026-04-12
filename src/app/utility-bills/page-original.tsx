@@ -78,9 +78,10 @@ export default function UtilityBillsPage() {
   const [endMonth, setEndMonth] = useState<string | undefined>(undefined);
 
   // Queries
-  const properties = useQuery(api.properties.getProperties, 
+  const propertiesResult = useQuery(api.properties.getProperties,
     user ? { userId: user.id } : "skip"
   );
+  const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
   
   const leases = useQuery(api.leases.getActiveLeases,
     user ? { userId: user.id } : "skip"
@@ -88,11 +89,9 @@ export default function UtilityBillsPage() {
   
   // Get all calculated charges for the user
   const allUserCharges = useQuery(api.utilityCharges.calculateAllTenantCharges,
-    user ? { 
+    user ? {
       userId: user.id,
       propertyId: internalActiveFilters.propertyId ? internalActiveFilters.propertyId as any : undefined,
-      startMonth: startMonth || undefined,
-      endMonth: endMonth || undefined,
     } : "skip"
   );
   

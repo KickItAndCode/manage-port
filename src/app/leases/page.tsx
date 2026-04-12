@@ -29,7 +29,7 @@ function LeasesPageContent() {
   const preSelectedPropertyId = searchParams.get('propertyId');
   
   const propertiesResult = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
-  const properties = propertiesResult?.properties || propertiesResult || [];
+  const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
   
   // State declarations
   const [modalOpen, setModalOpen] = useState(false);

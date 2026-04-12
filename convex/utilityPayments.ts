@@ -37,12 +37,12 @@ export const markUtilityPaid = mutation({
       throw new Error("You do not have permission to update this charge");
     }
 
-    // Update charge status using our new utilityCharges function
-    const { updateChargeStatus } = await import("./utilityCharges");
-    return await updateChargeStatus(ctx, {
-      chargeId: args.chargeId,
+    // Update charge status directly
+    await ctx.db.patch(args.chargeId, {
       status: args.status,
+      updatedAt: new Date().toISOString(),
     });
+    return args.chargeId;
   },
 });
 
@@ -295,11 +295,10 @@ export const recordUtilityPayment = mutation({
       newStatus = "pending";
     }
 
-    // Update charge status
-    const { updateChargeStatus } = await import("./utilityCharges");
-    await updateChargeStatus(ctx, {
-      chargeId: args.chargeId,
+    // Update charge status directly
+    await ctx.db.patch(args.chargeId, {
       status: newStatus,
+      updatedAt: new Date().toISOString(),
     });
 
     return paymentId;

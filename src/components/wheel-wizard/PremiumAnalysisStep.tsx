@@ -167,7 +167,7 @@ export function PremiumAnalysisStep({
     calculateAnalysis(option, positionSize[0]);
   };
 
-  const isNextEnabled = selectedOption && analysis && analysis.monthlyReturn >= 1.0;
+  const isNextEnabled = !!(selectedOption && analysis && analysis.monthlyReturn >= 1.0);
 
   if (!wizardState.selectedStock || !wizardState.stockData) {
     return (

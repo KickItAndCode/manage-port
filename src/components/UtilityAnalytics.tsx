@@ -64,9 +64,10 @@ export const UtilityAnalytics = memo(function UtilityAnalytics({
   });
 
   // Get properties for context
-  const properties = useQuery(api.properties.getProperties, {
+  const propertiesResult = useQuery(api.properties.getProperties, {
     userId,
   });
+  const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
 
   const getUtilityIcon = (type: string) => {
     switch (type) {
@@ -90,7 +91,7 @@ export const UtilityAnalytics = memo(function UtilityAnalytics({
       return {
         ...month,
         anomaly: anomaly?.isAnomaly || false,
-        prediction: insights.predictions[month.month],
+        prediction: (insights.predictions as Record<string, number>)[month.month],
         savingsOpportunity:
           anomaly?.isAnomaly && month.total > insights.averageMonthly
             ? month.total - insights.averageMonthly

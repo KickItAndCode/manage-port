@@ -29,9 +29,10 @@ export default function ListingsPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
 
   // Get user properties for quick access
-  const properties = useQuery(api.properties.getProperties, 
+  const propertiesResult = useQuery(api.properties.getProperties,
     user ? { userId: user.id } : "skip"
   );
+  const properties = propertiesResult?.properties ?? [];
 
   const stats = useQuery(api.listingPublications.getPublicationStats, 
     user ? { userId: user.id } : "skip"

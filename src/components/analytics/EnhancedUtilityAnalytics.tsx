@@ -19,7 +19,7 @@ import {
   ArrowDownRight, Equal, Sparkles
 } from "lucide-react";
 import { InteractiveChart } from "../charts/InteractiveChart";
-import { formatCurrency, calculateChange, calculateTrend } from "@/utils/chartUtils";
+import { formatCurrency, calculateChange } from "@/utils/chartUtils";
 
 interface UtilityAnalyticsProps {
   userId: string;
@@ -44,10 +44,11 @@ export function EnhancedUtilityAnalytics({ userId }: UtilityAnalyticsProps) {
   const router = useRouter();
 
   const utilityBills = useQuery(api.utilityBills.getUtilityBills, { userId });
-  const properties = useQuery(api.properties.getProperties, { userId });
+  const propertiesResult = useQuery(api.properties.getProperties, { userId });
+  const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
 
   const analyticsData = useMemo(() => {
-    if (!utilityBills || !properties) return null;
+    if (!utilityBills || !properties || properties.length === 0) return null;
 
     const cutoffDate = new Date();
     cutoffDate.setMonth(cutoffDate.getMonth() - parseInt(timeframe));
@@ -80,7 +81,11 @@ export function EnhancedUtilityAnalytics({ userId }: UtilityAnalyticsProps) {
         };
       }
       monthlyData[bill.billMonth].total += bill.totalAmount;
-      monthlyData[bill.billMonth][bill.utilityType as keyof typeof monthlyData[string]] += bill.totalAmount;
+      const utilityKey = bill.utilityType as string;
+      if (utilityKey in monthlyData[bill.billMonth]) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (monthlyData[bill.billMonth] as any)[utilityKey] += bill.totalAmount;
+      }
     });
 
     const monthlyTrends = Object.values(monthlyData).sort((a, b) => a.month.localeCompare(b.month));

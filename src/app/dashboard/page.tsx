@@ -285,8 +285,9 @@ export default function DashboardPage() {
     user?.id ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dashboard
   );
   const properties =
-    propertiesResult?.properties ||
-    (Array.isArray(propertiesResult) ? propertiesResult : []);
+    propertiesResult && "properties" in propertiesResult
+      ? propertiesResult.properties
+      : [];
 
   // Check if user has no properties
   const hasNoProperties = !properties || properties.length === 0;

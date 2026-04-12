@@ -466,8 +466,9 @@ export default function DocumentsPage() {
   );
   // Extract properties array from paginated result
   const properties =
-    propertiesResult?.properties ||
-    (Array.isArray(propertiesResult) ? propertiesResult : []);
+    propertiesResult && "properties" in propertiesResult
+      ? propertiesResult.properties
+      : [];
 
   const expiringDocs = useQuery(
     api.documents.getExpiringDocuments,

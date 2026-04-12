@@ -43,7 +43,7 @@ export const DashboardFilters = memo(function DashboardFilters({
     api.properties.getProperties,
     userId ? { userId, limit: 1000 } : "skip" // Get all properties for filters
   );
-  const properties = propertiesResult?.properties || (Array.isArray(propertiesResult) ? propertiesResult : []);
+  const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
 
   const hasActiveFilters = useMemo(() => {
     return (

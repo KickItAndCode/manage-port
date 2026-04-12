@@ -119,8 +119,9 @@ export function GlobalSearch() {
 
   // Extract properties array from paginated result
   const properties =
-    propertiesResult?.properties ||
-    (Array.isArray(propertiesResult) ? propertiesResult : []);
+    propertiesResult && "properties" in propertiesResult
+      ? propertiesResult.properties
+      : [];
 
   // Filter properties based on search
   const filteredProperties = properties

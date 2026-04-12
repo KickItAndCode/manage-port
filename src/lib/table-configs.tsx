@@ -751,7 +751,7 @@ export function createLeaseTableConfig(
       render: (value, item) => (
         <div className="text-sm">
           <p>{formatDate(value)} - {formatDate(item.endDate)}</p>
-          {item.computedStatus === "active" && item.daysUntilExpiry !== null && item.daysUntilExpiry <= 60 && item.daysUntilExpiry >= 0 && (
+          {item.computedStatus === "active" && item.daysUntilExpiry != null && item.daysUntilExpiry <= 60 && item.daysUntilExpiry >= 0 && (
             <p className="text-orange-500 flex items-center gap-1 mt-1 text-xs">
               <AlertCircle className="w-3 h-3" />
               {item.daysUntilExpiry} days left
@@ -944,7 +944,7 @@ export function LeaseMobileCard({
               )}
             </div>
 
-            {lease.computedStatus === "active" && lease.daysUntilExpiry !== null && lease.daysUntilExpiry <= 60 && lease.daysUntilExpiry >= 0 && (
+            {lease.computedStatus === "active" && lease.daysUntilExpiry != null && lease.daysUntilExpiry <= 60 && lease.daysUntilExpiry >= 0 && (
               <div className="flex items-center gap-1 text-orange-500 text-sm mt-2">
                 <AlertCircle className="w-3 h-3" />
                 <span>{lease.daysUntilExpiry} days left</span>
