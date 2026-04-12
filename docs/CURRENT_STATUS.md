@@ -1,6 +1,6 @@
 # Current Status - ManagePort
 
-**Last Updated**: January 27, 2025  
+**Last Updated**: November 19, 2025  
 **Current Phase**: Phase 3 - Experience Deepening (In Progress)  
 **Last Commit**: 96b3560 - feat: implement caching strategies and fix React hooks error
 
@@ -179,13 +179,14 @@
 
 **👉 See [TASKS.md](./TASKS.md) for detailed task breakdown and next steps**
 
-**Current Priority**: Additional Performance Optimizations - 1-2 hours estimated
+**Current Priority**: Automated Utility Charge Generation (see `docs/TASKS.md`)
 
 **Next Steps**:
-1. Review other queries for optimization opportunities
-2. Test dashboard load times and re-render behavior
-3. Monitor dashboard performance metrics
-4. Profile with React DevTools to verify improvements
+1. Ship persisted tenant charges: schema audit, auto-generation hooks, pipeline docs.  
+2. Rebuild tenant statement query/UI on top of stored charges.  
+3. Simplify the Utility Bills page (Quick Add flow first, advanced tools opt-in).  
+4. Trim dashboard modals and rely on deep links to focused pages.  
+5. Replace custom filter reducers with URL-driven filters + simplified navigation.
 
 ---
 

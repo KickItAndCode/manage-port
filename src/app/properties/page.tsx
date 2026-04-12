@@ -7,45 +7,64 @@ import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { PropertyForm } from "@/components/PropertyForm";
-import { PropertyCreationWizard, type PropertyWizardData } from "@/components/PropertyCreationWizard";
+import {
+  PropertyCreationWizard,
+  type PropertyWizardData,
+} from "@/components/PropertyCreationWizard";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { ImageIcon, Wand2, Trash2, Building } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
-import { ResponsiveTable, BulkActionsToolbar } from "@/components/ui/responsive-table";
-import { createPropertyTableConfig, PropertyMobileCard, type Property } from "@/lib/table-configs";
-
+import {
+  ResponsiveTable,
+  BulkActionsToolbar,
+} from "@/components/ui/responsive-table";
+import {
+  createPropertyTableConfig,
+  PropertyMobileCard,
+  type Property,
+} from "@/lib/table-configs";
 
 function PropertiesContent() {
   const { user } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
-  
+
   const propertiesResult = useQuery(
-    api.properties.getProperties, 
-    user ? { 
-      userId: user.id,
-      limit: itemsPerPage,
-      offset: (currentPage - 1) * itemsPerPage,
-    } : "skip"
+    api.properties.getProperties,
+    user
+      ? {
+          userId: user.id,
+          limit: itemsPerPage,
+          offset: (currentPage - 1) * itemsPerPage,
+        }
+      : "skip"
   );
-  
+
   // Extract properties and pagination info
   const properties = propertiesResult?.properties || [];
   const totalProperties = propertiesResult?.total || 0;
   const hasMore = propertiesResult?.hasMore || false;
   const totalPages = Math.ceil(totalProperties / itemsPerPage);
-  
+
   const updateProperty = useMutation(api.properties.updateProperty);
   const deleteProperty = useMutation(api.properties.deleteProperty);
-  const createPropertyWithUnits = useMutation(api.properties.createPropertyWithUnits);
+  const createPropertyWithUnits = useMutation(
+    api.properties.createPropertyWithUnits
+  );
 
   const [edit, setEdit] = useState<any | null>(null);
   const [loading, setLoading] = useState(false);
@@ -54,36 +73,36 @@ function PropertiesContent() {
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  
+
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [search, typeFilter, statusFilter]);
-  
+
   // Handle URL parameters on mount
   useEffect(() => {
     if (!searchParams) return;
-    
+
     // Check for type filter from URL
-    const urlType = searchParams.get('type');
+    const urlType = searchParams.get("type");
     if (urlType && propertyTypes.includes(urlType)) {
       setTypeFilter(urlType);
     }
-    
+
     // Check for status filter from URL
-    const urlStatus = searchParams.get('status');
+    const urlStatus = searchParams.get("status");
     if (urlStatus && statusOptions.includes(urlStatus)) {
       setStatusFilter(urlStatus);
     }
-    
+
     // Check for search query from URL
-    const urlSearch = searchParams.get('search');
+    const urlSearch = searchParams.get("search");
     if (urlSearch) {
       setSearch(urlSearch);
     }
-    
+
     // Scroll to top when page loads from navigation
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, [searchParams]);
   const [sortKey, setSortKey] = useState<keyof Property>("name");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
@@ -108,13 +127,14 @@ function PropertiesContent() {
 
   const filtered = useMemo(() => {
     return (properties || [])
-      .filter((p) =>
-        (!search ||
-          p.name.toLowerCase().includes(search.toLowerCase()) ||
-          p.address.toLowerCase().includes(search.toLowerCase()) ||
-          p.type.toLowerCase().includes(search.toLowerCase())) &&
-        (!typeFilter || p.type === typeFilter) &&
-        (!statusFilter || p.status === statusFilter)
+      .filter(
+        (p) =>
+          (!search ||
+            p.name.toLowerCase().includes(search.toLowerCase()) ||
+            p.address.toLowerCase().includes(search.toLowerCase()) ||
+            p.type.toLowerCase().includes(search.toLowerCase())) &&
+          (!typeFilter || p.type === typeFilter) &&
+          (!statusFilter || p.status === statusFilter)
       )
       .sort((a, b) => {
         const v1 = a[sortKey];
@@ -141,25 +161,29 @@ function PropertiesContent() {
         setLoading(true);
         try {
           const results = await Promise.all(
-            propertiesToDelete.map(property => 
+            propertiesToDelete.map((property) =>
               deleteProperty({ id: property._id as any, userId: user.id })
             )
           );
           setSelectedProperties([]);
-          
+
           // Show success toast for bulk deletion
           if (results.length === 1) {
             toast.success(results[0].message);
           } else {
-            toast.success(`Successfully deleted ${results.length} properties and all associated data.`);
+            toast.success(
+              `Successfully deleted ${results.length} properties and all associated data.`
+            );
           }
         } catch (err: any) {
           console.error("Bulk delete error:", err);
-          toast.error("Some properties could not be deleted: " + formatErrorForToast(err));
+          toast.error(
+            "Some properties could not be deleted: " + formatErrorForToast(err)
+          );
         } finally {
           setLoading(false);
         }
-      }
+      },
     });
   };
 
@@ -167,12 +191,16 @@ function PropertiesContent() {
     if (!user) return;
     confirm({
       title: "Delete Property",
-      description: "Delete this property? This will also delete associated leases, utilities, and documents.",
+      description:
+        "Delete this property? This will also delete associated leases, utilities, and documents.",
       variant: "destructive",
       onConfirm: async () => {
         setLoading(true);
         try {
-          const result = await deleteProperty({ id: property._id as any, userId: user.id });
+          const result = await deleteProperty({
+            id: property._id as any,
+            userId: user.id,
+          });
           toast.success(result.message);
         } catch (err: any) {
           console.error("Delete property error:", err);
@@ -180,7 +208,7 @@ function PropertiesContent() {
         } finally {
           setLoading(false);
         }
-      }
+      },
     });
   };
 
@@ -205,11 +233,11 @@ function PropertiesContent() {
         purchaseDate: data.purchaseDate,
         monthlyMortgage: data.monthlyMortgage,
         monthlyCapEx: data.monthlyCapEx,
-        
+
         // Property type and units
         propertyType: data.propertyType,
         units: data.units,
-        
+
         // Utility setup
         utilityPreset: data.utilityPreset,
         customSplit: data.customSplit,
@@ -217,7 +245,7 @@ function PropertiesContent() {
 
       toast.success(result.message);
       setWizardOpen(false);
-      
+
       // Navigate to the new property
       router.push(`/properties/${result.propertyId}`);
     } catch (error) {
@@ -237,7 +265,7 @@ function PropertiesContent() {
           <Skeleton className="h-10 w-40" />
         </div>
       </div>
-      
+
       <div className="flex flex-col gap-4 mb-6">
         {/* Search and Filters skeleton */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end flex-1">
@@ -264,7 +292,7 @@ function PropertiesContent() {
                       <Skeleton className="h-5 w-3/4" />
                       <Skeleton className="h-4 w-full" />
                     </div>
-                    
+
                     {/* Important info grid */}
                     <div className="grid grid-cols-2 gap-2">
                       <div className="space-y-1">
@@ -284,7 +312,7 @@ function PropertiesContent() {
                         <Skeleton className="h-4 w-20" />
                       </div>
                     </div>
-                    
+
                     {/* Actions */}
                     <div className="flex justify-end gap-2 pt-2 border-t">
                       <Skeleton className="h-8 w-16" />
@@ -316,7 +344,7 @@ function PropertiesContent() {
                 <Skeleton className="h-4 w-16" />
               </div>
             </div>
-            
+
             {/* Table rows */}
             {Array.from({ length: 6 }).map((_, i) => (
               <div key={i} className="flex py-4 border-b border-border/50">
@@ -356,7 +384,7 @@ function PropertiesContent() {
           <Skeleton className="h-10 w-40" />
         </div>
       </div>
-      
+
       <div className="flex flex-col gap-4 mb-6">
         {/* Search and Filters skeleton */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-end flex-1">
@@ -435,7 +463,7 @@ function PropertiesContent() {
                   <Skeleton className="h-4 w-16" />
                 </div>
               </div>
-              
+
               {Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="flex py-4 border-b border-border/50">
                   <div className="w-8 mr-4">
@@ -482,6 +510,9 @@ function PropertiesContent() {
               </Button>
             </DialogTrigger>
             <DialogContent className="max-w-[95vw] sm:max-w-6xl h-[95vh] p-0 overflow-hidden">
+              <DialogHeader className="sr-only">
+                <DialogTitle>Create New Property</DialogTitle>
+              </DialogHeader>
               <PropertyCreationWizard
                 isModal={true}
                 onSubmit={handleWizardSubmit}
@@ -500,35 +531,38 @@ function PropertiesContent() {
             placeholder="Search by name, address, or type..."
             className="bg-input text-foreground px-4 py-2 rounded-lg border border-border focus:outline-none focus:ring-2 focus:ring-primary w-full sm:w-64 transition-colors duration-200"
             value={search}
-            onChange={e => setSearch(e.target.value)}
+            onChange={(e) => setSearch(e.target.value)}
             data-testid="properties-search-input"
           />
           <div className="flex gap-2 sm:gap-4 w-full sm:w-auto">
             <select
               className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200 flex-1 sm:flex-none"
               value={typeFilter}
-              onChange={e => setTypeFilter(e.target.value)}
+              onChange={(e) => setTypeFilter(e.target.value)}
               data-testid="property-type-filter"
             >
               <option value="">All Types</option>
               {propertyTypes.map((t) => (
-                <option key={t} value={t}>{t}</option>
+                <option key={t} value={t}>
+                  {t}
+                </option>
               ))}
             </select>
             <select
               className="bg-input text-foreground px-4 py-2 rounded-lg border border-border transition-colors duration-200 flex-1 sm:flex-none"
               value={statusFilter}
-              onChange={e => setStatusFilter(e.target.value)}
+              onChange={(e) => setStatusFilter(e.target.value)}
               data-testid="property-status-filter"
             >
               <option value="">All Statuses</option>
               {statusOptions.map((s) => (
-                <option key={s} value={s}>{s}</option>
+                <option key={s} value={s}>
+                  {s}
+                </option>
               ))}
             </select>
           </div>
         </div>
-
       </div>
 
       {/* Properties List */}
@@ -547,7 +581,13 @@ function PropertiesContent() {
           selectedItems={selectedProperties}
           getItemId={(property) => property._id}
           mobileCardRenderer={(property, { selected, onSelect }) => (
-            <Card className={selected ? "bg-primary/10 dark:bg-primary/15 border-l-4 border-l-primary" : ""}>
+            <Card
+              className={
+                selected
+                  ? "bg-primary/10 dark:bg-primary/15 border-l-4 border-l-primary"
+                  : ""
+              }
+            >
               <PropertyMobileCard
                 property={property}
                 selected={selected}
@@ -579,18 +619,20 @@ function PropertiesContent() {
             />
           }
         />
-        
+
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-t p-4 mt-4">
             <div className="text-sm text-muted-foreground">
-              Showing {(currentPage - 1) * itemsPerPage + 1} to {Math.min(currentPage * itemsPerPage, totalProperties)} of {totalProperties} properties
+              Showing {(currentPage - 1) * itemsPerPage + 1} to{" "}
+              {Math.min(currentPage * itemsPerPage, totalProperties)} of{" "}
+              {totalProperties} properties
             </div>
             <div className="flex items-center gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
               >
                 Previous
@@ -607,7 +649,7 @@ function PropertiesContent() {
                   } else {
                     pageNum = currentPage - 2 + i;
                   }
-                  
+
                   return (
                     <Button
                       key={pageNum}
@@ -624,7 +666,9 @@ function PropertiesContent() {
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                onClick={() =>
+                  setCurrentPage((p) => Math.min(totalPages, p + 1))
+                }
                 disabled={currentPage === totalPages || !hasMore}
               >
                 Next
@@ -639,22 +683,25 @@ function PropertiesContent() {
         selectedItems={selectedProperties}
         actions={[
           {
-            id: 'delete',
-            label: 'Delete',
+            id: "delete",
+            label: "Delete",
             icon: Trash2,
-            variant: 'destructive',
-            action: handleBulkDelete
-          }
+            variant: "destructive",
+            action: handleBulkDelete,
+          },
         ]}
         onClearSelection={() => setSelectedProperties([])}
       />
 
-      <Dialog open={!!edit} onOpenChange={(isOpen) => {
-        if (!isOpen) {
-          setEdit(null);
-          setError(null);
-        }
-      }}>
+      <Dialog
+        open={!!edit}
+        onOpenChange={(isOpen) => {
+          if (!isOpen) {
+            setEdit(null);
+            setError(null);
+          }
+        }}
+      >
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Property</DialogTitle>
@@ -665,10 +712,16 @@ function PropertiesContent() {
               try {
                 setLoading(true);
                 setError(null);
-                await updateProperty({ ...data, id: edit._id, userId: user.id });
+                await updateProperty({
+                  ...data,
+                  id: edit._id,
+                  userId: user.id,
+                });
                 setEdit(null);
               } catch (err: any) {
-                setError(err.data?.message || err.message || "An error occurred");
+                setError(
+                  err.data?.message || err.message || "An error occurred"
+                );
               } finally {
                 setLoading(false);
               }
@@ -690,17 +743,19 @@ function PropertiesContent() {
 
 export default function PropertiesPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
-        <div className="flex items-center justify-center h-64">
-          <div className="flex items-center gap-2">
-            <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-            Loading properties...
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
+          <div className="flex items-center justify-center h-64">
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              Loading properties...
+            </div>
           </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <PropertiesContent />
     </Suspense>
   );
-} 
+}

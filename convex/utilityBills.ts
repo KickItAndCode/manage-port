@@ -2,6 +2,10 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { logActivity, ACTIVITY_TYPES, ACTIVITY_ACTIONS } from "./activityLog";
+import {
+  rebuildChargesForBill,
+  deleteChargesForBillInternal,
+} from "./utilityCharges";
 
 // Types for aggregated data
 export interface UtilityPageData {
@@ -12,6 +16,7 @@ export interface UtilityPageData {
     leaseId: Id<"leases">;
     unitId?: Id<"units">;
     tenantName: string;
+    chargeId?: Id<"utilityCharges">;
     utilityBillId: Id<"utilityBills">;
     utilityType: string;
     billMonth: string;
@@ -22,6 +27,7 @@ export interface UtilityPageData {
     paidAmount: number;
     remainingAmount: number;
     unitIdentifier?: string;
+    status?: "pending" | "partial" | "paid";
   }>;
   stats: {
     totalBills: number;
@@ -39,6 +45,17 @@ async function verifyPropertyOwnership(
 ): Promise<boolean> {
   const property = await ctx.db.get(propertyId);
   return property !== null && property.userId === userId;
+}
+
+async function deletePaymentsForBill(ctx: any, billId: Id<"utilityBills">) {
+  const payments = await ctx.db
+    .query("utilityPayments")
+    .withIndex("by_bill", (q: any) => q.eq("utilityBillId", billId))
+    .collect();
+
+  for (const payment of payments) {
+    await ctx.db.delete(payment._id);
+  }
 }
 
 // Calculate tenant charges based on utility bill and lease settings
@@ -233,7 +250,15 @@ export const addUtilityBill = mutation({
       },
     });
 
-    // Note: Tenant charges are now calculated on-demand, not stored
+    try {
+      await rebuildChargesForBill(ctx, billId);
+    } catch (error: any) {
+      // Clean up the bill so we don't leave inconsistent data
+      await ctx.db.delete(billId);
+      throw new Error(
+        `Failed to generate tenant charges: ${error?.message || error}`
+      );
+    }
 
     return billId;
   },
@@ -317,6 +342,18 @@ export const updateUtilityBill = mutation({
     if (args.notes !== undefined) updates.notes = args.notes;
 
     await ctx.db.patch(args.id, updates);
+
+    const affectsCharges =
+      args.totalAmount !== undefined ||
+      args.utilityType !== undefined ||
+      args.billMonth !== undefined ||
+      args.dueDate !== undefined ||
+      args.noTenantCharges !== undefined;
+
+    if (affectsCharges) {
+      await rebuildChargesForBill(ctx, args.id);
+    }
+
     return args.id;
   },
 });
@@ -484,16 +521,23 @@ export const seedUtilityBills = mutation({
 
         createdBills++;
 
-        // Note: Tenant charges are now calculated on-demand, not stored
-        // The seedUtilityBills function now only creates utility bills
+        try {
+          const generated = await rebuildChargesForBill(ctx, billId);
+          createdCharges += generated.length;
+        } catch (error) {
+          console.error("Failed to generate tenant charges for seeded bill", {
+            billId,
+            error,
+          });
+        }
       }
     }
 
     return {
       success: true,
-      message: `Created ${createdBills} utility bills for ${currentYear} YTD (tenant charges calculated on-demand)`,
+      message: `Created ${createdBills} utility bills for ${currentYear} YTD (generated ${createdCharges} tenant charges)`,
       createdBills,
-      createdCharges: 0, // No longer creating stored charges
+      createdCharges,
     };
   },
 });
@@ -520,9 +564,9 @@ export const deleteUtilityBill = mutation({
       throw new Error("You do not have permission to delete this bill");
     }
 
-    // Note: No need to delete tenant charges as they're calculated on-demand
+    await deleteChargesForBillInternal(ctx, args.id);
+    await deletePaymentsForBill(ctx, args.id);
 
-    // Delete the bill
     await ctx.db.delete(args.id);
     return { success: true };
   },
@@ -613,50 +657,11 @@ export const getUtilityBillWithCharges = query({
       return null;
     }
 
-    // Calculate charges on-demand using the same logic as utilityCharges.ts
-    const charges = await calculateTenantCharges(ctx, args.billId, bill);
-
-    // Convert to the format expected by the frontend
-    const formattedCharges = await Promise.all(
-      charges.map(async (charge) => {
-        // Get payments for this lease and bill
-        const payments = await ctx.db
-          .query("utilityPayments")
-          .withIndex("by_lease", (q: any) => q.eq("leaseId", charge.leaseId))
-          .filter((q: any) => q.eq(q.field("utilityBillId"), bill._id))
-          .collect();
-
-        const paidAmount = payments.reduce(
-          (sum, payment) => sum + payment.amountPaid,
-          0
-        );
-        const remainingAmount = Math.max(0, charge.chargedAmount - paidAmount);
-
-        // Get unit information if available
-        let unitIdentifier;
-        if (charge.unitId) {
-          const unit = await ctx.db.get(charge.unitId);
-          unitIdentifier = unit?.unitIdentifier;
-        }
-
-        return {
-          ...charge,
-          utilityBillId: bill._id,
-          utilityType: bill.utilityType,
-          billMonth: bill.billMonth,
-          totalBillAmount: bill.totalAmount,
-          dueDate: bill.dueDate,
-          paidAmount,
-          remainingAmount,
-          unitIdentifier,
-        };
-      })
-    );
+    const charges = await calculateChargesForBill(ctx, bill);
 
     return {
       ...bill,
-      charges: formattedCharges.sort((a, b) => {
-        // Sort by unit identifier if available, otherwise by tenant name
+      charges: charges.sort((a, b) => {
         if (a.unitIdentifier && b.unitIdentifier) {
           return a.unitIdentifier.localeCompare(b.unitIdentifier);
         }
@@ -846,9 +851,18 @@ export const bulkAddUtilityBills = mutation({
           createdAt: new Date().toISOString(),
         });
 
-        // Note: Tenant charges are now calculated on-demand, not stored
-
-        createdBillIds.push(billId);
+        try {
+          await rebuildChargesForBill(ctx, billId);
+          createdBillIds.push(billId);
+        } catch (error: any) {
+          await ctx.db.delete(billId);
+          errors.push({
+            utilityType: billData.utilityType,
+            error:
+              error?.message ||
+              "Failed to generate tenant charges for this bill",
+          });
+        }
       } catch (error: any) {
         errors.push({
           utilityType: billData.utilityType,
@@ -1168,7 +1182,7 @@ async function getBillsWithCharges(
   return { bills, charges: allCharges };
 }
 
-// Helper function to calculate charges for a single bill (optimized)
+// Helper function to read stored charges (and payments) for a bill
 async function calculateChargesForBill(
   ctx: any,
   bill: Doc<"utilityBills">
@@ -1187,82 +1201,75 @@ async function calculateChargesForBill(
     paidAmount: number;
     remainingAmount: number;
     unitIdentifier?: string;
+    status?: "pending" | "partial" | "paid";
+    chargeId?: Id<"utilityCharges">;
   }>
 > {
-  // If bill is marked as no tenant charges, return empty array
   if (bill.noTenantCharges) {
     return [];
   }
 
-  // Get all active leases for the property
-  const activeLeases = await ctx.db
-    .query("leases")
-    .withIndex("by_property", (q: any) => q.eq("propertyId", bill.propertyId))
-    .filter((q: any) => q.eq(q.field("status"), "active"))
+  // Read stored charges (queries can't mutate, so charges must already exist from mutations)
+  const storedCharges = await ctx.db
+    .query("utilityCharges")
+    .withIndex("by_bill", (q: any) => q.eq("utilityBillId", bill._id))
     .collect();
 
-  if (activeLeases.length === 0) {
+  if (storedCharges.length === 0) {
+    // Charges don't exist yet - they'll be created when bill is added/updated via mutation
+    // For legacy bills, use the backfill mutation to generate charges
     return [];
   }
 
-  const charges = [];
+  const payments = await ctx.db
+    .query("utilityPayments")
+    .withIndex("by_bill", (q: any) => q.eq("utilityBillId", bill._id))
+    .collect();
 
-  // Calculate charges for each lease based on utility settings
-  for (const lease of activeLeases) {
-    // Get utility setting for this lease and utility type
-    const setting = await ctx.db
-      .query("leaseUtilitySettings")
-      .withIndex("by_lease", (q: any) => q.eq("leaseId", lease._id))
-      .filter((q: any) => q.eq(q.field("utilityType"), bill.utilityType))
-      .first();
-
-    if (setting && setting.responsibilityPercentage > 0) {
-      // Calculate the charged amount
-      const chargedAmount =
-        Math.round(
-          ((bill.totalAmount * setting.responsibilityPercentage) / 100) * 100
-        ) / 100;
-
-      // Get payments for this lease and bill using optimized index
-      const payments = await ctx.db
-        .query("utilityPayments")
-        .withIndex("by_lease_bill", (q: any) =>
-          q.eq("leaseId", lease._id).eq("utilityBillId", bill._id)
-        )
-        .collect();
-
-      const paidAmount = payments.reduce(
-        (sum: number, payment: any) => sum + payment.amountPaid,
-        0
-      );
-      const remainingAmount = Math.max(0, chargedAmount - paidAmount);
-
-      // Get unit information if available
-      let unitIdentifier;
-      if (lease.unitId) {
-        const unit = await ctx.db.get(lease.unitId);
-        unitIdentifier = unit?.unitIdentifier;
-      }
-
-      charges.push({
-        leaseId: lease._id,
-        unitId: lease.unitId,
-        tenantName: lease.tenantName,
-        utilityBillId: bill._id,
-        utilityType: bill.utilityType,
-        billMonth: bill.billMonth,
-        totalBillAmount: bill.totalAmount,
-        chargedAmount,
-        responsibilityPercentage: setting.responsibilityPercentage,
-        dueDate: bill.dueDate,
-        paidAmount,
-        remainingAmount,
-        unitIdentifier,
-      });
-    }
+  const paymentsByCharge = new Map<Id<"utilityCharges">, number>();
+  for (const payment of payments) {
+    if (!payment.chargeId) continue;
+    const existing = paymentsByCharge.get(payment.chargeId) || 0;
+    paymentsByCharge.set(payment.chargeId, existing + payment.amountPaid);
   }
 
-  return charges;
+  const unitCache = new Map<string, string | undefined>();
+
+  const formattedCharges = [];
+  for (const charge of storedCharges) {
+    let unitIdentifier: string | undefined;
+    if (charge.unitId) {
+      if (unitCache.has(charge.unitId)) {
+        unitIdentifier = unitCache.get(charge.unitId);
+      } else {
+        const unit = await ctx.db.get(charge.unitId);
+        unitIdentifier = unit?.unitIdentifier;
+        unitCache.set(charge.unitId, unitIdentifier);
+      }
+    }
+
+    const paidAmount = paymentsByCharge.get(charge._id) || 0;
+
+    formattedCharges.push({
+      leaseId: charge.leaseId,
+      unitId: charge.unitId,
+      tenantName: charge.tenantName,
+      utilityBillId: bill._id,
+      utilityType: bill.utilityType,
+      billMonth: bill.billMonth,
+      totalBillAmount: bill.totalAmount,
+      chargedAmount: charge.chargedAmount,
+      responsibilityPercentage: charge.responsibilityPercentage,
+      dueDate: charge.dueDate,
+      paidAmount,
+      remainingAmount: Math.max(0, charge.chargedAmount - paidAmount),
+      unitIdentifier,
+      status: charge.status,
+      chargeId: charge._id,
+    });
+  }
+
+  return formattedCharges;
 }
 
 // Main aggregated query for utility bills page
@@ -1380,6 +1387,7 @@ export const bulkMarkNoTenantCharges = mutation({
           updatedAt: new Date().toISOString(),
         });
 
+        await rebuildChargesForBill(ctx, billId);
         updatedBills.push(billId);
       } catch (error: any) {
         errors.push({ billId, error: error.message });
@@ -1414,15 +1422,26 @@ export const getBillsTenantChargeStatus = query({
 
     const billsWithStatus = await Promise.all(
       bills.map(async (bill) => {
-        // Calculate if this bill would generate tenant charges
-        const charges = await calculateTenantCharges(ctx, bill._id, bill);
+        // Stored charges (current state)
+        const storedCharges = await ctx.db
+          .query("utilityCharges")
+          .withIndex("by_bill", (q: any) => q.eq("utilityBillId", bill._id))
+          .collect();
+
+        // Expected charges if we were to calculate from lease settings
+        const expectedCharges = await calculateTenantCharges(
+          ctx,
+          bill._id,
+          bill
+        );
 
         return {
           ...bill,
           hasNoTenantChargesFlag: !!bill.noTenantCharges,
-          wouldGenerateCharges: charges.length > 0,
-          currentChargeCount: charges.length,
-          totalChargeAmount: charges.reduce(
+          wouldGenerateCharges: expectedCharges.length > 0,
+          currentChargeCount: storedCharges.length,
+          expectedChargeCount: expectedCharges.length,
+          totalChargeAmount: storedCharges.reduce(
             (sum, charge) => sum + charge.chargedAmount,
             0
           ),

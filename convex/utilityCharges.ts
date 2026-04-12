@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
 /**
  * Helper function to generate charges for a utility bill
@@ -74,6 +75,56 @@ async function generateChargesForBillHelper(ctx: any, billId: string) {
 }
 
 /**
+ * Ensure a bill has stored charges (used for automatic generation)
+ */
+export async function ensureChargesForBill(
+  ctx: any,
+  billId: Id<"utilityBills">
+) {
+  const existingCharge = await ctx.db
+    .query("utilityCharges")
+    .withIndex("by_bill", (q: any) => q.eq("utilityBillId", billId))
+    .first();
+
+  if (existingCharge) {
+    return [];
+  }
+
+  const bill = await ctx.db.get(billId);
+  if (!bill || bill.noTenantCharges) {
+    return [];
+  }
+
+  return await generateChargesForBillHelper(ctx, billId);
+}
+
+/**
+ * Delete and regenerate charges for a bill so stored data matches bill state
+ */
+export async function rebuildChargesForBill(
+  ctx: any,
+  billId: Id<"utilityBills">
+) {
+  await deleteChargesForBillHelper(ctx, billId);
+  const bill = await ctx.db.get(billId);
+  if (!bill || bill.noTenantCharges) {
+    return [];
+  }
+
+  return await generateChargesForBillHelper(ctx, billId);
+}
+
+/**
+ * Delete all charges for a bill (used when removing bills)
+ */
+export async function deleteChargesForBillInternal(
+  ctx: any,
+  billId: Id<"utilityBills">
+) {
+  return await deleteChargesForBillHelper(ctx, billId);
+}
+
+/**
  * Generate charges for a utility bill (public mutation)
  * This wraps the helper function for external API access
  */
@@ -82,7 +133,7 @@ export const generateChargesForBill = mutation({
     billId: v.id("utilityBills") 
   },
   handler: async (ctx, args) => {
-    return await generateChargesForBillHelper(ctx, args.billId);
+    return await rebuildChargesForBill(ctx, args.billId);
   },
 });
 
@@ -400,6 +451,64 @@ export const getPropertyChargeSummary = query({
       paidCharges,
       chargeCount,
       averageCharge: chargeCount > 0 ? totalCharges / chargeCount : 0,
+    };
+  },
+});
+
+/**
+ * Backfill stored charges for bills that are missing them
+ */
+export const backfillUtilityCharges = mutation({
+  args: {
+    userId: v.string(),
+    propertyId: v.optional(v.id("properties")),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    let billsQuery = ctx.db
+      .query("utilityBills")
+      .withIndex("by_user", (q: any) => q.eq("userId", args.userId));
+
+    if (args.propertyId) {
+      billsQuery = ctx.db
+        .query("utilityBills")
+        .withIndex("by_property", (q: any) => q.eq("propertyId", args.propertyId))
+        .filter((q: any) => q.eq(q.field("userId"), args.userId));
+    }
+
+    const bills = await billsQuery.collect();
+    const targetBills = args.limit ? bills.slice(0, args.limit) : bills;
+
+    let regeneratedBills = 0;
+    let regeneratedCharges = 0;
+
+    for (const bill of targetBills) {
+      if (bill.noTenantCharges) {
+        // Ensure old charges are removed if flag is set
+        await deleteChargesForBillHelper(ctx, bill._id);
+        continue;
+      }
+
+      const existing = await ctx.db
+        .query("utilityCharges")
+        .withIndex("by_bill", (q: any) => q.eq("utilityBillId", bill._id))
+        .first();
+
+      if (existing) {
+        continue;
+      }
+
+      const generated = await generateChargesForBillHelper(ctx, bill._id);
+      if (generated.length > 0) {
+        regeneratedBills += 1;
+        regeneratedCharges += generated.length;
+      }
+    }
+
+    return {
+      processedBills: targetBills.length,
+      regeneratedBills,
+      regeneratedCharges,
     };
   },
 });
