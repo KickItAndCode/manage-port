@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useCallback, useEffect, Suspense } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useMutation } from "convex/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { Doc, Id } from "@/../convex/_generated/dataModel";
@@ -12,39 +12,43 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SelectNative } from "@/components/ui/select-native";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { UtilityBillForm } from "@/components/UtilityBillForm";
 import { BulkUtilityBillEntry } from "@/components/BulkUtilityBillEntry";
 import { BillSplitPreview } from "@/components/BillSplitPreview";
 import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
 import { UtilityLedger } from "@/components/UtilityLedger";
+import { QuickAddBill } from "@/components/QuickAddBill";
+import { UtilityAnalytics } from "@/components/UtilityAnalytics";
 import { LoadingContent } from "@/components/LoadingContent";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ResponsiveTable, BulkActionsToolbar } from "@/components/ui/responsive-table";
 import { EmptyState } from "@/components/ui/empty-state";
-import { 
-  createUtilityBillTableConfig, 
-  UtilityBillMobileCard, 
+import {
+  createUtilityBillTableConfig,
+  UtilityBillMobileCard,
   type UtilityBill,
   type Property
 } from "@/lib/table-configs";
 import { cn } from "@/lib/utils";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  Plus, 
-  Receipt, 
+import {
+  Plus,
+  Receipt,
   DollarSign,
   CheckCircle,
   XCircle,
   AlertCircle,
   TrendingUp,
+  BarChart3,
   FileText,
   Download,
   Trash2,
 } from "lucide-react";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
@@ -284,7 +288,24 @@ const SignedOutSkeleton = () => (
 function UtilityBillsContent() {
   const { user } = useUser();
   const searchParams = useSearchParams();
-  
+  const router = useRouter();
+
+  // Tab state — synced to URL ?tab= param
+  const urlTab = searchParams?.get("tab");
+  const [activeTab, setActiveTab] = useState<string>(urlTab === "insights" ? "insights" : "bills");
+
+  const handleTabChange = useCallback((tab: string) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(searchParams?.toString() || "");
+    if (tab === "bills") {
+      params.delete("tab");
+    } else {
+      params.set("tab", tab);
+    }
+    const qs = params.toString();
+    router.replace(`/utility-bills${qs ? `?${qs}` : ""}`, { scroll: false });
+  }, [router, searchParams]);
+
   // Use the new unified data hook
   const {
     data,
@@ -645,42 +666,57 @@ function UtilityBillsContent() {
               Comprehensive bill tracking, payments, and tenant charge management
             </p>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2">
-            {filters.tenantId && filters.propertyId && (
-              <Button 
-                variant="outline" 
-                onClick={() => setStatementDialogOpen(true)} 
-                data-testid="generate-statement-btn"
-                className="w-full sm:w-auto justify-center sm:justify-start"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                <span className="hidden sm:inline">Generate Statement</span>
-                <span className="sm:hidden">Statement</span>
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              onClick={() => setBulkDialogOpen(true)} 
-              data-testid="bulk-entry-btn"
-              className="w-full sm:w-auto justify-center sm:justify-start"
-            >
-              <FileText className="w-4 h-4 mr-2" />
-              <span className="hidden sm:inline">Bulk Entry</span>
-              <span className="sm:hidden">Bulk</span>
-            </Button>
-            <Button 
-              onClick={() => setBillDialogOpen(true)} 
+          <div className="flex flex-row gap-2">
+            <Button
+              onClick={() => setBillDialogOpen(true)}
               data-testid="add-bill-btn"
-              className="w-full sm:w-auto justify-center sm:justify-start"
+              size="sm"
             >
               <Plus className="w-4 h-4 mr-2" />
               Add Bill
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm">
+                  <FileText className="w-4 h-4 mr-2" />
+                  More
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => setBulkDialogOpen(true)} data-testid="bulk-entry-btn">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Bulk Entry
+                </DropdownMenuItem>
+                {filters.tenantId && filters.propertyId && (
+                  <DropdownMenuItem onClick={() => setStatementDialogOpen(true)} data-testid="generate-statement-btn">
+                    <Download className="w-4 h-4 mr-2" />
+                    Generate Statement
+                  </DropdownMenuItem>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
+        {/* Tabbed Content */}
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-4">
+          <TabsList className="grid w-full grid-cols-2 sm:w-auto sm:inline-grid">
+            <TabsTrigger value="bills" className="gap-2">
+              <Receipt className="w-4 h-4" />
+              Bills
+            </TabsTrigger>
+            <TabsTrigger value="insights" className="gap-2">
+              <BarChart3 className="w-4 h-4" />
+              Insights
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="bills" className="space-y-4 sm:space-y-5 mt-0">
+            {/* Quick Add Bill */}
+            <QuickAddBill defaultPropertyId={filters.propertyId} />
+
+            {/* Stats Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-3">
           <Card data-testid="stat-card-total">
             <CardContent className="p-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
@@ -876,6 +912,15 @@ function UtilityBillsContent() {
             onClearSelection={() => setSelectedUtilityBills([])}
           />
         </div>
+
+          </TabsContent>
+
+          <TabsContent value="insights" className="mt-0">
+            {user && (
+              <UtilityAnalytics userId={user.id} />
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Add/Edit Bill Dialog */}

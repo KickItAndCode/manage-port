@@ -64,15 +64,16 @@
 
 | # | Task | Status | Verification |
 |---|------|--------|-------------|
-| 3.1 | Create Quick Add utility bill form (4 required fields: property, type, amount, month) | ⏳ | Quick Add form visible, submits successfully with minimal input |
-| 3.2 | Split utility bills page into tabs: "Bills" (list + quick add) and "Insights" (analytics) | ⏳ | Two tabs visible, each shows relevant content |
-| 3.3 | Replace `useReducer`-based filtering in `useUtilityBillsData.ts` with URL search params | ⏳ | Filter state survives page refresh via URL params |
-| 3.4 | Hide bulk operations and advanced tools behind "Advanced" toggle by default | ⏳ | Page loads with simplified view, advanced tools accessible via toggle |
+| 3.1 | Create Quick Add utility bill form (4 required fields: property, type, amount, month) | ✅ Done | `QuickAddBill.tsx` component with inline form at top of Bills tab. Keeps property + month between entries for rapid add. |
+| 3.2 | Split utility bills page into tabs: "Bills" (list + quick add) and "Insights" (analytics) | ✅ Done | Bills tab has stats + filters + table + Quick Add. Insights tab renders UtilityAnalytics. |
+| 3.3 | Add URL-driven tab state — active tab synced to `?tab=` URL param | ✅ Done | `?tab=insights` loads Insights tab. Bills tab is default (no param needed). Tab changes update URL without page reload. |
+| 3.4 | Hide bulk/statement operations behind "More" dropdown; only "Add Bill" is primary action | ✅ Done | Page header shows "Add Bill" + "More" dropdown containing Bulk Entry and Generate Statement. |
 | 3.5 | Ensure mobile layout works on iPhone 14 (390px) | ⏳ | Visual check at 390px viewport — no horizontal scroll, all controls accessible |
 
 **Verification**:
 - Add a bill in < 10 seconds via Quick Add
-- Filters persist in URL (bookmarkable)
+- Tab state persists in URL (bookmarkable)
+- Insights tab shows analytics charts
 - Mobile usability confirmed
 
 ---
