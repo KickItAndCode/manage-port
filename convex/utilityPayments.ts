@@ -1,23 +1,9 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
-import { Doc, Id } from "./_generated/dataModel";
+import type { MutationCtx, QueryCtx } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
-// Helper to verify bill ownership
-async function verifyBillOwnership(
-  ctx: any,
-  utilityBillId: Id<"utilityBills">,
-  userId: string
-): Promise<boolean> {
-  const bill = await ctx.db.get(utilityBillId);
-  if (!bill) return false;
-  
-  return bill.userId === userId;
-}
-
-// These functions are now deprecated since we're using on-demand calculations
-// Keeping them as placeholders for backward compatibility but they will return empty results
-
-// Update charge status (linked to new charge system)
+// Update charge status directly
 export const markUtilityPaid = mutation({
   args: {
     chargeId: v.id("utilityCharges"),
@@ -37,51 +23,11 @@ export const markUtilityPaid = mutation({
       throw new Error("You do not have permission to update this charge");
     }
 
-    // Update charge status directly
     await ctx.db.patch(args.chargeId, {
       status: args.status,
       updatedAt: new Date().toISOString(),
     });
     return args.chargeId;
-  },
-});
-
-// Mark multiple charges as paid at once - DEPRECATED
-export const markBulkPaid = mutation({
-  args: {
-    chargeIds: v.array(v.string()), // Changed to string to avoid schema errors
-    isPaid: v.boolean(),
-    notes: v.optional(v.string()),
-    userId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    throw new Error("This function is deprecated. Use recordUtilityPayment instead.");
-  },
-});
-
-// Reverse payment - DEPRECATED
-export const reversePayment = mutation({
-  args: {
-    chargeId: v.string(), // Changed to string to avoid schema errors
-    reason: v.string(),
-    userId: v.string(),
-  },
-  handler: async (ctx, args) => {
-    throw new Error("This function is deprecated. Payments should be managed through utilityPayments table.");
-  },
-});
-
-// Get outstanding charges by tenant - NOW USES ON-DEMAND CALCULATION
-export const getOutstandingCharges = query({
-  args: {
-    userId: v.string(),
-    leaseId: v.optional(v.id("leases")),
-    propertyId: v.optional(v.id("properties")),
-  },
-  handler: async (ctx, args) => {
-    // This now redirects to the on-demand calculation
-    // Import the calculateAllTenantCharges function logic here or call it
-    throw new Error("This function is deprecated. Use calculateAllTenantCharges from utilityCharges instead.");
   },
 });
 
@@ -95,7 +41,7 @@ export const getPaymentHistory = query({
     endDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Get all payments for user's bills
+    // Get all payments
     let payments = await ctx.db
       .query("utilityPayments")
       .collect();
@@ -110,9 +56,8 @@ export const getPaymentHistory = query({
 
     // Get payment details with bill information
     const paymentDetails = [];
-    
+
     for (const payment of payments) {
-      // Get the bill directly using utilityBillId
       const bill = await ctx.db.get(payment.utilityBillId);
       if (!bill || bill.userId !== args.userId) continue;
 
@@ -147,87 +92,13 @@ export const getPaymentHistory = query({
     }
 
     // Sort by payment date (newest first)
-    return paymentDetails.sort((a, b) => 
+    return paymentDetails.sort((a, b) =>
       new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
     );
   },
 });
 
-// Get utility balance summary - NOW USES ON-DEMAND CALCULATION
-export const getUtilityBalance = query({
-  args: {
-    userId: v.string(),
-    leaseId: v.id("leases"),
-  },
-  handler: async (ctx, args) => {
-    // Verify lease ownership
-    const lease = await ctx.db.get(args.leaseId);
-    if (!lease || lease.userId !== args.userId) {
-      return null;
-    }
-
-    // This function is deprecated and should use the on-demand calculation
-    // For now, return a basic structure to avoid breaking existing code
-    return {
-      lease,
-      totalCharged: 0,
-      totalPaid: 0,
-      totalOwed: 0,
-      byUtilityType: {},
-      recentCharges: [],
-      _deprecated: true,
-      _message: "This function is deprecated. Use calculateTenantChargesForLease from utilityCharges instead."
-    };
-  },
-});
-
-// Generate tenant utility statement - NOW USES ON-DEMAND CALCULATION
-export const getTenantStatement = query({
-  args: {
-    userId: v.string(),
-    leaseId: v.id("leases"),
-    startDate: v.string(),
-    endDate: v.string(),
-  },
-  handler: async (ctx, args) => {
-    // Verify lease ownership
-    const lease = await ctx.db.get(args.leaseId);
-    if (!lease || lease.userId !== args.userId) {
-      return null;
-    }
-
-    // Get property and unit information
-    const property = await ctx.db.get(lease.propertyId);
-    let unit = null;
-    if (lease.unitId) {
-      unit = await ctx.db.get(lease.unitId);
-    }
-
-    // This function is deprecated and should use the on-demand calculation
-    // For now, return a basic structure to avoid breaking existing code
-    return {
-      lease,
-      property,
-      unit,
-      statementPeriod: {
-        startDate: args.startDate,
-        endDate: args.endDate,
-      },
-      charges: [],
-      summary: {
-        totalCharged: 0,
-        totalPaid: 0,
-        totalOwed: 0,
-        chargeCount: 0,
-      },
-      generatedAt: new Date().toISOString(),
-      _deprecated: true,
-      _message: "This function is deprecated. Use calculateTenantChargesForLease from utilityCharges instead."
-    };
-  },
-});
-
-// Record a payment for a utility charge (updated for stored charges)
+// Record a payment for a utility charge
 export const recordUtilityPayment = mutation({
   args: {
     chargeId: v.id("utilityCharges"),
@@ -259,10 +130,10 @@ export const recordUtilityPayment = mutation({
     // Get existing payments for this charge
     const existingPayments = await ctx.db
       .query("utilityPayments")
-      .filter((q: any) => q.eq(q.field("chargeId"), args.chargeId))
+      .withIndex("by_charge", (q) => q.eq("chargeId", args.chargeId))
       .collect();
 
-    const totalPaid = existingPayments.reduce((sum: number, p: any) => sum + p.amountPaid, 0);
+    const totalPaid = existingPayments.reduce((sum, p) => sum + p.amountPaid, 0);
     const remainingAmount = charge.chargedAmount - totalPaid;
 
     if (args.amountPaid > remainingAmount) {
@@ -273,7 +144,7 @@ export const recordUtilityPayment = mutation({
     const paymentId = await ctx.db.insert("utilityPayments", {
       leaseId: charge.leaseId,
       utilityBillId: charge.utilityBillId,
-      chargeId: args.chargeId,  // Link to specific charge
+      chargeId: args.chargeId,
       tenantName: charge.tenantName,
       amountPaid: args.amountPaid,
       paymentDate: args.paymentDate,
@@ -286,7 +157,7 @@ export const recordUtilityPayment = mutation({
     // Update charge status based on payment amount
     const newTotalPaid = totalPaid + args.amountPaid;
     let newStatus: "pending" | "paid" | "partial";
-    
+
     if (newTotalPaid >= charge.chargedAmount) {
       newStatus = "paid";
     } else if (newTotalPaid > 0) {
@@ -295,7 +166,6 @@ export const recordUtilityPayment = mutation({
       newStatus = "pending";
     }
 
-    // Update charge status directly
     await ctx.db.patch(args.chargeId, {
       status: newStatus,
       updatedAt: new Date().toISOString(),
@@ -305,7 +175,6 @@ export const recordUtilityPayment = mutation({
   },
 });
 
-
 // Get payment summary statistics
 export const getPaymentSummary = query({
   args: {
@@ -314,38 +183,30 @@ export const getPaymentSummary = query({
     leaseId: v.optional(v.id("leases")),
   },
   handler: async (ctx, args) => {
-    // Get payment history using the updated logic
     let payments = await ctx.db
       .query("utilityPayments")
       .collect();
 
-    // Get payment details with bill information
     const paymentDetails = [];
-    
+
     for (const payment of payments) {
-      // Get the bill directly using utilityBillId
       const bill = await ctx.db.get(payment.utilityBillId);
       if (!bill || bill.userId !== args.userId) continue;
 
-      // Apply property filter if specified
       if (args.propertyId && bill.propertyId !== args.propertyId) continue;
-
-      // Apply lease filter if specified
       if (args.leaseId && payment.leaseId !== args.leaseId) continue;
 
-      // Get lease information
       const lease = await ctx.db.get(payment.leaseId);
       if (!lease) continue;
 
       paymentDetails.push({
-        ...payment,
         amountPaid: payment.amountPaid,
         paymentDate: payment.paymentDate,
         paymentMethod: payment.paymentMethod,
       });
     }
 
-    const processedPayments = paymentDetails.sort((a, b) => 
+    const processedPayments = paymentDetails.sort((a, b) =>
       new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
     );
 
@@ -358,29 +219,25 @@ export const getPaymentSummary = query({
         averagePayment: 0,
         lastPaymentDate: null,
         lastPaymentAmount: null,
-        byMethod: {},
+        byMethod: {} as Record<string, { total: number; count: number }>,
       };
     }
 
-    // Calculate totals
     const totalCollected = processedPayments.reduce((sum, p) => sum + p.amountPaid, 0);
     const paymentCount = processedPayments.length;
     const averagePayment = totalCollected / paymentCount;
 
-    // This month's payments
     const currentMonth = new Date().toISOString().slice(0, 7);
-    const thisMonthPayments = processedPayments.filter(p => 
+    const thisMonthPayments = processedPayments.filter(p =>
       p.paymentDate.startsWith(currentMonth)
     );
     const thisMonthTotal = thisMonthPayments.reduce((sum, p) => sum + p.amountPaid, 0);
     const thisMonthCount = thisMonthPayments.length;
 
-    // Last payment
-    const lastPayment = processedPayments[0]; // Already sorted by date
+    const lastPayment = processedPayments[0];
     const lastPaymentDate = lastPayment?.paymentDate || null;
     const lastPaymentAmount = lastPayment?.amountPaid || null;
 
-    // By payment method
     const byMethod: Record<string, { total: number; count: number }> = {};
     processedPayments.forEach(payment => {
       if (!byMethod[payment.paymentMethod]) {
@@ -403,7 +260,7 @@ export const getPaymentSummary = query({
   },
 });
 
-// Get payments by lease for statement generation
+// Get payments by lease with stored charge amounts
 export const getPaymentsByLease = query({
   args: {
     leaseId: v.id("leases"),
@@ -416,31 +273,38 @@ export const getPaymentsByLease = query({
       return [];
     }
 
-    // Get all payments for this lease directly
+    // Get all payments for this lease
     const payments = await ctx.db
       .query("utilityPayments")
-      .withIndex("by_lease", (q: any) => q.eq("leaseId", args.leaseId))
+      .withIndex("by_lease", (q) => q.eq("leaseId", args.leaseId))
       .collect();
 
     if (payments.length === 0) return [];
 
-    // Get bill info for each payment
     const allPayments = [];
     for (const payment of payments) {
       // Get bill info for utility type
       const bill = await ctx.db.get(payment.utilityBillId);
-      
+
+      // Get stored charge amount if chargeId is available
+      let chargedAmount = payment.amountPaid; // fallback
+      if (payment.chargeId) {
+        const charge = await ctx.db.get(payment.chargeId);
+        if (charge) {
+          chargedAmount = charge.chargedAmount;
+        }
+      }
+
       allPayments.push({
         ...payment,
         utilityType: bill?.utilityType || "Unknown",
         billMonth: bill?.billMonth || "Unknown",
-        // Note: chargedAmount would need to be calculated from lease utility settings + bill
-        chargedAmount: payment.amountPaid, // Using payment amount as fallback
+        chargedAmount,
       });
     }
 
     // Sort by payment date (newest first)
-    return allPayments.sort((a, b) => 
+    return allPayments.sort((a, b) =>
       new Date(b.paymentDate).getTime() - new Date(a.paymentDate).getTime()
     );
   },

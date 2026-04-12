@@ -9,14 +9,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { 
-  FileText, 
-  Download, 
-  Calendar,
+import {
+  FileText,
+  Download,
   DollarSign,
   Receipt,
   User,
-  Building2,
   Zap,
   Droplets,
   Flame,
@@ -27,17 +25,6 @@ import {
 interface TenantStatementGeneratorProps {
   propertyId: Id<"properties">;
   userId: string;
-}
-
-interface StatementData {
-  lease: any;
-  property: any;
-  bills: any[];
-  payments: any[];
-  utilitySettings: any[];
-  totalCharges: number;
-  totalPaid: number;
-  outstandingBalance: number;
 }
 
 export function TenantStatementGenerator({ propertyId, userId }: TenantStatementGeneratorProps) {
@@ -65,31 +52,16 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
     userId,
   });
 
-  // Get bills for the selected period
-  const bills = useQuery(
-    api.utilityBills.getUtilityBillsByProperty,
+  // Get stored charges and payments for the selected lease + date range
+  const statementCharges = useQuery(
+    api.utilityCharges.getChargesForStatement,
     selectedLeaseId ? {
-      propertyId,
+      leaseId: selectedLeaseId as Id<"leases">,
       userId,
       startMonth: startDate,
       endMonth: endDate,
     } : "skip"
   );
-
-  // Get payments for the selected lease
-  const payments = useQuery(
-    api.utilityPayments.getPaymentsByLease,
-    selectedLeaseId ? {
-      leaseId: selectedLeaseId as Id<"leases">,
-      userId,
-    } : "skip"
-  );
-
-  // Get utility settings
-  const utilitySettings = useQuery(api.leaseUtilitySettings.getUtilitySettingsByProperty, {
-    propertyId,
-    userId,
-  });
 
   const getUtilityIcon = (type: string) => {
     switch (type) {
@@ -102,70 +74,21 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
     }
   };
 
-  const generateStatementData = (): StatementData | null => {
-    if (!selectedLeaseId || !bills || !payments || !property || !leases || !utilitySettings) {
-      return null;
-    }
-
-    const selectedLease = leases.find(l => l._id === selectedLeaseId);
-    if (!selectedLease) return null;
-
-    // Filter bills for the period and calculate tenant charges
-    const periodBills = bills.filter(bill => {
-      const billMonth = bill.billMonth;
-      return billMonth >= startDate && billMonth <= endDate;
-    });
-
-    let totalCharges = 0;
-    const billsWithCharges = periodBills.map(bill => {
-      const setting = utilitySettings.find(
-        s => s.leaseId === selectedLeaseId && s.utilityType === bill.utilityType
-      );
-      const tenantPercentage = setting?.responsibilityPercentage || 0;
-      const tenantCharge = (bill.totalAmount * tenantPercentage) / 100;
-      totalCharges += tenantCharge;
-
-      return {
-        ...bill,
-        tenantPercentage,
-        tenantCharge,
-      };
-    });
-
-    // Filter payments for the period
-    const periodPayments = payments.filter(payment => {
-      const paymentDate = new Date(payment.paymentDate);
-      const start = new Date(startDate + "-01");
-      const end = new Date(endDate + "-28"); // Use 28th to be safe
-      return paymentDate >= start && paymentDate <= end;
-    });
-
-    const totalPaid = periodPayments.reduce((sum, payment) => sum + payment.amountPaid, 0);
-    const outstandingBalance = totalCharges - totalPaid;
-
-    return {
-      lease: selectedLease,
-      property,
-      bills: billsWithCharges,
-      payments: periodPayments,
-      utilitySettings,
-      totalCharges,
-      totalPaid,
-      outstandingBalance,
-    };
-  };
+  const selectedLease = leases?.find(l => l._id === selectedLeaseId);
+  const hasStatementData = selectedLease && statementCharges && property;
+  const outstandingBalance = statementCharges
+    ? statementCharges.totalCharged - statementCharges.totalPaid
+    : 0;
 
   const generatePDF = async () => {
-    const statementData = generateStatementData();
-    if (!statementData) return;
+    if (!hasStatementData || !statementCharges) return;
 
     setGenerating(true);
     try {
-      // Create a printable HTML version
       const printWindow = window.open('', '_blank');
       if (!printWindow) return;
 
-      const html = generatePrintableHTML(statementData);
+      const html = generatePrintableHTML();
       printWindow.document.write(html);
       printWindow.document.close();
       printWindow.print();
@@ -182,7 +105,9 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
     }
   };
 
-  const generatePrintableHTML = (data: StatementData) => {
+  const generatePrintableHTML = () => {
+    if (!selectedLease || !statementCharges || !property) return "";
+
     const formatCurrency = (amount: number) => `$${amount.toFixed(2)}`;
     const formatDate = (dateStr: string) => new Date(dateStr).toLocaleDateString();
 
@@ -190,7 +115,7 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
       <!DOCTYPE html>
       <html>
       <head>
-        <title>Tenant Statement - ${data.lease.tenantName}</title>
+        <title>Tenant Statement - ${selectedLease.tenantName}</title>
         <style>
           body { font-family: Arial, sans-serif; margin: 20px; color: #333; }
           .header { text-align: center; border-bottom: 2px solid #ccc; padding-bottom: 20px; margin-bottom: 30px; }
@@ -209,18 +134,17 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
       <body>
         <div class="header">
           <h1>Tenant Utility Statement</h1>
-          <p><strong>Property:</strong> ${data.property.name}</p>
-          <p><strong>Address:</strong> ${data.property.address}</p>
+          <p><strong>Property:</strong> ${property.name}</p>
+          <p><strong>Address:</strong> ${property.address}</p>
           <p><strong>Statement Period:</strong> ${startDate} to ${endDate}</p>
           <p><strong>Generated:</strong> ${new Date().toLocaleDateString()}</p>
         </div>
 
         <div class="section">
           <h3>Tenant Information</h3>
-          <p><strong>Name:</strong> ${data.lease.tenantName}</p>
-          ${data.lease.tenantEmail ? `<p><strong>Email:</strong> ${data.lease.tenantEmail}</p>` : ''}
-          ${data.lease.tenantPhone ? `<p><strong>Phone:</strong> ${data.lease.tenantPhone}</p>` : ''}
-          ${data.lease.unit?.unitIdentifier ? `<p><strong>Unit:</strong> ${data.lease.unit.unitIdentifier}</p>` : ''}
+          <p><strong>Name:</strong> ${selectedLease.tenantName}</p>
+          ${selectedLease.tenantEmail ? `<p><strong>Email:</strong> ${selectedLease.tenantEmail}</p>` : ''}
+          ${selectedLease.tenantPhone ? `<p><strong>Phone:</strong> ${selectedLease.tenantPhone}</p>` : ''}
         </div>
 
         <div class="section">
@@ -236,13 +160,13 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
               </tr>
             </thead>
             <tbody>
-              ${data.bills.map(bill => `
+              ${statementCharges.charges.map(charge => `
                 <tr>
-                  <td>${bill.utilityType}</td>
-                  <td>${bill.billMonth}</td>
-                  <td>${formatCurrency(bill.totalAmount)}</td>
-                  <td>${bill.tenantPercentage}%</td>
-                  <td class="amount">${formatCurrency(bill.tenantCharge)}</td>
+                  <td>${charge.utilityType}</td>
+                  <td>${charge.billMonth}</td>
+                  <td>${formatCurrency(charge.totalBillAmount)}</td>
+                  <td>${charge.responsibilityPercentage}%</td>
+                  <td class="amount">${formatCurrency(charge.chargedAmount)}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -255,18 +179,18 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
             <thead>
               <tr>
                 <th>Date</th>
-                <th>Utility Type</th>
                 <th>Amount</th>
                 <th>Payment Method</th>
+                <th>Reference</th>
               </tr>
             </thead>
             <tbody>
-              ${data.payments.map(payment => `
+              ${statementCharges.payments.map(payment => `
                 <tr>
                   <td>${formatDate(payment.paymentDate)}</td>
-                  <td>${payment.utilityType}</td>
                   <td class="amount">${formatCurrency(payment.amountPaid)}</td>
                   <td>${payment.paymentMethod || 'Not specified'}</td>
+                  <td>${payment.referenceNumber || '—'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -277,12 +201,12 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
           <div class="summary">
             <h3>Summary</h3>
             <table style="border: none;">
-              <tr><td><strong>Total Charges:</strong></td><td class="amount">${formatCurrency(data.totalCharges)}</td></tr>
-              <tr><td><strong>Total Paid:</strong></td><td class="amount">${formatCurrency(data.totalPaid)}</td></tr>
+              <tr><td><strong>Total Charges:</strong></td><td class="amount">${formatCurrency(statementCharges.totalCharged)}</td></tr>
+              <tr><td><strong>Total Paid:</strong></td><td class="amount">${formatCurrency(statementCharges.totalPaid)}</td></tr>
               <tr style="border-top: 2px solid #ccc;">
                 <td><strong>Outstanding Balance:</strong></td>
-                <td class="amount ${data.outstandingBalance > 0 ? 'positive' : 'negative'}">
-                  ${formatCurrency(Math.abs(data.outstandingBalance))} ${data.outstandingBalance > 0 ? 'Due' : 'Credit'}
+                <td class="amount ${outstandingBalance > 0 ? 'positive' : 'negative'}">
+                  ${formatCurrency(Math.abs(outstandingBalance))} ${outstandingBalance > 0 ? 'Due' : 'Credit'}
                 </td>
               </tr>
             </table>
@@ -292,8 +216,6 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
       </html>
     `;
   };
-
-  const statementData = generateStatementData();
 
   return (
     <Card>
@@ -317,7 +239,7 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
               <option value="">Select a tenant...</option>
               {leases?.map((lease) => (
                 <option key={lease._id} value={lease._id}>
-                  {lease.tenantName} {(lease as any).unit?.unitIdentifier ? `- ${(lease as any).unit.unitIdentifier}` : ''}
+                  {lease.tenantName}
                 </option>
               ))}
             </select>
@@ -347,12 +269,12 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
         </div>
 
         {/* Statement Preview */}
-        {statementData && (
+        {hasStatementData && statementCharges && (
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h3 className="text-lg font-semibold">Statement Preview</h3>
-              <Button 
-                onClick={generatePDF} 
+              <Button
+                onClick={generatePDF}
                 disabled={generating}
                 className="w-full sm:w-auto"
               >
@@ -372,21 +294,15 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
                   <div className="flex flex-col sm:flex-row sm:gap-6">
                     <div className="flex-1">
                       <span className="text-muted-foreground">Name:</span>
-                      <span className="ml-2 font-medium">{statementData.lease.tenantName}</span>
+                      <span className="ml-2 font-medium">{selectedLease.tenantName}</span>
                     </div>
-                    {statementData.lease.tenantEmail && (
+                    {selectedLease.tenantEmail && (
                       <div className="flex-1">
                         <span className="text-muted-foreground">Email:</span>
-                        <span className="ml-2 break-all">{statementData.lease.tenantEmail}</span>
+                        <span className="ml-2 break-all">{selectedLease.tenantEmail}</span>
                       </div>
                     )}
                   </div>
-                  {statementData.lease.unit?.unitIdentifier && (
-                    <div>
-                      <span className="text-muted-foreground">Unit:</span>
-                      <span className="ml-2 font-medium">{statementData.lease.unit.unitIdentifier}</span>
-                    </div>
-                  )}
                 </div>
               </CardContent>
             </Card>
@@ -398,48 +314,54 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
                   <Receipt className="w-5 h-5 text-green-600" />
                   <h4 className="font-medium">Utility Charges</h4>
                 </div>
-                <div className="space-y-3">
-                  {statementData.bills.map((bill) => {
-                    const Icon = getUtilityIcon(bill.utilityType);
-                    return (
-                      <div key={`${bill._id}-${bill.billMonth}`} className="border rounded-lg p-3 bg-muted/20">
-                        {/* Mobile Layout */}
-                        <div className="block sm:hidden space-y-2">
-                          <div className="flex items-center gap-3">
-                            <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
-                            <div className="flex-1">
-                              <div className="font-medium text-sm">{bill.utilityType}</div>
-                              <div className="text-xs text-muted-foreground">{bill.billMonth}</div>
+                {statementCharges.charges.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No charges found for this period.
+                  </p>
+                ) : (
+                  <div className="space-y-3">
+                    {statementCharges.charges.map((charge) => {
+                      const Icon = getUtilityIcon(charge.utilityType);
+                      return (
+                        <div key={charge._id} className="border rounded-lg p-3 bg-muted/20">
+                          {/* Mobile Layout */}
+                          <div className="block sm:hidden space-y-2">
+                            <div className="flex items-center gap-3">
+                              <Icon className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                              <div className="flex-1">
+                                <div className="font-medium text-sm">{charge.utilityType}</div>
+                                <div className="text-xs text-muted-foreground">{charge.billMonth}</div>
+                              </div>
+                              <div className="text-right">
+                                <div className="font-semibold text-lg">${charge.chargedAmount.toFixed(2)}</div>
+                              </div>
+                            </div>
+                            <div className="text-xs text-muted-foreground text-center">
+                              {charge.responsibilityPercentage}% of ${charge.totalBillAmount.toFixed(2)}
+                            </div>
+                          </div>
+
+                          {/* Desktop Layout */}
+                          <div className="hidden sm:flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <Icon className="w-4 h-4 text-muted-foreground" />
+                              <div>
+                                <div className="font-medium">{charge.utilityType}</div>
+                                <div className="text-sm text-muted-foreground">{charge.billMonth}</div>
+                              </div>
                             </div>
                             <div className="text-right">
-                              <div className="font-semibold text-lg">${bill.tenantCharge.toFixed(2)}</div>
-                            </div>
-                          </div>
-                          <div className="text-xs text-muted-foreground text-center">
-                            {bill.tenantPercentage}% of ${bill.totalAmount.toFixed(2)}
-                          </div>
-                        </div>
-                        
-                        {/* Desktop Layout */}
-                        <div className="hidden sm:flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <Icon className="w-4 h-4 text-muted-foreground" />
-                            <div>
-                              <div className="font-medium">{bill.utilityType}</div>
-                              <div className="text-sm text-muted-foreground">{bill.billMonth}</div>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-medium">${bill.tenantCharge.toFixed(2)}</div>
-                            <div className="text-sm text-muted-foreground">
-                              {bill.tenantPercentage}% of ${bill.totalAmount.toFixed(2)}
+                              <div className="font-medium">${charge.chargedAmount.toFixed(2)}</div>
+                              <div className="text-sm text-muted-foreground">
+                                {charge.responsibilityPercentage}% of ${charge.totalBillAmount.toFixed(2)}
+                              </div>
                             </div>
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
-                </div>
+                      );
+                    })}
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -453,23 +375,23 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
                 <div className="space-y-3">
                   <div className="flex justify-between items-center py-2">
                     <span className="text-sm">Total Charges:</span>
-                    <span className="font-medium text-lg">${statementData.totalCharges.toFixed(2)}</span>
+                    <span className="font-medium text-lg">${statementCharges.totalCharged.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center py-2">
                     <span className="text-sm">Total Paid:</span>
-                    <span className="font-medium text-lg">${statementData.totalPaid.toFixed(2)}</span>
+                    <span className="font-medium text-lg">${statementCharges.totalPaid.toFixed(2)}</span>
                   </div>
                   <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 pt-3 border-t border-border">
                     <span className="font-medium text-base">Outstanding Balance:</span>
                     <div className="flex flex-col sm:flex-row sm:items-center gap-2">
-                      <span className={`font-bold text-xl ${statementData.outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                        ${Math.abs(statementData.outstandingBalance).toFixed(2)}
+                      <span className={`font-bold text-xl ${outstandingBalance > 0 ? 'text-red-600' : 'text-green-600'}`}>
+                        ${Math.abs(outstandingBalance).toFixed(2)}
                       </span>
-                      <Badge 
-                        variant={statementData.outstandingBalance > 0 ? "destructive" : "default"} 
+                      <Badge
+                        variant={outstandingBalance > 0 ? "destructive" : "default"}
                         className="text-xs px-2 py-1 self-start sm:self-center"
                       >
-                        {statementData.outstandingBalance > 0 ? "Due" : "Credit"}
+                        {outstandingBalance > 0 ? "Due" : "Credit"}
                       </Badge>
                     </div>
                   </div>

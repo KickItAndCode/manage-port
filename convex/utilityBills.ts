@@ -58,119 +58,6 @@ async function deletePaymentsForBill(ctx: any, billId: Id<"utilityBills">) {
   }
 }
 
-// Calculate tenant charges based on utility bill and lease settings
-async function calculateTenantCharges(
-  ctx: any,
-  billId: Id<"utilityBills">,
-  bill: Doc<"utilityBills">
-): Promise<
-  Array<{
-    leaseId: Id<"leases">;
-    unitId?: Id<"units">;
-    tenantName: string;
-    chargedAmount: number;
-    responsibilityPercentage: number;
-  }>
-> {
-  // If bill is marked as no tenant charges, return empty array
-  if (bill.noTenantCharges) {
-    console.log("calculateTenantCharges - Bill marked as no tenant charges:", {
-      billId,
-      billMonth: bill.billMonth,
-      utilityType: bill.utilityType,
-    });
-    return [];
-  }
-
-  // Get all active leases for the property
-  const activeLeases = await ctx.db
-    .query("leases")
-    .withIndex("by_property", (q: any) => q.eq("propertyId", bill.propertyId))
-    .filter((q: any) => q.eq(q.field("status"), "active"))
-    .collect();
-
-  console.log("calculateTenantCharges - Debug info:", {
-    billId,
-    propertyId: bill.propertyId,
-    utilityType: bill.utilityType,
-    totalAmount: bill.totalAmount,
-    activeLeasesCount: activeLeases.length,
-    activeLeases: activeLeases.map((l: any) => ({
-      id: l._id,
-      tenantName: l.tenantName,
-      status: l.status,
-    })),
-  });
-
-  if (activeLeases.length === 0) {
-    console.log("calculateTenantCharges - No active leases found");
-    return [];
-  }
-
-  const charges = [];
-  let totalTenantPercentage = 0;
-
-  // Calculate charges for each lease based on utility settings
-  for (const lease of activeLeases) {
-    // Get utility setting for this lease and utility type
-    const setting = await ctx.db
-      .query("leaseUtilitySettings")
-      .withIndex("by_lease", (q: any) => q.eq("leaseId", lease._id))
-      .filter((q: any) => q.eq(q.field("utilityType"), bill.utilityType))
-      .first();
-
-    console.log("calculateTenantCharges - Lease processing:", {
-      leaseId: lease._id,
-      tenantName: lease.tenantName,
-      utilityType: bill.utilityType,
-      settingFound: !!setting,
-      responsibilityPercentage: setting?.responsibilityPercentage || 0,
-    });
-
-    if (setting && setting.responsibilityPercentage > 0) {
-      const chargedAmount =
-        (bill.totalAmount * setting.responsibilityPercentage) / 100;
-      charges.push({
-        leaseId: lease._id,
-        unitId: lease.unitId,
-        tenantName: lease.tenantName,
-        chargedAmount: Math.round(chargedAmount * 100) / 100, // Round to cents
-        responsibilityPercentage: setting.responsibilityPercentage,
-      });
-      totalTenantPercentage += setting.responsibilityPercentage;
-      console.log("calculateTenantCharges - Charge created:", {
-        leaseId: lease._id,
-        chargedAmount: Math.round(chargedAmount * 100) / 100,
-        responsibilityPercentage: setting.responsibilityPercentage,
-      });
-    }
-  }
-
-  // Validate that tenant percentages don't exceed 100%
-  if (totalTenantPercentage > 100) {
-    throw new Error(
-      `Utility percentages for ${bill.utilityType} sum to ${totalTenantPercentage}%, which exceeds 100%. Please update lease utility settings before adding bills.`
-    );
-  }
-
-  // Allow partial tenant responsibility - owner covers the remaining percentage
-  // This is valid: 50% tenant + 50% owner = 100%
-  // No error needed if totalTenantPercentage < 100, as owner covers the difference
-
-  console.log("calculateTenantCharges - Final result:", {
-    chargesCount: charges.length,
-    totalTenantPercentage,
-    charges: charges.map((c) => ({
-      leaseId: c.leaseId,
-      tenantName: c.tenantName,
-      chargedAmount: c.chargedAmount,
-      responsibilityPercentage: c.responsibilityPercentage,
-    })),
-  });
-
-  return charges;
-}
-
 // Add a monthly utility bill
 export const addUtilityBill = mutation({
   args: {
@@ -1428,19 +1315,31 @@ export const getBillsTenantChargeStatus = query({
           .withIndex("by_bill", (q: any) => q.eq("utilityBillId", bill._id))
           .collect();
 
-        // Expected charges if we were to calculate from lease settings
-        const expectedCharges = await calculateTenantCharges(
-          ctx,
-          bill._id,
-          bill
-        );
+        // Count active leases with utility settings for this bill type
+        const activeLeases = await ctx.db
+          .query("leases")
+          .withIndex("by_property", (q) => q.eq("propertyId", bill.propertyId))
+          .filter((q) => q.eq(q.field("status"), "active"))
+          .collect();
+
+        let expectedChargeCount = 0;
+        for (const lease of activeLeases) {
+          const setting = await ctx.db
+            .query("leaseUtilitySettings")
+            .withIndex("by_lease", (q) => q.eq("leaseId", lease._id))
+            .filter((q) => q.eq(q.field("utilityType"), bill.utilityType))
+            .first();
+          if (setting && setting.responsibilityPercentage > 0) {
+            expectedChargeCount++;
+          }
+        }
 
         return {
           ...bill,
           hasNoTenantChargesFlag: !!bill.noTenantCharges,
-          wouldGenerateCharges: expectedCharges.length > 0,
+          wouldGenerateCharges: expectedChargeCount > 0 && !bill.noTenantCharges,
           currentChargeCount: storedCharges.length,
-          expectedChargeCount: expectedCharges.length,
+          expectedChargeCount,
           totalChargeAmount: storedCharges.reduce(
             (sum, charge) => sum + charge.chargedAmount,
             0

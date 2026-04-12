@@ -429,6 +429,99 @@ export const calculateAllTenantCharges = query({
 });
 
 /**
+ * Get stored charges for a specific lease within a date range.
+ * Used by TenantStatementGenerator to build statements from persisted data
+ * instead of recalculating from bill totals × percentages.
+ */
+export const getChargesForStatement = query({
+  args: {
+    leaseId: v.id("leases"),
+    userId: v.string(),
+    startMonth: v.string(), // "YYYY-MM"
+    endMonth: v.string(),   // "YYYY-MM"
+  },
+  handler: async (ctx, args) => {
+    // Verify ownership through the lease
+    const lease = await ctx.db.get(args.leaseId);
+    if (!lease || lease.userId !== args.userId) {
+      return { charges: [], payments: [], totalCharged: 0, totalPaid: 0 };
+    }
+
+    // Get all stored charges for this lease
+    const allCharges = await ctx.db
+      .query("utilityCharges")
+      .withIndex("by_lease", (q) => q.eq("leaseId", args.leaseId))
+      .collect();
+
+    // For each charge, get the bill details and filter by date range
+    const chargesWithDetails = [];
+    let totalCharged = 0;
+
+    for (const charge of allCharges) {
+      const bill = await ctx.db.get(charge.utilityBillId);
+      if (!bill) continue;
+
+      // Filter by date range (billMonth is "YYYY-MM")
+      if (bill.billMonth < args.startMonth || bill.billMonth > args.endMonth) continue;
+
+      // Get payments for this charge
+      const chargePayments = await ctx.db
+        .query("utilityPayments")
+        .withIndex("by_charge", (q) => q.eq("chargeId", charge._id))
+        .collect();
+
+      const paidAmount = chargePayments.reduce((sum, p) => sum + p.amountPaid, 0);
+
+      totalCharged += charge.chargedAmount;
+
+      chargesWithDetails.push({
+        _id: charge._id,
+        utilityType: bill.utilityType,
+        billMonth: bill.billMonth,
+        totalBillAmount: bill.totalAmount,
+        chargedAmount: charge.chargedAmount,
+        responsibilityPercentage: charge.responsibilityPercentage,
+        paidAmount,
+        remainingAmount: Math.max(0, charge.chargedAmount - paidAmount),
+        status: charge.status,
+        dueDate: charge.dueDate,
+      });
+    }
+
+    // Get all payments for this lease in the period (for summary)
+    const allPayments = await ctx.db
+      .query("utilityPayments")
+      .withIndex("by_lease", (q) => q.eq("leaseId", args.leaseId))
+      .collect();
+
+    // Filter payments by date range
+    const periodPayments = allPayments.filter(p => {
+      const paymentMonth = p.paymentDate.slice(0, 7);
+      return paymentMonth >= args.startMonth && paymentMonth <= args.endMonth;
+    });
+
+    const totalPaid = periodPayments.reduce((sum, p) => sum + p.amountPaid, 0);
+
+    // Sort charges by bill month
+    chargesWithDetails.sort((a, b) => a.billMonth.localeCompare(b.billMonth));
+
+    return {
+      charges: chargesWithDetails,
+      payments: periodPayments.map(p => ({
+        _id: p._id,
+        amountPaid: p.amountPaid,
+        paymentDate: p.paymentDate,
+        paymentMethod: p.paymentMethod,
+        referenceNumber: p.referenceNumber,
+        notes: p.notes,
+      })),
+      totalCharged,
+      totalPaid,
+    };
+  },
+});
+
+/**
  * Get charge summary for a property (useful for dashboards)
  */
 export const getPropertyChargeSummary = query({
