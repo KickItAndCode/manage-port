@@ -3,6 +3,7 @@ import { query, mutation } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { createNotification, NOTIFICATION_TYPES } from "./notifications";
 import { requireUser } from "./lib/auth";
+import { filterActiveLeases } from "./lib/leaseStatus";
 
 export interface UtilityAnomaly {
   billId: Id<"utilityBills">;
@@ -487,11 +488,10 @@ export const getMissingReadings = query({
 
     for (const property of properties) {
       // Get active leases for this property
-      const leases = await ctx.db
+      const leases = filterActiveLeases(await ctx.db
         .query("leases")
         .withIndex("by_property", (q) => q.eq("propertyId", property._id))
-        .filter((q) => q.eq(q.field("status"), "active"))
-        .collect();
+        .collect());
 
       if (leases.length === 0) continue;
 
@@ -650,11 +650,10 @@ export const getUtilityReminders = query({
       .collect();
     const missingReadings: MissingReadingReminder[] = [];
     for (const property of properties) {
-      const leases = await ctx.db
+      const leases = filterActiveLeases(await ctx.db
         .query("leases")
         .withIndex("by_property", (q) => q.eq("propertyId", property._id))
-        .filter((q) => q.eq(q.field("status"), "active"))
-        .collect();
+        .collect());
       if (leases.length === 0) continue;
       const utilityTypes = new Set<string>();
       for (const lease of leases) {
@@ -800,11 +799,10 @@ export const generateNotificationsFromReminders = mutation({
     const lookback = 2;
 
     for (const property of properties) {
-      const leases = await ctx.db
+      const leases = filterActiveLeases(await ctx.db
         .query("leases")
         .withIndex("by_property", (q) => q.eq("propertyId", property._id))
-        .filter((q) => q.eq(q.field("status"), "active"))
-        .collect();
+        .collect());
 
       if (leases.length === 0) continue;
 

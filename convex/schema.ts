@@ -69,11 +69,12 @@ export default defineSchema({
     endDate: v.string(), // ISO date string
     rent: v.number(), // Monthly rent amount
     securityDeposit: v.optional(v.number()), // Security deposit amount
-    status: v.union(
-      v.literal("active"),
-      v.literal("expired"),
-      v.literal("pending")
-    ), // @deprecated - Use computed status from dates instead
+    // @deprecated Never read. Status is derived from startDate/endDate via
+    // convex/lib/leaseStatus.ts. Optional so new rows can omit it; existing
+    // rows keep whatever stale value they had until the column is dropped.
+    status: v.optional(
+      v.union(v.literal("active"), v.literal("expired"), v.literal("pending"))
+    ),
     notes: v.optional(v.string()), // Additional lease notes
     leaseDocumentUrl: v.optional(v.string()),
     createdAt: v.string(),

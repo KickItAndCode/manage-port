@@ -7,6 +7,7 @@ import {
   deleteChargesForBillInternal,
 } from "./utilityCharges";
 import { requireUser } from "./lib/auth";
+import { filterActiveLeases } from "./lib/leaseStatus";
 
 // Types for aggregated data
 export interface UtilityPageData {
@@ -263,11 +264,10 @@ export const seedUtilityBills = mutation({
     }
 
     // Get active leases for the property
-    const activeLeases = await ctx.db
+    const activeLeases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     // Get utility settings for all leases
     const leaseSettings = await Promise.all(
@@ -851,11 +851,10 @@ export const getBillSplitPreview = query({
     }
 
     // Get all active leases for the property
-    const activeLeases = await ctx.db
+    const activeLeases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_property", (q: any) => q.eq("propertyId", args.propertyId))
-      .filter((q: any) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     if (activeLeases.length === 0) {
       return {
@@ -985,18 +984,13 @@ async function calculateMonthlyRentFromLeases(
   propertyId: string,
   userId: string
 ): Promise<number> {
-  const activeLeases = await ctx.db
+  const propertyLeases = await ctx.db
     .query("leases")
-    .filter((q: any) =>
-      q.and(
-        q.eq(q.field("propertyId"), propertyId),
-        q.eq(q.field("userId"), userId),
-        q.eq(q.field("status"), "active")
-      )
-    )
+    .withIndex("by_property", (q: any) => q.eq("propertyId", propertyId))
+    .filter((q: any) => q.eq(q.field("userId"), userId))
     .collect();
 
-  return activeLeases.reduce(
+  return filterActiveLeases(propertyLeases).reduce(
     (total: number, lease: any) => total + (lease.rent || 0),
     0
   );
@@ -1191,11 +1185,10 @@ export const getUtilityPageData = query({
     );
 
     // Get active leases with unit information
-    const leases = await ctx.db
+    const leases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_user", (q) => q.eq("userId", userId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     const leasesWithUnits = await Promise.all(
       leases.map(async (lease) => {
@@ -1318,11 +1311,10 @@ export const getBillsTenantChargeStatus = query({
           .collect();
 
         // Count active leases with utility settings for this bill type
-        const activeLeases = await ctx.db
+        const activeLeases = filterActiveLeases(await ctx.db
           .query("leases")
           .withIndex("by_property", (q) => q.eq("propertyId", bill.propertyId))
-          .filter((q) => q.eq(q.field("status"), "active"))
-          .collect();
+          .collect());
 
         let expectedChargeCount = 0;
         for (const lease of activeLeases) {

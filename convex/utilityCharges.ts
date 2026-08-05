@@ -8,6 +8,7 @@ import {
   requireLeaseOwner,
   requireChargeOwner,
 } from "./lib/auth";
+import { filterActiveLeases } from "./lib/leaseStatus";
 
 /** Shape returned by calculateAllTenantCharges */
 export interface CalculatedTenantCharge {
@@ -42,11 +43,10 @@ async function generateChargesForBillHelper(ctx: MutationCtx, billId: Id<"utilit
   }
 
   // 2. Get active leases for the property
-  const activeLeases = await ctx.db
+  const activeLeases = filterActiveLeases(await ctx.db
     .query("leases")
     .withIndex("by_property", (q) => q.eq("propertyId", bill.propertyId))
-    .filter((q) => q.eq(q.field("status"), "active"))
-    .collect();
+    .collect());
 
   if (activeLeases.length === 0) {
     console.warn(`No active leases found for property ${bill.propertyId}`);

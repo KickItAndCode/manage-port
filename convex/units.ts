@@ -2,6 +2,7 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { requireUser } from "./lib/auth";
+import { filterActiveLeases } from "./lib/leaseStatus";
 
 // Helper to check property ownership
 async function verifyPropertyOwnership(
@@ -151,11 +152,10 @@ export const deleteUnit = mutation({
     }
 
     // Check if unit has active leases
-    const activeLeases = await ctx.db
+    const activeLeases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_unit", (q) => q.eq("unitId", args.id))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     if (activeLeases.length > 0) {
       throw new Error("Cannot delete unit with active leases");
@@ -232,11 +232,10 @@ export const getUnitWithLease = query({
     if (!isOwner) return null;
 
     // Get active lease for this unit
-    const activeLease = await ctx.db
+    const activeLease = (filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_unit", (q) => q.eq("unitId", args.unitId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .first();
+      .collect()))[0] ?? null;
 
     return {
       ...unit,

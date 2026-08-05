@@ -3,6 +3,7 @@ import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { UTILITY_TYPES } from "../src/lib/constants";
 import { requireUser } from "./lib/auth";
+import { filterActiveLeases } from "./lib/leaseStatus";
 
 // Helper to verify lease ownership
 async function verifyLeaseOwnership(
@@ -46,11 +47,10 @@ export const setLeaseUtilities = mutation({
     }
 
     // Get all active leases for this property
-    const activeLeases = await ctx.db
+    const activeLeases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_property", (q) => q.eq("propertyId", lease.propertyId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     // For each utility type, validate that total percentages across all leases don't exceed 100%
     for (const utility of args.utilities) {
@@ -193,11 +193,10 @@ export const validatePropertyUtilityPercentages = query({
     }
 
     // Get all active leases for the property
-    const activeLeases = await ctx.db
+    const activeLeases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     if (activeLeases.length === 0) {
       return { valid: true, totalPercentage: 0, message: "No active leases" };
@@ -258,11 +257,10 @@ export const getPropertiesWithIncompleteUtilities = query({
       }
 
       // Get active leases
-      const activeLeases = await ctx.db
+      const activeLeases = filterActiveLeases(await ctx.db
         .query("leases")
         .withIndex("by_property", (q) => q.eq("propertyId", property._id))
-        .filter((q) => q.eq(q.field("status"), "active"))
-        .collect();
+        .collect());
 
       if (activeLeases.length === 0) continue;
 
@@ -489,11 +487,10 @@ export const setPropertyUtilityAllocations = mutation({
     }
 
     // Get active leases for the property to verify all are accounted for
-    const activeLeases = await ctx.db
+    const activeLeases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     // Verify all active leases are included in allocations
     const allocationLeaseIds = new Set(args.allocations.map(a => a.leaseId));
@@ -557,11 +554,10 @@ export const applyPropertyUtilityDefaults = mutation({
     }
 
     // Get all active leases for this property
-    const leases = await ctx.db
+    const leases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_property", (q: any) => q.eq("propertyId", args.propertyId))
-      .filter((q: any) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     if (leases.length === 0) {
       return {

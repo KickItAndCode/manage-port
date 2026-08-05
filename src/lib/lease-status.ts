@@ -1,32 +1,20 @@
 /**
  * Lease Status Computation Utilities
- * 
+ *
  * These utilities provide computed lease status based on dates,
  * eliminating the need for manual status management.
+ *
+ * getLeaseStatus itself lives in convex/lib/leaseStatus.ts and is re-exported
+ * here. The backend derives status with the same function, so what the UI shows
+ * and what billing acts on cannot drift apart. Everything below is
+ * presentation-only and stays client-side.
  */
 
-export type LeaseStatus = "active" | "expired" | "pending";
+export { getLeaseStatus } from "@/../convex/lib/leaseStatus";
+export type { LeaseStatus } from "@/../convex/lib/leaseStatus";
 
-/**
- * Compute lease status based on start and end dates
- * @param startDate - ISO date string for lease start
- * @param endDate - ISO date string for lease end
- * @returns Computed lease status
- */
-export function getLeaseStatus(startDate: string, endDate: string): LeaseStatus {
-  const now = new Date();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  
-  // Clear time components for date-only comparison
-  now.setHours(0, 0, 0, 0);
-  start.setHours(0, 0, 0, 0);
-  end.setHours(0, 0, 0, 0);
-  
-  if (start > now) return "pending";
-  if (end < now) return "expired";
-  return "active";
-}
+import { getLeaseStatus } from "@/../convex/lib/leaseStatus";
+import type { LeaseStatus } from "@/../convex/lib/leaseStatus";
 
 /**
  * Check if a lease has conflicts with other leases

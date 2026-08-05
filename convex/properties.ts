@@ -2,6 +2,7 @@ import { mutation, query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { logActivity, ACTIVITY_TYPES, ACTIVITY_ACTIONS } from "./activityLog";
 import { requireUser } from "./lib/auth";
+import { filterActiveLeases } from "./lib/leaseStatus";
 
 // Rate limiting for mutations (simple in-memory store)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -420,18 +421,13 @@ async function calculateMonthlyRentFromLeases(
   propertyId: string,
   userId: string
 ): Promise<number> {
-  const activeLeases = await ctx.db
+  const propertyLeases = await ctx.db
     .query("leases")
-    .filter((q: any) =>
-      q.and(
-        q.eq(q.field("propertyId"), propertyId),
-        q.eq(q.field("userId"), userId),
-        q.eq(q.field("status"), "active")
-      )
-    )
+    .withIndex("by_property", (q: any) => q.eq("propertyId", propertyId))
+    .filter((q: any) => q.eq(q.field("userId"), userId))
     .collect();
 
-  return activeLeases.reduce(
+  return filterActiveLeases(propertyLeases).reduce(
     (total: number, lease: any) => total + (lease.rent || 0),
     0
   );
@@ -512,11 +508,10 @@ export const getPropertyWithUnits = query({
     // Get active leases for each unit
     const unitsWithLeases = await Promise.all(
       units.map(async (unit) => {
-        const activeLease = await ctx.db
+        const activeLease = (filterActiveLeases(await ctx.db
           .query("leases")
           .withIndex("by_unit", (q) => q.eq("unitId", unit._id))
-          .filter((q) => q.eq(q.field("status"), "active"))
-          .first();
+          .collect()))[0] ?? null;
         return { ...unit, activeLease };
       })
     );
