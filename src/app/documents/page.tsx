@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useDebounce } from "@/utils/clientSideFilters";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
@@ -460,9 +460,10 @@ export default function DocumentsPage() {
     };
   }, []);
 
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
-    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dropdown
+    isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for dropdown
   );
   // Extract properties array from paginated result
   const properties =

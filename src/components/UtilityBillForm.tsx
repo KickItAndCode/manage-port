@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { useDropzone } from "react-dropzone";
 import { useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { DOCUMENT_TYPES } from "@/../convex/documents";
 import { toast } from "sonner";
@@ -90,8 +90,9 @@ export function UtilityBillForm({
   const { user } = useUser();
   
   // Fetch properties directly
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(api.properties.getProperties, 
-    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dropdown
+    isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for dropdown
   );
   // Extract properties array from paginated result
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];

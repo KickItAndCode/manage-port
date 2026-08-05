@@ -1,12 +1,13 @@
 "use client";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 
 export default function ConvexTest() {
   const { user } = useUser();
   const addProperty = useMutation(api.properties.addProperty);
-  const propertiesResult = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
+  const { isAuthenticated } = useConvexAuth();
+  const propertiesResult = useQuery(api.properties.getProperties, isAuthenticated ? {} : "skip");
   const properties = propertiesResult?.properties ?? [];
 
   if (!user) return <div>Sign in to test Convex</div>;
@@ -25,9 +26,7 @@ export default function ConvexTest() {
             bedrooms: 3,
             bathrooms: 2,
             squareFeet: 1500,
-            purchaseDate: new Date().toISOString(),
-            userId: user.id,
-          })
+            purchaseDate: new Date().toISOString() })
         }
       >
         Add Property

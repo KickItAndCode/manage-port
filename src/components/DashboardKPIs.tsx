@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -183,9 +183,10 @@ export const DashboardKPIs = memo(function DashboardKPIs({
   );
 
   // Get properties to show property name when filter is active
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
-    userId ? { userId, limit: 1000 } : "skip" // Get all properties for KPIs
+    isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for KPIs
   );
   const properties =
     propertiesResult && "properties" in propertiesResult

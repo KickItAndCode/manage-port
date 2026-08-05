@@ -8,7 +8,7 @@ import { LeaseForm } from "@/components/LeaseForm";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
@@ -28,7 +28,8 @@ function LeasesPageContent() {
   const searchParams = useSearchParams();
   const preSelectedPropertyId = searchParams.get('propertyId');
   
-  const propertiesResult = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
+  const { isAuthenticated } = useConvexAuth();
+  const propertiesResult = useQuery(api.properties.getProperties, isAuthenticated ? {} : "skip");
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
   
   // State declarations

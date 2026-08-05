@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useMemo, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
@@ -78,8 +78,9 @@ export default function UtilityBillsPage() {
   const [endMonth, setEndMonth] = useState<string | undefined>(undefined);
 
   // Queries
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(api.properties.getProperties,
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
   

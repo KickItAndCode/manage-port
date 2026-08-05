@@ -44,7 +44,7 @@ export function EnhancedUtilityAnalytics({ userId }: UtilityAnalyticsProps) {
   const router = useRouter();
 
   const utilityBills = useQuery(api.utilityBills.getUtilityBills, { userId });
-  const propertiesResult = useQuery(api.properties.getProperties, { userId });
+  const propertiesResult = useQuery(api.properties.getProperties, {});
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
 
   const analyticsData = useMemo(() => {

@@ -31,7 +31,6 @@ export default function PropertyWizardTestPage() {
       
       const result = await createPropertyWithUnits({
         // Basic property info
-        userId: user.id,
         name: data.name,
         address: data.address,
         type: data.type,
@@ -49,8 +48,7 @@ export default function PropertyWizardTestPage() {
         
         // Utility setup
         utilityPreset: data.utilityPreset,
-        customSplit: data.customSplit,
-      });
+        customSplit: data.customSplit });
 
       toast.success(result.message);
       

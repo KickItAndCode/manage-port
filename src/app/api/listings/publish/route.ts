@@ -13,13 +13,16 @@ import { Id } from '@/../convex/_generated/dataModel';
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    // Convex derives identity from this token; without it the call is anonymous.
+    const token = (await getToken({ template: 'convex' })) ?? undefined;
 
     // Parse request body
     const body = await request.json();
@@ -39,11 +42,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate property ownership
-    const property = await fetchQuery(api.properties.getProperty, { 
-      id: propertyId as Id<"properties">,
-      userId
-    });
-    
+    const property = await fetchQuery(
+      api.properties.getProperty,
+      { id: propertyId as Id<"properties"> },
+      { token }
+    );
+
+
     if (!property || property.userId !== userId) {
       return NextResponse.json(
         { error: 'Property not found or access denied' },

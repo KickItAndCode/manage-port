@@ -64,9 +64,7 @@ export const UtilityAnalytics = memo(function UtilityAnalytics({
   });
 
   // Get properties for context
-  const propertiesResult = useQuery(api.properties.getProperties, {
-    userId,
-  });
+  const propertiesResult = useQuery(api.properties.getProperties, {});
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
 
   const getUtilityIcon = (type: string) => {

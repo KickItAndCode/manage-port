@@ -64,9 +64,7 @@ export function PropertyUtilityAllocation({
 
   // Get property information to check for utility defaults
   const property = useQuery(api.properties.getProperty, {
-    id: propertyId,
-    userId,
-  });
+    id: propertyId });
 
   const saveUtilitySettings = useMutation(api.leaseUtilitySettings.setPropertyUtilityAllocations);
 

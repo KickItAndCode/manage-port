@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { logActivity, ACTIVITY_TYPES, ACTIVITY_ACTIONS } from "./activityLog";
+import { requireUser } from "./lib/auth";
 
 // Rate limiting for mutations (simple in-memory store)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -188,11 +189,12 @@ export const addProperty = mutation({
     purchaseDate: v.string(),
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+
     // Check rate limit
-    checkRateLimit(args.userId, "addProperty");
+    checkRateLimit(userId, "addProperty");
 
     // Validate input data
     validatePropertyData(args);
@@ -200,12 +202,8 @@ export const addProperty = mutation({
     // Check if property name already exists for this user
     const existingProperty = await ctx.db
       .query("properties")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("userId"), args.userId),
-          q.eq(q.field("name"), args.name)
-        )
-      )
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("name"), args.name))
       .first();
 
     if (existingProperty) {
@@ -219,12 +217,13 @@ export const addProperty = mutation({
     try {
       const propertyId = await ctx.db.insert("properties", {
         ...args,
+        userId,
         createdAt: new Date().toISOString(),
       });
 
       // Log activity
       await logActivity(ctx, {
-        userId: args.userId,
+        userId,
         entityType: ACTIVITY_TYPES.PROPERTY,
         entityId: propertyId,
         action: ACTIVITY_ACTIONS.CREATED,
@@ -256,7 +255,6 @@ export const createPropertyWithUnits = mutation({
     purchaseDate: v.string(),
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
-    userId: v.string(),
 
     // Property type and units
     propertyType: v.union(
@@ -293,8 +291,10 @@ export const createPropertyWithUnits = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+
     // Check rate limit
-    checkRateLimit(args.userId, "addProperty");
+    checkRateLimit(userId, "addProperty");
 
     // Validate basic property data
     validatePropertyData(args);
@@ -302,12 +302,8 @@ export const createPropertyWithUnits = mutation({
     // Check if property name already exists for this user
     const existingProperty = await ctx.db
       .query("properties")
-      .filter((q) =>
-        q.and(
-          q.eq(q.field("userId"), args.userId),
-          q.eq(q.field("name"), args.name)
-        )
-      )
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .filter((q) => q.eq(q.field("name"), args.name))
       .first();
 
     if (existingProperty) {
@@ -321,7 +317,7 @@ export const createPropertyWithUnits = mutation({
     try {
       // Create the property
       const propertyId = await ctx.db.insert("properties", {
-        userId: args.userId,
+        userId,
         name: args.name,
         address: args.address,
         type: args.type,
@@ -356,7 +352,7 @@ export const createPropertyWithUnits = mutation({
 
       // Log activity
       await logActivity(ctx, {
-        userId: args.userId,
+        userId,
         entityType: ACTIVITY_TYPES.PROPERTY,
         entityId: propertyId,
         action: ACTIVITY_ACTIONS.CREATED,
@@ -444,14 +440,15 @@ async function calculateMonthlyRentFromLeases(
 // Get all properties for the signed-in user with calculated monthly rent
 export const getProperties = query({
   args: {
-    userId: v.string(),
     limit: v.optional(v.number()), // Number of properties to return
     offset: v.optional(v.number()), // Number of properties to skip
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+
     const allProperties = await ctx.db
       .query("properties")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     // Calculate monthly rent for each property from active leases
@@ -460,7 +457,7 @@ export const getProperties = query({
         const monthlyRent = await calculateMonthlyRentFromLeases(
           ctx,
           property._id,
-          args.userId
+          userId
         );
         return {
           ...property,
@@ -490,11 +487,12 @@ export const getProperties = query({
 export const getPropertyWithUnits = query({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+
     const property = await ctx.db.get(args.propertyId);
-    if (!property || property.userId !== args.userId) {
+    if (!property || property.userId !== userId) {
       return null;
     }
 
@@ -502,7 +500,7 @@ export const getPropertyWithUnits = query({
     const monthlyRent = await calculateMonthlyRentFromLeases(
       ctx,
       args.propertyId,
-      args.userId
+      userId
     );
 
     // Get all units for this property
@@ -537,9 +535,10 @@ export const getPropertyWithUnits = query({
 export const convertToMultiUnit = mutation({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+
     const property = await ctx.db.get(args.propertyId);
     if (!property) {
       throw new ConvexError({
@@ -548,7 +547,7 @@ export const convertToMultiUnit = mutation({
       });
     }
 
-    if (property.userId !== args.userId) {
+    if (property.userId !== userId) {
       throw new ConvexError({
         code: "FORBIDDEN",
         message: "You don't have permission to modify this property",
@@ -585,11 +584,12 @@ export const updateProperty = mutation({
     purchaseDate: v.string(),
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+
     // Check rate limit
-    checkRateLimit(args.userId, "updateProperty");
+    checkRateLimit(userId, "updateProperty");
 
     // Validate input data
     validatePropertyData(args);
@@ -603,7 +603,7 @@ export const updateProperty = mutation({
       });
     }
 
-    if (property.userId !== args.userId) {
+    if (property.userId !== userId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "You don't have permission to update this property",
@@ -613,9 +613,9 @@ export const updateProperty = mutation({
     // Check for duplicate name (excluding current property)
     const existingProperty = await ctx.db
       .query("properties")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) =>
         q.and(
-          q.eq(q.field("userId"), args.userId),
           q.eq(q.field("name"), args.name),
           q.neq(q.field("_id"), args.id)
         )
@@ -646,7 +646,7 @@ export const updateProperty = mutation({
 
       // Log activity
       await logActivity(ctx, {
-        userId: args.userId,
+        userId,
         entityType: ACTIVITY_TYPES.PROPERTY,
         entityId: args.id,
         action: ACTIVITY_ACTIONS.UPDATED,
@@ -666,10 +666,12 @@ export const updateProperty = mutation({
 
 // Delete a property
 export const deleteProperty = mutation({
-  args: { id: v.id("properties"), userId: v.string() },
+  args: { id: v.id("properties") },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+
     // Check rate limit
-    checkRateLimit(args.userId, "deleteProperty");
+    checkRateLimit(userId, "deleteProperty");
 
     // Check if property exists and user owns it
     const property = await ctx.db.get(args.id);
@@ -680,7 +682,7 @@ export const deleteProperty = mutation({
       });
     }
 
-    if (property.userId !== args.userId) {
+    if (property.userId !== userId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "You don't have permission to delete this property",
@@ -690,7 +692,7 @@ export const deleteProperty = mutation({
     try {
       // Log activity before deletion
       await logActivity(ctx, {
-        userId: args.userId,
+        userId,
         entityType: ACTIVITY_TYPES.PROPERTY,
         entityId: args.id,
         action: ACTIVITY_ACTIONS.DELETED,
@@ -714,7 +716,7 @@ export const deleteProperty = mutation({
           .collect();
 
         for (const doc of leaseDocuments) {
-          if (doc.userId === args.userId) {
+          if (doc.userId === userId) {
             // Only delete user's documents
             await ctx.db.delete(doc._id);
           }
@@ -741,7 +743,7 @@ export const deleteProperty = mutation({
         }
 
         // Delete the lease itself
-        if (lease.userId === args.userId) {
+        if (lease.userId === userId) {
           // Only delete user's leases
           await ctx.db.delete(lease._id);
         }
@@ -754,7 +756,7 @@ export const deleteProperty = mutation({
         .collect();
 
       for (const image of propertyImages) {
-        if (image.userId === args.userId) {
+        if (image.userId === userId) {
           // Only delete user's images
           await ctx.db.delete(image._id);
         }
@@ -767,7 +769,7 @@ export const deleteProperty = mutation({
         .collect();
 
       for (const document of documents) {
-        if (document.userId === args.userId) {
+        if (document.userId === userId) {
           // Only delete user's documents
           await ctx.db.delete(document._id);
         }
@@ -780,7 +782,7 @@ export const deleteProperty = mutation({
         .collect();
 
       for (const bill of utilityBills) {
-        if (bill.userId === args.userId) {
+        if (bill.userId === userId) {
           // Only delete user's bills
           await ctx.db.delete(bill._id);
         }
@@ -817,11 +819,13 @@ export const deleteProperty = mutation({
 
 // Get a single property by ID for the signed-in user with calculated monthly rent
 export const getProperty = query({
-  args: { id: v.id("properties"), userId: v.string() },
+  args: { id: v.id("properties") },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
+
     try {
       const property = await ctx.db.get(args.id);
-      if (!property || property.userId !== args.userId) {
+      if (!property || property.userId !== userId) {
         return null;
       }
 
@@ -829,7 +833,7 @@ export const getProperty = query({
       const monthlyRent = await calculateMonthlyRentFromLeases(
         ctx,
         args.id,
-        args.userId
+        userId
       );
 
       return {

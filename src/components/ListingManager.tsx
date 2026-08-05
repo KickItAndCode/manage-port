@@ -97,7 +97,7 @@ export function ListingManager({ propertyId }: { propertyId: Id<"properties"> })
 
   // Convex queries
   const property = useQuery(api.properties.getProperty, 
-    user && propertyId ? { id: propertyId, userId: user.id } : "skip"
+    user && propertyId ? { id: propertyId } : "skip"
   ) as Property | null | undefined;
 
   const publications = useQuery(api.listingPublications.getPropertyPublications, 

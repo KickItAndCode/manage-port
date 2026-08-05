@@ -2,7 +2,7 @@
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
@@ -43,15 +43,12 @@ function PropertiesContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
 
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
-    user
-      ? {
-          userId: user.id,
+    isAuthenticated ? { 
           limit: itemsPerPage,
-          offset: (currentPage - 1) * itemsPerPage,
-        }
-      : "skip"
+          offset: (currentPage - 1) * itemsPerPage } : "skip"
   );
 
   // Extract properties and pagination info
@@ -162,7 +159,7 @@ function PropertiesContent() {
         try {
           const results = await Promise.all(
             propertiesToDelete.map((property) =>
-              deleteProperty({ id: property._id as any, userId: user.id })
+              deleteProperty({ id: property._id as any })
             )
           );
           setSelectedProperties([]);
@@ -198,9 +195,7 @@ function PropertiesContent() {
         setLoading(true);
         try {
           const result = await deleteProperty({
-            id: property._id as any,
-            userId: user.id,
-          });
+            id: property._id as any });
           toast.success(result.message);
         } catch (err: any) {
           console.error("Delete property error:", err);
@@ -222,7 +217,6 @@ function PropertiesContent() {
     try {
       const result = await createPropertyWithUnits({
         // Basic property info
-        userId: user.id,
         name: data.name,
         address: data.address,
         type: data.type,
@@ -240,8 +234,7 @@ function PropertiesContent() {
 
         // Utility setup
         utilityPreset: data.utilityPreset,
-        customSplit: data.customSplit,
-      });
+        customSplit: data.customSplit });
 
       toast.success(result.message);
       setWizardOpen(false);
@@ -714,9 +707,7 @@ function PropertiesContent() {
                 setError(null);
                 await updateProperty({
                   ...data,
-                  id: edit._id,
-                  userId: user.id,
-                });
+                  id: edit._id });
                 setEdit(null);
               } catch (err: any) {
                 setError(

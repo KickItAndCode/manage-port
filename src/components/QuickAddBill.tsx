@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "@/../convex/_generated/api";
 import { Id } from "@/../convex/_generated/dataModel";
@@ -25,9 +25,10 @@ interface QuickAddBillProps {
 export function QuickAddBill({ defaultPropertyId, onSuccess }: QuickAddBillProps) {
   const { user } = useUser();
   const addBill = useMutation(api.utilityBills.addUtilityBill);
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
   const properties = propertiesResult && "properties" in propertiesResult
     ? propertiesResult.properties

@@ -82,7 +82,7 @@ export function UtilityResponsibilityModal({
   const [hasChanges, setHasChanges] = useState(false);
 
   // Get all properties with units
-  const propertiesResult = useQuery(api.properties.getProperties, { userId, limit: 1000 }); // Get all properties
+  const propertiesResult = useQuery(api.properties.getProperties, { limit: 1000 }); // Get all properties
   // Extract properties array from paginated result
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
   

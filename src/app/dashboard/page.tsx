@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
@@ -280,9 +280,10 @@ export default function DashboardPage() {
   const addUtilityBill = useMutation(api.utilityBills.addUtilityBill);
 
   // Get additional data for forms
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
-    user?.id ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dashboard
+    isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for dashboard
   );
   const properties =
     propertiesResult && "properties" in propertiesResult
@@ -992,7 +993,6 @@ export default function DashboardPage() {
                 try {
                   const result = await createPropertyWithUnits({
                     // Basic property info
-                    userId: user.id,
                     name: data.name,
                     address: data.address,
                     type: data.type,
@@ -1010,8 +1010,7 @@ export default function DashboardPage() {
 
                     // Utility setup
                     utilityPreset: data.utilityPreset,
-                    customSplit: data.customSplit,
-                  });
+                    customSplit: data.customSplit });
 
                   toast.success(result.message);
                   setWizardModalOpen(false);

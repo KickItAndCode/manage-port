@@ -2,7 +2,7 @@
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -98,8 +98,9 @@ export default function DocumentUploadForm({
   const addDocument = useMutation(api.documents.addDocument);
 
   // Queries for dropdowns
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(api.properties.getProperties, 
-    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dropdown
+    isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for dropdown
   );
   // Extract properties array from paginated result
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];

@@ -7,7 +7,7 @@
 
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -74,8 +74,9 @@ export function ListingsDashboard() {
     user ? { userId: user.id } : "skip"
   );
 
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(api.properties.getProperties, 
-    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for listings
+    isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for listings
   );
   // Extract properties array from paginated result
   const properties = (propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : []) as Property[] | undefined;

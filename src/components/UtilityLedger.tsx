@@ -83,7 +83,7 @@ export function UtilityLedger({
   // Get property for context
   const property = useQuery(
     api.properties.getProperty,
-    bill?.propertyId ? { id: bill.propertyId, userId } : "skip"
+    bill?.propertyId ? { id: bill.propertyId } : "skip"
   );
 
   // Mutations

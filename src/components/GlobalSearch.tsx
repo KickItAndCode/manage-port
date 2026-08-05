@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import {
@@ -112,9 +112,10 @@ export function GlobalSearch() {
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
-    user ? { userId: user.id, limit: 1000 } : "skip" // Get more properties for search
+    isAuthenticated ? { limit: 1000 } : "skip" // Get more properties for search
   );
 
   // Extract properties array from paginated result

@@ -42,9 +42,7 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
 
   // Get property data
   const property = useQuery(api.properties.getProperty, {
-    id: propertyId,
-    userId,
-  });
+    id: propertyId });
 
   // Get leases for the property
   const leases = useQuery(api.leases.getLeasesByProperty, {

@@ -6,7 +6,7 @@
 
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,8 +29,9 @@ export default function ListingsPage() {
   const [activeTab, setActiveTab] = useState("dashboard");
 
   // Get user properties for quick access
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(api.properties.getProperties,
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
   const properties = propertiesResult?.properties ?? [];
 

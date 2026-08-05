@@ -79,7 +79,7 @@ export default function PropertyDetailsPage() {
 
   const property = useQuery(
     api.properties.getProperty,
-    user && isValidPropertyId ? { id: propertyId as any, userId: user.id } : "skip"
+    user && isValidPropertyId ? { id: propertyId as any } : "skip"
   );
   const leasesResult = useQuery(
     api.leases.getLeases,
@@ -99,7 +99,7 @@ export default function PropertyDetailsPage() {
   );
   const propertyWithUnits = useQuery(
     api.properties.getPropertyWithUnits,
-    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
+    user && isValidPropertyId ? { propertyId: propertyId as any } : "skip"
   );
 
   // Helper functions
@@ -1209,9 +1209,7 @@ export default function PropertyDetailsPage() {
                   setError(null);
                   await updateProperty({ 
                     ...data, 
-                    id: property._id, 
-                    userId: user.id 
-                  });
+                    id: property._id });
                   setEditDialogOpen(false);
                 } catch (err: any) {
                   setError(err.data?.message || err.message || "An error occurred");
