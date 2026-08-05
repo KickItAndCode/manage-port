@@ -1,8 +1,8 @@
-import { mutation } from "./_generated/server";
+import { mutation, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
 // Migration: Move legacy lease documents to relational document system
-export const migrateLegacyLeaseDocuments = mutation({
+export const migrateLegacyLeaseDocuments = internalMutation({
   args: { 
     userId: v.string(),
     dryRun: v.optional(v.boolean()) // Set to true to see what would be migrated without doing it
@@ -78,7 +78,7 @@ export const migrateLegacyLeaseDocuments = mutation({
 });
 
 // Cleanup: Remove legacy leaseDocumentUrl field after migration
-export const cleanupLegacyLeaseDocuments = mutation({
+export const cleanupLegacyLeaseDocuments = internalMutation({
   args: { 
     userId: v.string(),
     confirmCleanup: v.boolean() // Safety check
@@ -118,7 +118,7 @@ export const cleanupLegacyLeaseDocuments = mutation({
 });
 
 // Cleanup: Remove duplicate lease documents
-export const cleanupDuplicateLeaseDocuments = mutation({
+export const cleanupDuplicateLeaseDocuments = internalMutation({
   args: { 
     userId: v.string(),
     dryRun: v.optional(v.boolean())
@@ -184,7 +184,7 @@ export const cleanupDuplicateLeaseDocuments = mutation({
 });
 
 // Validation: Check migration status
-export const validateMigration = mutation({
+export const validateMigration = internalMutation({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
     const leases = await ctx.db

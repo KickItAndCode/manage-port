@@ -1,13 +1,14 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { requireUser } from "./lib/auth";
 
 // Admin function to clear all database data
 export const clearAllData = mutation({
   args: {
-    userId: v.string(),
     confirmationPhrase: v.string(), // Must match "DELETE ALL DATA" for safety
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Safety check - only allow if confirmation phrase is correct
     if (args.confirmationPhrase !== "DELETE ALL DATA") {
       throw new Error("Invalid confirmation phrase. Must be 'DELETE ALL DATA'");
@@ -16,27 +17,27 @@ export const clearAllData = mutation({
     // Get all table data for the user
     const properties = await ctx.db
       .query("properties")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     const leases = await ctx.db
       .query("leases")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     const documents = await ctx.db
       .query("documents")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     const utilityBills = await ctx.db
       .query("utilityBills")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     const userSettings = await ctx.db
       .query("userSettings")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     // Get related data through associations
@@ -63,7 +64,7 @@ export const clearAllData = mutation({
     // Get document folders for user
     const allDocumentFolders = await ctx.db.query("documentFolders").collect();
     const documentFolders = allDocumentFolders.filter(folder => 
-      folder.userId === args.userId
+      folder.userId === userId
     );
 
     let deletedCount = 0;
@@ -133,7 +134,7 @@ export const clearAllData = mutation({
     return {
       success: true,
       deletedCount,
-      message: `Successfully deleted ${deletedCount} records for user ${args.userId}`,
+      message: `Successfully deleted ${deletedCount} records for user ${userId}`,
       breakdown: {
         properties: properties.length,
         units: units.length,
@@ -153,32 +154,32 @@ export const clearAllData = mutation({
 // Query to get data counts for preview
 export const getDataCounts = query({
   args: {
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const properties = await ctx.db
       .query("properties")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     const leases = await ctx.db
       .query("leases")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     const documents = await ctx.db
       .query("documents")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     const utilityBills = await ctx.db
       .query("utilityBills")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     const userSettings = await ctx.db
       .query("userSettings")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     // Get related data through associations
@@ -205,7 +206,7 @@ export const getDataCounts = query({
     // Get document folders count
     const allDocumentFolders = await ctx.db.query("documentFolders").collect();
     const documentFolders = allDocumentFolders.filter(folder => 
-      folder.userId === args.userId
+      folder.userId === userId
     );
 
     const totalCount = properties.length + units.length + leases.length + 

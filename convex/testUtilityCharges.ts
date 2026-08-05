@@ -4,13 +4,13 @@
  */
 
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
+import { mutation, internalMutation } from "./_generated/server";
 
 /**
  * Test charge generation with sample data
  * This mutation creates test data and validates charge generation
  */
-export const testChargeGeneration = mutation({
+export const testChargeGeneration = internalMutation({
   args: {
     userId: v.string(),
   },
@@ -71,7 +71,7 @@ export const testChargeGeneration = mutation({
 /**
  * Validate system performance expectations
  */
-export const validatePerformanceExpectations = mutation({
+export const validatePerformanceExpectations = internalMutation({
   args: {
     userId: v.string(),
   },

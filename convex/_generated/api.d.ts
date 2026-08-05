@@ -15,7 +15,6 @@ import type {
 } from "convex/server";
 import type * as activityLog from "../activityLog.js";
 import type * as admin from "../admin.js";
-import type * as authProbe from "../authProbe.js";
 import type * as crons from "../crons.js";
 import type * as dashboard from "../dashboard.js";
 import type * as documentFolders from "../documentFolders.js";
@@ -51,7 +50,6 @@ import type * as utilityPayments from "../utilityPayments.js";
 declare const fullApi: ApiFromModules<{
   activityLog: typeof activityLog;
   admin: typeof admin;
-  authProbe: typeof authProbe;
   crons: typeof crons;
   dashboard: typeof dashboard;
   documentFolders: typeof documentFolders;

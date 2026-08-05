@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../../convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,8 +21,9 @@ export default function AdminPage() {
   const [isClearing, setIsClearing] = useState(false);
 
   const clearAllData = useMutation(api.admin.clearAllData);
+  const { isAuthenticated } = useConvexAuth();
   const dataCounts = useQuery(api.admin.getDataCounts, 
-    user?.id ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   const handleClearDatabase = async () => {
@@ -38,10 +39,8 @@ export default function AdminPage() {
 
     setIsClearing(true);
     try {
-      const result = await clearAllData({
-        userId: user.id,
-        confirmationPhrase,
-      });
+      const result = await clearAllData({ 
+        confirmationPhrase });
 
       if (result.success) {
         toast.success(`Successfully deleted ${result.deletedCount} records`, {
