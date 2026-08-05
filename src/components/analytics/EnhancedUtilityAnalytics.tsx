@@ -4,26 +4,20 @@ import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { api } from "@/../convex/_generated/api";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { 
-  LineChart, Line, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
-  AreaChart, Area, ReferenceLine
+  Line, XAxis, YAxis, CartesianGrid, 
+  Tooltip, AreaChart, Area
 } from "recharts";
 import { 
-  TrendingUp, TrendingDown, DollarSign, Zap, Droplets, Flame,
-  Calendar, AlertTriangle, Target, Lightbulb, ArrowUpRight,
+  TrendingUp, TrendingDown, DollarSign, Calendar, AlertTriangle, Target, Lightbulb, ArrowUpRight,
   ArrowDownRight, Equal, Sparkles
 } from "lucide-react";
 import { InteractiveChart } from "../charts/InteractiveChart";
-import { formatCurrency, calculateChange } from "@/utils/chartUtils";
-
-interface UtilityAnalyticsProps {
-  userId: string;
-}
+import { formatCurrency } from "@/utils/chartUtils";
 
 interface InsightData {
   type: 'trend' | 'anomaly' | 'optimization' | 'forecast';
@@ -36,9 +30,8 @@ interface InsightData {
   icon: React.ReactNode;
 }
 
-const COLORS = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
 
-export function EnhancedUtilityAnalytics({ userId }: UtilityAnalyticsProps) {
+export function EnhancedUtilityAnalytics() {
   const [timeframe, setTimeframe] = useState("6");
   const [selectedMetric, setSelectedMetric] = useState<'total' | 'trend' | 'forecast'>('total');
   const router = useRouter();

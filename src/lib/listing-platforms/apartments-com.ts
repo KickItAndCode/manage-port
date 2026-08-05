@@ -98,7 +98,7 @@ export class ApartmentsComAdapter implements PlatformAdapter {
   /**
    * Exchange authorization code for tokens
    */
-  async exchangeCodeForTokens(code: string, state: string): Promise<OAuthTokens> {
+  async exchangeCodeForTokens(code: string, _state: string): Promise<OAuthTokens> {
     const config = this.settings.oauthConfig!;
     
     const tokenData = {

@@ -5,7 +5,6 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
 import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,7 +24,7 @@ import { getPlatformDisplayInfo } from "@/lib/listing-platforms";
 import Link from "next/link";
 
 export default function ListingsPage() {
-  const { user } = useUser();
+  
   const [activeTab, setActiveTab] = useState("dashboard");
 
   // Get user properties for quick access

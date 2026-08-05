@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo, memo, useCallback } from "react";
+import { useMemo, memo, useCallback } from "react";
 import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Id } from "@/../convex/_generated/dataModel";
@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { SelectNative } from "@/components/ui/select-native";
 import { Badge } from "@/components/ui/badge";
-import { X, Filter, Calendar } from "lucide-react";
+import { X, Filter } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export interface DashboardFilters {
@@ -34,10 +34,10 @@ interface DashboardFiltersProps {
  * - Status filter
  */
 export const DashboardFilters = memo(function DashboardFilters({
-  userId,
+  
   filters,
   onFiltersChange,
-  compact = false,
+  compact = false
 }: DashboardFiltersProps) {
   const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
@@ -58,7 +58,7 @@ export const DashboardFilters = memo(function DashboardFilters({
     (propertyId: string) => {
       onFiltersChange({
         ...filters,
-        propertyId: propertyId ? (propertyId as Id<"properties">) : undefined,
+        propertyId: propertyId ? (propertyId as Id<"properties">) : undefined
       });
     },
     [filters, onFiltersChange]
@@ -68,7 +68,7 @@ export const DashboardFilters = memo(function DashboardFilters({
     (range: string) => {
       onFiltersChange({
         ...filters,
-        dateRange: range === "all" ? undefined : (range as DashboardFilters["dateRange"]),
+        dateRange: range === "all" ? undefined : (range as DashboardFilters["dateRange"])
       });
     },
     [filters, onFiltersChange]
@@ -78,7 +78,7 @@ export const DashboardFilters = memo(function DashboardFilters({
     (status: string) => {
       onFiltersChange({
         ...filters,
-        status: status === "all" ? undefined : (status as DashboardFilters["status"]),
+        status: status === "all" ? undefined : (status as DashboardFilters["status"])
       });
     },
     [filters, onFiltersChange]

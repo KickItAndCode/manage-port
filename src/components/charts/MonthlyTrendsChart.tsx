@@ -5,12 +5,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
-  LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, 
-  Tooltip, ResponsiveContainer, ReferenceLine, Dot
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, 
+  Tooltip, ResponsiveContainer, ReferenceLine
 } from "recharts";
 import { 
   TrendingUp, TrendingDown, AlertCircle, Sparkles,
-  ChevronRight, Info, DollarSign, Zap, Plus, FileText
+  ChevronRight, DollarSign, Plus, FileText
 } from "lucide-react";
 import { formatCurrency } from "@/utils/chartUtils";
 import { cn } from "@/lib/utils";

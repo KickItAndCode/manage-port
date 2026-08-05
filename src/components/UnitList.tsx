@@ -21,12 +21,11 @@ import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface UnitListProps {
   propertyId: Id<"properties">;
-  userId: string;
   onEditUnit?: (unit: any) => void;
   onAddUnit?: () => void;
 }
 
-export function UnitList({ propertyId, userId, onEditUnit, onAddUnit }: UnitListProps) {
+export function UnitList({ propertyId, onEditUnit, onAddUnit }: UnitListProps) {
   const units = useQuery(api.units.getUnitsByProperty, { propertyId });
   const unitStats = useQuery(api.units.getUnitStats, { propertyId });
   const deleteUnit = useMutation(api.units.deleteUnit);

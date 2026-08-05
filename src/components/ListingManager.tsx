@@ -7,38 +7,30 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useQuery, useMutation, useConvexAuth } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
-  ExternalLink, 
-  Check, 
-  X, 
   AlertCircle, 
   RefreshCw,
-  Plus,
   Send,
   Eye,
   Settings,
   DollarSign,
-  Calendar,
   Building,
   Map,
   Bed,
   Bath,
-  Square,
-  Trash2
+  Square
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { getPlatformDisplayInfo } from "@/lib/listing-platforms";
@@ -88,7 +80,7 @@ export function ListingManager({ propertyId }: { propertyId: Id<"properties"> })
     completed: 0,
     total: 0,
     results: {},
-    errors: {},
+    errors: {}
   });
   const [showAdvanced, setShowAdvanced] = useState(false);
 
@@ -150,7 +142,7 @@ export function ListingManager({ propertyId }: { propertyId: Id<"properties"> })
       completed: 0,
       total: selectedPlatforms.length,
       results: {},
-      errors: {},
+      errors: {}
     });
 
     try {
@@ -158,20 +150,20 @@ export function ListingManager({ propertyId }: { propertyId: Id<"properties"> })
         title: customTitle || property.name,
         description: customDescription,
         monthlyRent: parseFloat(customRent) || property.monthlyRent || 0,
-        availableDate: availableDate || new Date().toISOString(),
+        availableDate: availableDate || new Date().toISOString()
       };
 
       const response = await fetch('/api/listings/publish', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           propertyId,
           platforms: selectedPlatforms,
           listingData,
-          publishImmediately: true,
-        }),
+          publishImmediately: true
+        })
       });
 
       const result = await response.json();
@@ -182,7 +174,7 @@ export function ListingManager({ propertyId }: { propertyId: Id<"properties"> })
           isPublishing: false,
           completed: selectedPlatforms.length,
           results: result.results || {},
-          errors: result.errors || {},
+          errors: result.errors || {}
         }));
 
         const successCount = Object.keys(result.results || {}).length;
@@ -203,7 +195,7 @@ export function ListingManager({ propertyId }: { propertyId: Id<"properties"> })
       toast.error('Failed to publish listings');
       setPublishProgress(prev => ({
         ...prev,
-        isPublishing: false,
+        isPublishing: false
       }));
     }
   };
@@ -214,7 +206,7 @@ export function ListingManager({ propertyId }: { propertyId: Id<"properties"> })
       active: { label: "Live", variant: "default" },
       error: { label: "Failed", variant: "destructive" },
       expired: { label: "Expired", variant: "outline" },
-      paused: { label: "Paused", variant: "secondary" },
+      paused: { label: "Paused", variant: "secondary" }
     };
     return statusMap[status] || { label: status, variant: "outline" };
   };

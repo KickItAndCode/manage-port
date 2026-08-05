@@ -1,7 +1,6 @@
 "use client";
 import { useUser } from "@clerk/nextjs";
 import { usePathname } from "next/navigation";
-import { useState, useEffect } from "react";
 import { ResponsiveSidebar } from "@/components/ResponsiveSidebar";
 import { Topbar } from "@/components/Topbar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";

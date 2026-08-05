@@ -342,7 +342,7 @@ export class OAuthService {
   /**
    * Fetch user information from platform (platform-specific)
    */
-  private async fetchPlatformUserInfo(platform: string, accessToken: string): Promise<any> {
+  private async fetchPlatformUserInfo(_platform: string, _accessToken: string): Promise<any> {
     // This would be implemented differently for each platform
     // For now, return empty object
     return {};

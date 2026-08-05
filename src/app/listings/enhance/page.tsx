@@ -115,7 +115,7 @@ export default function AIListingEnhancePage() {
     setTimeout(() => setCopiedId(null), 2000);
   };
 
-  const handleRegenerate = async (id: number) => {
+  const handleRegenerate = async (_id: number) => {
     setIsGenerating(true);
     // Simulate regeneration
     await new Promise(resolve => setTimeout(resolve, 1000));

@@ -560,8 +560,6 @@ export function UtilityBillForm({
             propertyId={propertyId as Id<"properties">}
             utilityType={utilityType}
             totalAmount={Number(totalAmount)}
-            userId={user.id}
-            mode="preview"
           />
         </div>
       )}

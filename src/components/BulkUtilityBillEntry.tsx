@@ -9,7 +9,6 @@ import { Id } from "@/../convex/_generated/dataModel";
 import { toast } from "sonner";
 import { 
   DollarSign, 
-  Calendar, 
   Plus, 
   Trash2, 
   Save, 
@@ -57,10 +56,10 @@ const UTILITY_TEMPLATES = [
 ];
 
 export function BulkUtilityBillEntry({
-  propertyId,
+  
   propertyName,
   onSubmit,
-  onCancel,
+  onCancel
 }: BulkUtilityBillEntryProps) {
   const [billMonth, setBillMonth] = useState(() => {
     const today = new Date();
@@ -84,7 +83,7 @@ export function BulkUtilityBillEntry({
       totalAmount: "",
       dueDate,
       billDate,
-      notes: "",
+      notes: ""
     }));
 
     setBills(newBills);
@@ -99,7 +98,7 @@ export function BulkUtilityBillEntry({
       totalAmount: "",
       dueDate: new Date(today.getFullYear(), today.getMonth() + 1, 15).toISOString().split('T')[0],
       billDate: today.toISOString().split('T')[0],
-      notes: "",
+      notes: ""
     };
     setBills([...bills, newBill]);
   };
@@ -148,36 +147,36 @@ export function BulkUtilityBillEntry({
         totalAmount: parseFloat(bill.totalAmount),
         dueDate: bill.dueDate,
         billDate: bill.billDate,
-        notes: bill.notes,
+        notes: bill.notes
       }));
 
       const result = await onSubmit(billMonth, billsData);
       
       setResults({
         success: result.createdBillIds.length,
-        errors: result.errors.map(e => `${e.utilityType}: ${e.error}`),
+        errors: result.errors.map(e => `${e.utilityType}: ${e.error}`)
       });
 
       // Show success/error toasts
       if (result.createdBillIds.length > 0) {
         toast.success("Bills created successfully!", {
-          description: `${result.createdBillIds.length} bill${result.createdBillIds.length !== 1 ? 's' : ''} created.`,
+          description: `${result.createdBillIds.length} bill${result.createdBillIds.length !== 1 ? 's' : ''} created.`
         });
         setBills([]);
       }
       
       if (result.errors.length > 0) {
         toast.error(`${result.errors.length} bill${result.errors.length !== 1 ? 's' : ''} failed to create`, {
-          description: "Check the results below for details.",
+          description: "Check the results below for details."
         });
       }
     } catch (error: any) {
       setResults({
         success: 0,
-        errors: [error.message || "Failed to save bills"],
+        errors: [error.message || "Failed to save bills"]
       });
       toast.error("Failed to save bills", {
-        description: error.message || "Please try again or contact support.",
+        description: error.message || "Please try again or contact support."
       });
     } finally {
       setLoading(false);

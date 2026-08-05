@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, memo } from "react";
+import { useState, memo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
@@ -11,7 +11,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from "@/components/ui/dialog";
 import { PaymentRecordForm } from "@/components/PaymentRecordForm";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,7 @@ import {
   Wifi,
   Trash,
   Calendar,
-  Percent,
+  Percent
 } from "lucide-react";
 import { Id } from "@/../convex/_generated/dataModel";
 
@@ -59,9 +59,9 @@ interface TenantGroup {
 }
 
 export const OutstandingBalances = memo(function OutstandingBalances({
-  userId,
+  
   propertyId,
-  tenantId,
+  tenantId
 }: OutstandingBalancesProps) {
   const [selectedTenant, setSelectedTenant] = useState<string>(
     tenantId || "all"
@@ -86,7 +86,6 @@ export const OutstandingBalances = memo(function OutstandingBalances({
   });
 
   // Get utility bills for context
-  const utilityBills = useQuery(api.utilityBills.getUnpaidBills, {});
 
   const recordPayment = useMutation(api.utilityPayments.recordUtilityPayment);
 
@@ -146,7 +145,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
           unitIdentifier: charge.unitIdentifier,
           utilitiesByType: [],
           totalOwed: 0,
-          totalCharges: 0,
+          totalCharges: 0
         };
       }
 
@@ -159,7 +158,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
           utilityType: charge.utilityType || "Unknown",
           charges: [],
           totalOwed: 0,
-          totalBillAmount: 0,
+          totalBillAmount: 0
         };
         groups[key].utilitiesByType.push(utilityGroup);
       }

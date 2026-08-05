@@ -32,8 +32,7 @@ import {
   FileText, 
   Loader2,
   Plus,
-  Image as ImageIcon,
-  File,
+  Image as File,
   CheckCircle2
 } from "lucide-react";
 import { TagAutocomplete } from "./TagAutocomplete";
@@ -67,13 +66,13 @@ interface FileWithPreview extends File {
 }
 
 export default function DocumentUploadForm({
-  folderId,
+  
   propertyId,
   leaseId,
   utilityBillId,
   open,
   onOpenChange,
-  onUploadComplete,
+  onUploadComplete
 }: DocumentUploadFormProps) {
   // Support both controlled and uncontrolled patterns
   const [internalOpen, setInternalOpen] = useState(false);
@@ -90,7 +89,7 @@ export default function DocumentUploadForm({
     expiryDate: "",
     selectedPropertyId: propertyId as string | undefined,
     selectedLeaseId: leaseId as string | undefined,
-    selectedUtilityBillId: utilityBillId as string | undefined,
+    selectedUtilityBillId: utilityBillId as string | undefined
   });
 
   const { user } = useUser();
@@ -137,7 +136,7 @@ export default function DocumentUploadForm({
     onDrop,
     accept: ACCEPTED_FILE_TYPES,
     maxSize: MAX_FILE_SIZE,
-    multiple: true,
+    multiple: true
   });
 
   const removeFile = (fileToRemove: FileWithPreview) => {
@@ -177,7 +176,7 @@ export default function DocumentUploadForm({
           const result = await fetch(uploadUrl, {
             method: "POST",
             headers: { "Content-Type": file.type },
-            body: file,
+            body: file
           });
 
           if (!result.ok) {
@@ -225,7 +224,7 @@ export default function DocumentUploadForm({
         expiryDate: "",
         selectedPropertyId: propertyId as string | undefined,
         selectedLeaseId: leaseId as string | undefined,
-        selectedUtilityBillId: utilityBillId as string | undefined,
+        selectedUtilityBillId: utilityBillId as string | undefined
       });
       setIsOpen(false);
       

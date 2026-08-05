@@ -15,7 +15,6 @@ import { formatErrorForToast } from "@/lib/error-handling";
 import { Archive, Eye, EyeOff, Layers, Plus } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { createLeaseTableConfig, LeaseMobileCard, type Lease, type Property } from "@/lib/table-configs";
@@ -72,7 +71,7 @@ function LeasesPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showExpiredLeases, setShowExpiredLeases] = useState(false);
-  const [selectedLeases, setSelectedLeases] = useState<Lease[]>([]);
+  
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
   // Auto-open modal if coming from property page
@@ -115,10 +114,6 @@ function LeasesPageContent() {
   const displayExpired = sortedExpired;
 
   // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
 
   // Get documents for a specific lease
   const getLeaseDocuments = (leaseId: string) => {
@@ -127,22 +122,6 @@ function LeasesPageContent() {
   };
 
   // Get status badge with computed status and expiry info
-  const getStatusBadge = (lease: any) => {
-    const status = lease.computedStatus;
-    const daysLeft = lease.daysUntilExpiry;
-    
-    if (status === "active" && daysLeft !== null && daysLeft <= 60 && daysLeft >= 0) {
-      return (
-        <div className="flex items-center gap-2">
-          <StatusBadge status={status} variant="compact" />
-          <Badge variant="outline" className="border-orange-500 text-orange-500 text-xs">
-            {daysLeft}d left
-          </Badge>
-        </div>
-      );
-    }
-    return <StatusBadge status={status} variant="compact" />;
-  };
 
   // Handlers for ResponsiveTable
   const handleEditLease = (lease: Lease) => {
@@ -173,12 +152,12 @@ function LeasesPageContent() {
     });
   };
 
-  const handleViewDocuments = (lease: Lease) => {
+  const handleViewDocuments = (_lease: Lease) => {
     // This will be handled by the mobile card's document viewer
     // The table config already includes document viewing in the dropdown
   };
 
-  const handleSort = (column: keyof Lease, direction: "asc" | "desc") => {
+  const handleSort = (_column: keyof Lease, _direction: "asc" | "desc") => {
     // Sorting is handled by ResponsiveTable internally
   };
 

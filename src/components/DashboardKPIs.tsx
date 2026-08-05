@@ -3,18 +3,14 @@
 import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   Building2,
   DollarSign,
   TrendingUp,
-  TrendingDown,
-  Users,
   Receipt,
-  AlertCircle,
   ArrowUpRight,
-  ArrowDownRight,
+  ArrowDownRight
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter } from "next/navigation";
@@ -54,7 +50,7 @@ const KPICard = memo(function KPICard({
   iconColor,
   bgColor,
   onClick,
-  compact = false,
+  compact = false
 }: KPICardProps) {
   const formattedValue = useMemo(
     () =>
@@ -63,7 +59,7 @@ const KPICard = memo(function KPICard({
             style: "currency",
             currency: "USD",
             minimumFractionDigits: 0,
-            maximumFractionDigits: 0,
+            maximumFractionDigits: 0
           })
         : value,
     [value]
@@ -159,9 +155,9 @@ const KPICard = memo(function KPICard({
  * utility spend, and net income with trends and quick navigation.
  */
 export const DashboardKPIs = memo(function DashboardKPIs({
-  userId,
+  
   compact = false,
-  filters,
+  filters
 }: DashboardKPIsProps) {
   const { isAuthenticated } = useConvexAuth();
   const router = useRouter();
@@ -190,10 +186,6 @@ export const DashboardKPIs = memo(function DashboardKPIs({
       : [];
 
   // Get utility bills for property breakdown
-  const utilityBills = useQuery(
-    api.utilityBills.getUtilityBills,
-    isAuthenticated ? {} : "skip"
-  );
 
   // Get property name when property filter is active
   const selectedProperty = useMemo(() => {
@@ -350,7 +342,7 @@ export const DashboardKPIs = memo(function DashboardKPIs({
             ? {
                 value: utilityInsights.highSeverityAnomalies,
                 label: `${utilityInsights.anomalyCount} anomalies`,
-                isPositive: false,
+                isPositive: false
               }
             : undefined
         }

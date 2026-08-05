@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
-import { Id, Doc } from "@/../convex/_generated/dataModel";
+import { Id } from "@/../convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,8 @@ import {
   Users, 
   DollarSign, 
   Percent,
-  AlertCircle,
   CheckCircle,
   History,
-  FileText,
   Building2,
   ChevronDown,
   ChevronUp
@@ -30,14 +28,13 @@ import { format } from "date-fns";
 
 interface UtilityLedgerProps {
   billId: Id<"utilityBills">;
-  userId: string;
   /** Show compact view */
   compact?: boolean;
   /** Show edit controls */
   showEdit?: boolean;
 }
 
-interface ChargeBreakdown {
+interface _ChargeBreakdown {
   leaseId: Id<"leases">;
   tenantName: string;
   unitIdentifier?: string;
@@ -55,9 +52,8 @@ interface ChargeBreakdown {
  */
 export function UtilityLedger({
   billId,
-  userId,
   compact = false,
-  showEdit = true,
+  showEdit = true
 }: UtilityLedgerProps) {
   const [expanded, setExpanded] = useState(!compact);
   const [updating, setUpdating] = useState(false);
@@ -90,7 +86,7 @@ export function UtilityLedger({
   const updateBill = useMutation(api.utilityBills.updateUtilityBill);
 
   const handleToggleHistorical = async (isHistorical: boolean) => {
-    if (!bill || !userId) return;
+    if (!bill) return;
 
     setUpdating(true);
     try {

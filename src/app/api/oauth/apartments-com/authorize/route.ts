@@ -10,7 +10,7 @@ import { getPlatformSafe } from '@/lib/listing-platforms';
 
 const oauthService = new OAuthService();
 
-export async function GET(request: NextRequest) {
+export async function GET(_request: NextRequest) {
   try {
     // Check authentication
     const { userId } = await auth();
@@ -32,8 +32,9 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Generate authorization URL
-    const { authUrl, state } = await oauthService.generateAuthUrl(
+    // Generate authorization URL. The returned `state` is persisted by the
+    // service for the callback to verify, so it is not needed here.
+    const { authUrl } = await oauthService.generateAuthUrl(
       'apartments_com',
       oauthConfig,
       userId,

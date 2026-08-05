@@ -863,7 +863,7 @@ export function LeaseMobileCard({
   onSelect, 
   onEdit, 
   onDelete, 
-  onViewDocuments,
+  
   properties,
   getLeaseDocuments
 }: {

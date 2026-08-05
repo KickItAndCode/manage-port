@@ -9,7 +9,7 @@ import { formatErrorForToast } from "@/lib/error-handling";
 import { PropertyForm } from "@/components/PropertyForm";
 import {
   PropertyCreationWizard,
-  type PropertyWizardData,
+  type PropertyWizardData
 } from "@/components/PropertyCreationWizard";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,20 +18,20 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from "@/components/ui/dialog";
-import { ImageIcon, Wand2, Trash2, Building } from "lucide-react";
+import { Wand2, Trash2, Building } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import {
   ResponsiveTable,
-  BulkActionsToolbar,
+  BulkActionsToolbar
 } from "@/components/ui/responsive-table";
 import {
   createPropertyTableConfig,
   PropertyMobileCard,
-  type Property,
+  type Property
 } from "@/lib/table-configs";
 
 function PropertiesContent() {
@@ -180,7 +180,7 @@ function PropertiesContent() {
         } finally {
           setLoading(false);
         }
-      },
+      }
     });
   };
 
@@ -203,7 +203,7 @@ function PropertiesContent() {
         } finally {
           setLoading(false);
         }
-      },
+      }
     });
   };
 
@@ -605,7 +605,7 @@ function PropertiesContent() {
                   ? {
                       label: "Add Property",
                       onClick: () => setWizardOpen(true),
-                      icon: Wand2,
+                      icon: Wand2
                     }
                   : undefined
               }
@@ -680,7 +680,7 @@ function PropertiesContent() {
             label: "Delete",
             icon: Trash2,
             variant: "destructive",
-            action: handleBulkDelete,
+            action: handleBulkDelete
           },
         ]}
         onClearSelection={() => setSelectedProperties([])}

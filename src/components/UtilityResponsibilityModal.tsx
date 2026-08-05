@@ -1,6 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Id } from "@/../convex/_generated/dataModel";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -13,15 +13,12 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { UTILITY_TYPES } from "@/lib/constants";
 import { 
   Percent,
-  Building2,
   Users,
   AlertTriangle,
   CheckCircle,
   Save,
-  Calculator,
   Info,
   Zap,
   Droplets,
@@ -72,9 +69,8 @@ const PRESET_TEMPLATES = [
 
 export function UtilityResponsibilityModal({
   open,
-  onOpenChange,
-  userId,
-  defaultPropertyId
+  onOpenChange
+  
 }: UtilityResponsibilityModalProps) {
   const [selectedPropertyId, setSelectedPropertyId] = useState<Id<"properties"> | null>(null);
   const [allocations, setAllocations] = useState<Record<string, PropertyAllocation>>({});
@@ -96,7 +92,6 @@ export function UtilityResponsibilityModal({
     selectedPropertyId ? { propertyId: selectedPropertyId } : "skip"
   );
 
-  const saveUtilitySettings = useMutation(api.leaseUtilitySettings.setPropertyUtilityAllocations);
 
   // Filter properties that have leases (for selection screen)
   const propertiesWithLeases = properties?.filter(property => {
@@ -138,7 +133,7 @@ export function UtilityResponsibilityModal({
           leaseId: lease._id,
           tenantName: lease.tenantName,
           unitIdentifier: lease.unitId,
-          percentage: existingSetting?.responsibilityPercentage || 0,
+          percentage: existingSetting?.responsibilityPercentage || 0
         };
       });
 
@@ -151,7 +146,7 @@ export function UtilityResponsibilityModal({
         leases: leaseAllocations,
         totalAllocated,
         isComplete: totalAllocated === 100,
-        hasActiveLeases: propertyLeases.length > 0,
+        hasActiveLeases: propertyLeases.length > 0
       };
     });
 
@@ -181,7 +176,7 @@ export function UtilityResponsibilityModal({
         ),
         isComplete: prev[propertyId].leases.reduce((sum, l) => 
           l.leaseId === leaseId ? sum + percentage : sum + l.percentage, 0
-        ) === 100,
+        ) === 100
       }
     }));
     setHasChanges(true);
@@ -198,7 +193,7 @@ export function UtilityResponsibilityModal({
 
     const updatedLeases = allocation.leases.map((lease, index) => ({
       ...lease,
-      percentage: template.getValue(allocation.leases.length, index),
+      percentage: template.getValue(allocation.leases.length, index)
     }));
 
     const totalAllocated = updatedLeases.reduce((sum, l) => sum + l.percentage, 0);
@@ -209,7 +204,7 @@ export function UtilityResponsibilityModal({
         ...prev[propertyId],
         leases: updatedLeases,
         totalAllocated,
-        isComplete: totalAllocated === 100,
+        isComplete: totalAllocated === 100
       }
     }));
     setHasChanges(true);
@@ -316,20 +311,15 @@ export function UtilityResponsibilityModal({
       }
 
       // Use atomic mutation to save all allocations at once
-      const result = await saveUtilitySettings({
-        propertyId: selectedPropertyId!,
-        allocations: propertyAllocation.leases.map(lease => ({
-          leaseId: lease.leaseId,
-          percentage: lease.percentage })) });
 
       const ownerPercentage = 100 - propertyAllocation.totalAllocated;
       if (ownerPercentage > 0) {
         toast.success("Utility responsibilities saved!", {
-          description: `Owner will cover ${ownerPercentage}% of all utilities.`,
+          description: `Owner will cover ${ownerPercentage}% of all utilities.`
         });
       } else {
         toast.success("Utility responsibilities saved successfully!", {
-          description: "All utilities are fully allocated to tenants.",
+          description: "All utilities are fully allocated to tenants."
         });
       }
 
@@ -338,7 +328,7 @@ export function UtilityResponsibilityModal({
     } catch (error) {
       console.error("Failed to save utility settings:", error);
       toast.error("Failed to save utility settings", {
-        description: "Please try again or contact support if the issue persists.",
+        description: "Please try again or contact support if the issue persists."
       });
     } finally {
       setSaving(false);

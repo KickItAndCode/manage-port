@@ -24,10 +24,9 @@ import {
 
 interface TenantStatementGeneratorProps {
   propertyId: Id<"properties">;
-  userId: string;
 }
 
-export function TenantStatementGenerator({ propertyId, userId }: TenantStatementGeneratorProps) {
+export function TenantStatementGenerator({ propertyId }: TenantStatementGeneratorProps) {
   const [selectedLeaseId, setSelectedLeaseId] = useState<string>("");
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();

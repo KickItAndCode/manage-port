@@ -12,20 +12,16 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from "./ui/select";
 import {
   Home,
   FileText,
   Zap,
-  UserPlus,
-  Edit,
-  Trash2,
   Upload,
-  DollarSign,
   Building2,
   Clock,
-  Search,
+  Search
 } from "lucide-react";
 import { format, formatDistanceToNow } from "date-fns";
 import { cn } from "../lib/utils";
@@ -44,7 +40,7 @@ const ACTIVITY_ICONS: Record<string, any> = {
   lease: FileText,
   document: Upload,
   utility_bill: Zap,
-  unit: Building2,
+  unit: Building2
 };
 
 const ACTIVITY_COLORS: Record<string, string> = {
@@ -52,7 +48,7 @@ const ACTIVITY_COLORS: Record<string, string> = {
   lease: "bg-green-100 text-green-700 dark:bg-green-900/20 dark:text-green-400",
   document: "bg-purple-100 text-purple-700 dark:bg-purple-900/20 dark:text-purple-400",
   utility_bill: "bg-orange-100 text-orange-700 dark:bg-orange-900/20 dark:text-orange-400",
-  unit: "bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400",
+  unit: "bg-gray-100 text-gray-700 dark:bg-gray-900/20 dark:text-gray-400"
 };
 
 const ACTION_COLORS: Record<string, string> = {
@@ -61,7 +57,7 @@ const ACTION_COLORS: Record<string, string> = {
   deleted: "text-red-600 dark:text-red-400",
   uploaded: "text-purple-600 dark:text-purple-400",
   paid: "text-emerald-600 dark:text-emerald-400",
-  expired: "text-orange-600 dark:text-orange-400",
+  expired: "text-orange-600 dark:text-orange-400"
 };
 
 export function ActivityTimeline({
@@ -69,7 +65,7 @@ export function ActivityTimeline({
   leaseId,
   limit = 50,
   showFilters = true,
-  className,
+  className
 }: ActivityTimelineProps) {
   const { isAuthenticated } = useConvexAuth();
   const { user } = useUser();
@@ -88,17 +84,17 @@ export function ActivityTimeline({
       ? propertyId
         ? {
             propertyId: propertyId as any,
-            limit,
+            limit
           }
         : leaseId
         ? {
             leaseId: leaseId as any,
-            limit,
+            limit
           }
         : {
             entityType: activityType !== "all" ? activityType : undefined,
             dateRange: dateRange as any,
-            limit,
+            limit
           }
       : "skip"
   );
@@ -231,12 +227,11 @@ export function ActivityTimeline({
             <div className="absolute left-5 top-0 bottom-0 w-0.5 bg-border" />
 
             <div className="space-y-6">
-              {filteredActivities.map((activity, index) => {
+              {filteredActivities.map((activity, _index) => {
                 const Icon = ACTIVITY_ICONS[activity.entityType] || FileText;
                 const activityColor = ACTIVITY_COLORS[activity.entityType] || ACTIVITY_COLORS.unit;
                 const actionColor = ACTION_COLORS[activity.action] || "text-muted-foreground";
                 const date = new Date(activity.timestamp);
-                const isLast = index === filteredActivities.length - 1;
 
                 return (
                   <div key={activity._id} className="relative flex items-start gap-4">

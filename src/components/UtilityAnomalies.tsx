@@ -9,19 +9,15 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
+  CardDescription
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   AlertTriangle,
-  TrendingUp,
-  TrendingDown,
   ArrowRight,
-  Receipt,
-  Building,
-  CheckCircle,
+  CheckCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -42,10 +38,10 @@ interface UtilityAnomaliesProps {
  * Displays detected utility bill spikes and anomalies
  */
 export const UtilityAnomalies = memo(function UtilityAnomalies({
-  userId,
+  
   propertyId,
   compact = false,
-  maxItems = 5,
+  maxItems = 5
 }: UtilityAnomaliesProps) {
   const router = useRouter();
 
@@ -131,13 +127,13 @@ export const UtilityAnomalies = memo(function UtilityAnomalies({
           const severityColors = {
             high: "border-destructive bg-destructive/5",
             medium: "border-orange-500 bg-orange-50 dark:bg-orange-950/20",
-            low: "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20",
+            low: "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20"
           };
 
           const severityBadges = {
             high: "destructive",
             medium: "default",
-            low: "secondary",
+            low: "secondary"
           };
 
           return (

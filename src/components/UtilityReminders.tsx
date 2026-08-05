@@ -9,7 +9,7 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
-  CardTitle,
+  CardTitle
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -22,7 +22,7 @@ import {
   ArrowRight,
   CheckCircle,
   Receipt,
-  FileText,
+  FileText
 } from "lucide-react";
 import { format } from "date-fns";
 
@@ -41,10 +41,10 @@ interface UtilityRemindersProps {
  * Displays overdue bills and missing utility readings
  */
 export const UtilityReminders = memo(function UtilityReminders({
-  userId,
+  
   propertyId,
   compact = false,
-  maxItems = 5,
+  maxItems = 5
 }: UtilityRemindersProps) {
   const router = useRouter();
 
@@ -143,13 +143,13 @@ export const UtilityReminders = memo(function UtilityReminders({
               const severityColors = {
                 high: "border-destructive bg-destructive/5",
                 medium: "border-orange-500 bg-orange-500/5",
-                low: "border-yellow-500 bg-yellow-500/5",
+                low: "border-yellow-500 bg-yellow-500/5"
               };
 
               const severityBadges = {
                 high: "destructive",
                 medium: "secondary",
-                low: "outline",
+                low: "outline"
               };
 
               return (
@@ -212,7 +212,7 @@ export const UtilityReminders = memo(function UtilityReminders({
               <Calendar className="h-4 w-4 text-orange-600" />
               Missing Readings
             </h4>
-            {displayMissing.map((reading, index) => (
+            {displayMissing.map((reading, _index) => (
               <Alert
                 key={`${reading.propertyId}-${reading.utilityType}-${reading.expectedMonth}`}
                 className="cursor-pointer hover:opacity-80 transition-opacity border-orange-500 bg-orange-500/5"

@@ -53,7 +53,6 @@ import {
   DollarSign,
   Percent,
   TrendingUp,
-  Building2,
   Receipt,
   Calendar,
   Users,
@@ -306,65 +305,6 @@ export default function DashboardPage() {
   );
 
   // Memoize stat cards to prevent recalculation on every render (safe with optional chaining)
-  const statCards = useMemo(
-    () =>
-      metrics
-        ? [
-            {
-              title: "Total Properties",
-              value: metrics.totalProperties,
-              icon: Building2,
-              color: "text-blue-600 dark:text-blue-400",
-              bgColor: "bg-blue-50 dark:bg-blue-950/20",
-              borderColor: "border-blue-200 dark:border-blue-800",
-              trend: "+2 this month",
-              trendPositive: true,
-            },
-            {
-              title: "Monthly Revenue",
-              value: `$${metrics.totalMonthlyRent.toLocaleString()}`,
-              icon: DollarSign,
-              color: "text-green-600 dark:text-green-400",
-              bgColor: "bg-green-50 dark:bg-green-950/20",
-              borderColor: "border-green-200 dark:border-green-800",
-              trend: `+${((metrics.totalMonthlyRent / 10000) * 100).toFixed(1)}%`,
-              trendPositive: true,
-            },
-            {
-              title: "Occupancy Rate",
-              value: `${metrics.occupancyRate.toFixed(1)}%`,
-              icon: Percent,
-              color: "text-purple-600 dark:text-purple-400",
-              bgColor: "bg-purple-50 dark:bg-purple-950/20",
-              borderColor: "border-purple-200 dark:border-purple-800",
-              trend:
-                metrics.occupancyRate >= 90
-                  ? "Excellent"
-                  : metrics.occupancyRate >= 75
-                    ? "Good"
-                    : "Needs attention",
-              trendPositive: metrics.occupancyRate >= 75,
-            },
-            {
-              title: "Security Deposits",
-              value: `$${metrics.totalSecurityDeposits.toLocaleString()}`,
-              icon: Users,
-              color: "text-orange-600 dark:text-orange-400",
-              bgColor: "bg-orange-50 dark:bg-orange-950/20",
-              borderColor: "border-orange-200 dark:border-orange-800",
-              trend: `${metrics.activeLeases} active`,
-              trendPositive: true,
-            },
-          ]
-        : [],
-    [
-      metrics?.totalProperties,
-      metrics?.totalMonthlyRent,
-      metrics?.occupancyRate,
-      metrics?.totalSecurityDeposits,
-      metrics?.activeLeases,
-    ]
-  );
 
   // Memoize chart data (safe with optional chaining)
   const typeData = useMemo(

@@ -89,11 +89,11 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
     reset,
     watch,
     setValue,
-    setError,
-    clearErrors,
+    
+    clearErrors
   } = useForm<LeaseFormType>({
     resolver: zodResolver(requiresUnitSelection ? multiUnitLeaseSchema : leaseSchema),
-    defaultValues: initial as LeaseFormType || {},
+    defaultValues: initial as LeaseFormType || {}
   });
 
   // Update selected property when form value changes
@@ -105,13 +105,15 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
     }
   }, [watchedPropertyId]);
   
-  if (!properties || properties.length === 0) {
-    return <div className="text-center text-muted-foreground">No properties available. Please add a property first.</div>;
-  }
-
+  // useLeaseStatus must run on every render, so it sits above the early return
+  // for the empty-properties case rather than below it.
   const startDate = watch("startDate");
   const endDate = watch("endDate");
   const { status: computedStatus, daysUntilExpiry } = useLeaseStatus(startDate || new Date().toISOString(), endDate || new Date().toISOString());
+
+  if (!properties || properties.length === 0) {
+    return <div className="text-center text-muted-foreground">No properties available. Please add a property first.</div>;
+  }
 
   // Dummy data generator with randomization
   function fillWithDummyData() {
@@ -144,7 +146,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
       securityDeposit: rent * randomInt(1, 2), // 1-2 months rent
       // Status is now computed based on dates
       notes: `Standard ${randomInt(6, 12)}-month lease agreement`,
-      leaseDocumentUrl: `https://example.com/lease-${Date.now()}.pdf`,
+      leaseDocumentUrl: `https://example.com/lease-${Date.now()}.pdf`
     });
     
     // Reset document upload state
@@ -162,7 +164,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
           onSubmit({
             ...dataWithoutStatus,
             unitId: selectedUnitId || undefined,
-            leaseDocumentUrl: leaseDocumentData?.storageId || data.leaseDocumentUrl,
+            leaseDocumentUrl: leaseDocumentData?.storageId || data.leaseDocumentUrl
           });
         })}
       >

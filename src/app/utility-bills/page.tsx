@@ -9,7 +9,7 @@ import { Doc, Id } from "@/../convex/_generated/dataModel";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SelectNative } from "@/components/ui/select-native";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,14 +20,12 @@ import { TenantStatementGenerator } from "@/components/TenantStatementGenerator"
 import { UtilityLedger } from "@/components/UtilityLedger";
 import { QuickAddBill } from "@/components/QuickAddBill";
 import { UtilityAnalytics } from "@/components/UtilityAnalytics";
-import { LoadingContent } from "@/components/LoadingContent";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ResponsiveTable, BulkActionsToolbar } from "@/components/ui/responsive-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   createUtilityBillTableConfig,
   UtilityBillMobileCard,
-  type UtilityBill,
   type Property
 } from "@/lib/table-configs";
 import { cn } from "@/lib/utils";
@@ -43,18 +41,17 @@ import {
   BarChart3,
   FileText,
   Download,
-  Trash2,
+  Trash2
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 
 // Import our new hooks and types
 import { useUtilityBillsData, useUtilityBillFilterOptions } from "@/hooks/useUtilityBillsData";
-import { UtilityBillFilters } from "@/types/utilityBills";
 
 // Comprehensive utility bills page loading skeleton
 const UtilityBillsLoadingSkeleton = () => (
@@ -308,13 +305,13 @@ function UtilityBillsContent() {
 
   // Use the new unified data hook
   const {
-    data,
+    
     filteredData,
     filters,
     loading,
     error,
     updateFilters,
-    resetFilters,
+    resetFilters
   } = useUtilityBillsData();
   
   // Handle URL parameters on mount
@@ -604,11 +601,6 @@ function UtilityBillsContent() {
     updateFilters({ tenantId: (tenantId || undefined) as Id<"leases"> | undefined });
   }, [updateFilters]);
 
-  const handleDateRangeChange = useCallback((startMonth: string, endMonth: string) => {
-    updateFilters({ 
-      dateRange: startMonth && endMonth ? [startMonth, endMonth] : undefined 
-    });
-  }, [updateFilters]);
 
   const handleUtilityTypesChange = useCallback((types: string[]) => {
     updateFilters({ utilityTypes: types });
@@ -640,7 +632,7 @@ function UtilityBillsContent() {
     totalBills: 0,
     unpaidBills: 0,
     totalAmount: 0,
-    unpaidAmount: 0,
+    unpaidAmount: 0
   };
 
   const selectedPropertyData = properties.find(p => p._id === filters.propertyId);
@@ -867,7 +859,7 @@ function UtilityBillsContent() {
                     ? {
                         label: "Add First Bill",
                         onClick: () => setBillDialogOpen(true),
-                        icon: Plus,
+                        icon: Plus
                       }
                     : undefined
                 }
@@ -1006,7 +998,6 @@ function UtilityBillsContent() {
               {/* Utility Ledger - Inspectable calculation breakdown */}
               <UtilityLedger
                 billId={viewingBill._id}
-                userId={user.id}
                 showEdit={true}
               />
               
@@ -1016,7 +1007,6 @@ function UtilityBillsContent() {
                 utilityType={viewingBill.utilityType}
                 totalAmount={viewingBill.totalAmount}
                 billId={viewingBill._id}
-                userId={user.id}
               />
               
               <div className="flex justify-end">
@@ -1036,7 +1026,6 @@ function UtilityBillsContent() {
           {filters.propertyId && (
             <TenantStatementGenerator
               propertyId={filters.propertyId as any}
-              userId={user.id}
             />
           )}
         </DialogContent>

@@ -24,21 +24,26 @@ export function DocumentViewer({
 }: DocumentViewerProps) {
   const [isLoading, setIsLoading] = useState(false);
   
-  // Early return if no storageId provided or it's empty/invalid
-  if (!storageId || storageId.trim() === '') {
-    return null;
-  }
-  
+  // Hooks must run on every render, so the empty-storageId guard sits below
+  // them rather than above. Calling useQuery after an early return changes hook
+  // order the moment storageId appears or disappears.
+  const trimmedStorageId = storageId?.trim() ?? '';
+  const hasStorageId = trimmedStorageId !== '';
+
   // Check if storageId is already a full URL (legacy format) or a Convex storage ID
-  const isLegacyUrl = storageId.startsWith('http');
-  
+  const isLegacyUrl = trimmedStorageId.startsWith('http');
+
   // Get the actual URL from the storage ID (only if it's not already a URL and looks like a valid storage ID)
-  const shouldFetchUrl = !isLegacyUrl && storageId.length > 10; // Storage IDs are typically longer
+  const shouldFetchUrl = hasStorageId && !isLegacyUrl && trimmedStorageId.length > 10; // Storage IDs are typically longer
   const fileUrl = useQuery(
-    api.storage.getUrl, 
+    api.storage.getUrl,
     shouldFetchUrl ? { storageId: storageId as any } : "skip"
   );
-  
+
+  if (!hasStorageId) {
+    return null;
+  }
+
   // Use the legacy URL or the fetched URL
   const actualUrl = isLegacyUrl ? storageId : fileUrl;
 

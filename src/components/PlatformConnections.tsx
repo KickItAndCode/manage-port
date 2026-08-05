@@ -24,7 +24,6 @@ import {
   Settings,
   Trash2
 } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { getPlatformDisplayInfo } from "@/lib/listing-platforms";
 
@@ -68,11 +67,11 @@ export function PlatformConnections() {
       const response = await fetch(`/api/oauth/${platform}/authorize`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          returnUrl: window.location.href,
-        }),
+          returnUrl: window.location.href
+        })
       });
 
       if (!response.ok) {
@@ -129,7 +128,7 @@ export function PlatformConnections() {
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
-      minute: '2-digit',
+      minute: '2-digit'
     });
   };
 

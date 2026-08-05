@@ -1,9 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
 import { useQuery, useConvexAuth } from "convex/react";
-import { useUser } from "@clerk/nextjs";
 import { api } from "../../convex/_generated/api";
-import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { X, Tag as TagIcon } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -19,9 +17,9 @@ export function TagAutocomplete({
   value,
   onChange,
   placeholder = "Add tags...",
-  className,
+  className
 }: TagAutocompleteProps) {
-  const { user } = useUser();
+  
   const [inputValue, setInputValue] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);

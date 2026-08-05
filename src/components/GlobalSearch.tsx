@@ -3,7 +3,6 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
-import { useUser } from "@clerk/nextjs";
 import {
   Search,
   MapPin,
@@ -104,7 +103,7 @@ function SearchResultItem({
 }
 
 export function GlobalSearch() {
-  const { user } = useUser();
+  
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");

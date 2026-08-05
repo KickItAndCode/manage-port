@@ -17,8 +17,6 @@ interface BillSplitPreviewProps {
   utilityType: string;
   totalAmount: number;
   billId?: Id<"utilityBills">;
-  userId: string;
-  mode?: "preview" | "actual";
 }
 
 export function BillSplitPreview({ 
@@ -26,8 +24,6 @@ export function BillSplitPreview({
   utilityType, 
   totalAmount, 
   billId,
-  userId,
-  mode = "preview"
 }: BillSplitPreviewProps) {
   // Get actual stored charges if bill ID is provided
   const storedCharges = useQuery(
@@ -163,7 +159,7 @@ export function BillSplitPreview({
                         toast.success(`Payment status updated to ${newStatus}`);
                       } catch (error: any) {
                         toast.error("Failed to update payment status", {
-                          description: error.message || "Please try again or contact support.",
+                          description: error.message || "Please try again or contact support."
                         });
                       }
                     }}

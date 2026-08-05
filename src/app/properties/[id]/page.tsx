@@ -646,7 +646,6 @@ export default function PropertyDetailsPage() {
                 <CardContent>
                   <UnitList 
                     propertyId={propertyId as any}
-                    userId={user.id}
                     onEditUnit={(unit) => {
                       setEditingUnit(unit);
                       setUnitDialogOpen(true);
@@ -1170,7 +1169,6 @@ export default function PropertyDetailsPage() {
             {property && getActiveLeases().length > 0 && (
               <TenantStatementGenerator
                 propertyId={property._id as any}
-                userId={user!.id}
               />
             )}
           </div>
@@ -1285,7 +1283,6 @@ export default function PropertyDetailsPage() {
             <DialogTitle>Add Multiple Units</DialogTitle>
           </DialogHeader>
           <BulkUnitCreator
-            propertyId={propertyId as any}
             onSubmit={async (units) => {
               setLoading(true);
               try {

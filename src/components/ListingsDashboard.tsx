@@ -6,7 +6,6 @@
 "use client";
 
 import { useState } from "react";
-import { useUser } from "@clerk/nextjs";
 import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -17,9 +16,7 @@ import { Input } from "@/components/ui/input";
 import { 
   Building,
   ExternalLink,
-  RefreshCw,
   Search,
-  Filter,
   TrendingUp,
   AlertTriangle,
   CheckCircle,
@@ -54,10 +51,9 @@ interface Property {
 }
 
 export function ListingsDashboard() {
-  const { user } = useUser();
+  
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [selectedProperty, setSelectedProperty] = useState<Id<"properties"> | null>(null);
 
   // Get platform display info
   const platformInfo = getPlatformDisplayInfo();
@@ -126,7 +122,7 @@ export function ListingsDashboard() {
       pending: "Publishing",
       error: "Failed",
       expired: "Expired",
-      paused: "Paused",
+      paused: "Paused"
     };
     return labels[status] || status;
   };
@@ -139,7 +135,7 @@ export function ListingsDashboard() {
     return new Date(dateString).toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
-      year: 'numeric',
+      year: 'numeric'
     });
   };
 
