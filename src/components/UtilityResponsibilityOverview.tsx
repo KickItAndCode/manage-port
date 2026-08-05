@@ -54,9 +54,7 @@ export function UtilityResponsibilityOverview({
 }: UtilityResponsibilityOverviewProps) {
   // Get active leases for the property
   const leases = useQuery(api.leases.getLeasesByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   // Get utility settings for all leases
   const utilitySettings = useQuery(api.leaseUtilitySettings.getUtilitySettingsByProperty, {
@@ -76,9 +74,7 @@ export function UtilityResponsibilityOverview({
 
   // Get units for property to resolve unit identifiers
   const units = useQuery(api.units.getUnitsByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   const calculateUtilityBreakdowns = (): UtilityBreakdown[] => {
     if (!leases || !utilitySettings || !units) return [];

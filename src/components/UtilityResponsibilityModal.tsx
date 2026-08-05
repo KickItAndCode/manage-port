@@ -87,7 +87,7 @@ export function UtilityResponsibilityModal({
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
   
   // Get all active leases
-  const allLeasesResult = useQuery(api.leases.getLeases, { userId, limit: 1000 }); // Get all leases
+  const allLeasesResult = useQuery(api.leases.getLeases, { limit: 1000 }); // Get all leases
   // Extract leases array from paginated result
   const allLeases = allLeasesResult?.leases || (Array.isArray(allLeasesResult) ? allLeasesResult : []);
   

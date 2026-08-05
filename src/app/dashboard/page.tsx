@@ -1056,12 +1056,10 @@ export default function DashboardPage() {
                 setLoading(true);
                 try {
                   await addLease({
-                    ...data,
-                    userId: user.id,
+                    ...data, 
                     propertyId: data.propertyId as any,
                     unitId: data.unitId ? (data.unitId as any) : undefined,
-                    status: data.status as "active" | "expired" | "pending",
-                  });
+                    status: data.status as "active" | "expired" | "pending" });
                   toast.success("Lease created successfully!");
                   setLeaseModalOpen(false);
                 } catch (err: any) {

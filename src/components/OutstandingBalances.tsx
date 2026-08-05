@@ -71,7 +71,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
   const [paidCharges, setPaidCharges] = useState<Set<string>>(new Set());
 
   // Get all active leases
-  const leases = useQuery(api.leases.getActiveLeases, { userId });
+  const leases = useQuery(api.leases.getActiveLeases, {});
 
   // Get outstanding charges using on-demand calculation
   const allCharges = useQuery(api.utilityCharges.calculateAllTenantCharges, {

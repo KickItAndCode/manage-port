@@ -46,9 +46,7 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
 
   // Get leases for the property
   const leases = useQuery(api.leases.getLeasesByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   // Get stored charges and payments for the selected lease + date range
   const statementCharges = useQuery(

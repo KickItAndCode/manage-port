@@ -83,7 +83,7 @@ export default function PropertyDetailsPage() {
   );
   const leasesResult = useQuery(
     api.leases.getLeases,
-    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any, limit: 1000 } : "skip" // Get all leases for property
+    user && isValidPropertyId ? {  propertyId: propertyId as any, limit: 1000 } : "skip" // Get all leases for property
   );
   // Extract leases array from paginated result
   const leases = leasesResult?.leases || (Array.isArray(leasesResult) ? leasesResult : []);
@@ -1256,9 +1256,9 @@ export default function PropertyDetailsPage() {
               setLoading(true);
               try {
                 if (editingUnit) {
-                  await updateUnit({ ...data, userId: user.id });
+                  await updateUnit({ ...data });
                 } else {
-                  await addUnit({ ...data, userId: user.id });
+                  await addUnit({ ...data });
                 }
                 setUnitDialogOpen(false);
                 setEditingUnit(null);
@@ -1291,9 +1291,7 @@ export default function PropertyDetailsPage() {
               try {
                 await bulkCreateUnits({ 
                   propertyId: propertyId as any, 
-                  units, 
-                  userId: user.id 
-                });
+                  units });
                 setBulkUnitDialogOpen(false);
               } catch (err: any) {
                 console.error("Bulk unit creation error:", err);

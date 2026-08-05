@@ -85,7 +85,7 @@ export default function UtilityBillsPage() {
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
   
   const leases = useQuery(api.leases.getActiveLeases,
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
   
   // Get all calculated charges for the user

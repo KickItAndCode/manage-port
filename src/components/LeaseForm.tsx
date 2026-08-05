@@ -69,9 +69,7 @@ export function LeaseForm({ properties, userId, initial, onSubmit, onCancel, loa
   // Query units for selected property
   const units = useQuery(
     api.units.getUnitsByProperty,
-    selectedPropertyId && userId
-      ? { propertyId: selectedPropertyId as Id<"properties">, userId }
-      : "skip"
+    selectedPropertyId && userId ? { propertyId: selectedPropertyId as Id<"properties"> } : "skip"
   );
 
   // Query selected property details to determine if unit selection is required

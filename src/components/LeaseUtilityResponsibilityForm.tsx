@@ -64,9 +64,7 @@ export function LeaseUtilityResponsibilityForm({
 
   // Get all property leases for percentage validation
   const propertyLeases = useQuery(api.leases.getLeasesByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   // Get all utility settings for the property to show context
   const propertyUtilitySettings = useQuery(api.leaseUtilitySettings.getUtilitySettingsByProperty, {

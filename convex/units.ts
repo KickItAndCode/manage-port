@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { requireUser } from "./lib/auth";
 
 // Helper to check property ownership
 async function verifyPropertyOwnership(
@@ -41,11 +42,11 @@ export const addUnit = mutation({
     bathrooms: v.optional(v.number()),
     squareFeet: v.optional(v.number()),
     notes: v.optional(v.string()),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, userId);
     if (!isOwner) {
       throw new Error("You do not have permission to add units to this property");
     }
@@ -88,16 +89,16 @@ export const updateUnit = mutation({
     bathrooms: v.optional(v.number()),
     squareFeet: v.optional(v.number()),
     notes: v.optional(v.string()),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const unit = await ctx.db.get(args.id);
     if (!unit) {
       throw new Error("Unit not found");
     }
 
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, userId);
     if (!isOwner) {
       throw new Error("You do not have permission to update this unit");
     }
@@ -135,16 +136,16 @@ export const updateUnit = mutation({
 export const deleteUnit = mutation({
   args: {
     id: v.id("units"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const unit = await ctx.db.get(args.id);
     if (!unit) {
       throw new Error("Unit not found");
     }
 
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, userId);
     if (!isOwner) {
       throw new Error("You do not have permission to delete this unit");
     }
@@ -181,14 +182,14 @@ export const deleteUnit = mutation({
 export const getUnit = query({
   args: {
     id: v.id("units"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const unit = await ctx.db.get(args.id);
     if (!unit) return null;
 
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, userId);
     if (!isOwner) return null;
 
     return unit;
@@ -199,11 +200,11 @@ export const getUnit = query({
 export const getUnitsByProperty = query({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, userId);
     if (!isOwner) return [];
 
     const units = await ctx.db
@@ -220,14 +221,14 @@ export const getUnitsByProperty = query({
 export const getUnitWithLease = query({
   args: {
     unitId: v.id("units"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const unit = await ctx.db.get(args.unitId);
     if (!unit) return null;
 
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, userId);
     if (!isOwner) return null;
 
     // Get active lease for this unit
@@ -248,11 +249,11 @@ export const getUnitWithLease = query({
 export const getAvailableUnits = query({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, userId);
     if (!isOwner) return [];
 
     const units = await ctx.db
@@ -275,11 +276,11 @@ export const bulkCreateUnits = mutation({
       bathrooms: v.optional(v.number()),
       squareFeet: v.optional(v.number()),
     })),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, userId);
     if (!isOwner) {
       throw new Error("You do not have permission to add units to this property");
     }
@@ -330,11 +331,11 @@ export const bulkCreateUnits = mutation({
 export const getUnitStats = query({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, userId);
     if (!isOwner) return null;
 
     const units = await ctx.db

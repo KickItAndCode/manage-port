@@ -76,12 +76,12 @@ export function UtilityResponsibilitySnapshot({
   // Get leases - either by property or all leases
   const leasesByProperty = useQuery(
     api.leases.getLeasesByProperty,
-    propertyId ? { propertyId, userId } : "skip"
+    propertyId ? { propertyId } : "skip"
   );
   
   const allLeasesResult = useQuery(
     api.leases.getLeases,
-    (!propertyId && userId) ? { userId, limit: 1000 } : "skip" // Get all leases
+    (!propertyId && userId) ? { limit: 1000 } : "skip" // Get all leases
   );
   // Extract leases array from paginated result
   const allLeases = allLeasesResult?.leases || (Array.isArray(allLeasesResult) ? allLeasesResult : []);
@@ -111,7 +111,7 @@ export function UtilityResponsibilitySnapshot({
   // Get units for property to resolve unit identifiers
   const units = useQuery(
     api.units.getUnitsByProperty,
-    propertyId ? { propertyId, userId } : "skip"
+    propertyId ? { propertyId } : "skip"
   );
 
   const getUtilityIcon = (type: string) => {

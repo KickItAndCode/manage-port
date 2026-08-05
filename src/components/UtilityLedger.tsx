@@ -77,7 +77,7 @@ export function UtilityLedger({
   // Get leases for context
   const leases = useQuery(
     api.leases.getLeasesByProperty,
-    bill?.propertyId ? { propertyId: bill.propertyId, userId } : "skip"
+    bill?.propertyId ? { propertyId: bill.propertyId } : "skip"
   );
 
   // Get property for context

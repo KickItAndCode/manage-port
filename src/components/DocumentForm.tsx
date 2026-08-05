@@ -47,7 +47,7 @@ export function DocumentForm({ document, open, onOpenChange, onSave }: DocumentF
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
   
   const leasesResult = useQuery(api.leases.getLeases, 
-    user ? { userId: user.id, limit: 1000 } : "skip" // Get all leases for dropdown
+    isAuthenticated ? {  limit: 1000 } : "skip" // Get all leases for dropdown
   );
   // Extract leases array from paginated result
   const leases = leasesResult?.leases || (Array.isArray(leasesResult) ? leasesResult : []);

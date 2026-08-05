@@ -46,15 +46,11 @@ export function PropertyUtilityAllocation({
 
   // Get active leases for the property
   const leases = useQuery(api.leases.getLeasesByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   // Get units for property to resolve unit identifiers
   const units = useQuery(api.units.getUnitsByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   // Get existing utility settings
   const utilitySettings = useQuery(api.leaseUtilitySettings.getUtilitySettingsByProperty, {

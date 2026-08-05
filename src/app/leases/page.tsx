@@ -48,12 +48,10 @@ function LeasesPageContent() {
   // Query leases with pagination when not searching, or fetch all when searching
   const leasesResult = useQuery(
     api.leases.getLeases,
-    user ? {
-      userId: user.id,
+    isAuthenticated ? { 
       propertyId: filterProperty ? (filterProperty as any) : undefined,
       limit: isSearchMode ? 1000 : itemsPerPage,
-      offset: isSearchMode ? 0 : (currentPage - 1) * itemsPerPage,
-    } : "skip"
+      offset: isSearchMode ? 0 : (currentPage - 1) * itemsPerPage } : "skip"
   );
   
   // Extract leases and pagination info
@@ -162,7 +160,7 @@ function LeasesPageContent() {
         setLoading(true);
         setError(null);
         try {
-          await deleteLease({ id: lease._id as any, userId: user.id });
+          await deleteLease({ id: lease._id as any });
           toast.success("Lease deleted successfully");
         } catch (err: any) {
           const errorMessage = formatErrorForToast(err);
@@ -193,13 +191,12 @@ function LeasesPageContent() {
       if (editLease) {
         await updateLease({ 
           ...form, 
-          id: editLease._id, 
-          userId: user.id, 
+          id: editLease._id,  
           propertyId: form.propertyId as any,
           unitId: form.unitId as any
         });
       } else {
-        await addLease({ ...form, userId: user.id, propertyId: form.propertyId as any });
+        await addLease({ ...form,  propertyId: form.propertyId as any });
       }
       
       // Document creation is handled by the addLease mutation
