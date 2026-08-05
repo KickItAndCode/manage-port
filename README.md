@@ -1,7 +1,6 @@
 # ManagePort
 
-**Status**: Phase 3 - Experience Deepening (In Progress)  
-**Last Updated**: January 27, 2025  
+**Last Updated**: August 4, 2026  
 **Package Manager**: Bun
 
 > 📖 **Quick Start**: See `docs/QUICK_START.md` for immediate next steps  
@@ -58,14 +57,19 @@ A modern property management platform for landlords and property managers to eff
 
 ## Testing
 
-This project uses Playwright for end-to-end testing.
-
-### Running Tests
+Unit tests run under Vitest; end-to-end tests under Playwright.
 
 ```bash
-# Run all tests
+# Unit tests
 bun run test
 
+# End-to-end tests (needs Clerk credentials in .env.test)
+bun run test:e2e
+```
+
+### Running Playwright
+
+```bash
 # Run tests with UI (visual test runner)
 bun run test:ui
 
