@@ -187,8 +187,7 @@ export default function DocumentUploadForm({
           const { storageId } = await result.json();
 
           // Create document record using the older addDocument mutation for better compatibility
-          await addDocument({
-            userId: user.id,
+          await addDocument({ 
             url: storageId,
             name: file.name,
             type: formData.type,
@@ -199,8 +198,7 @@ export default function DocumentUploadForm({
             mimeType: file.type,
             expiryDate: formData.expiryDate || undefined,
             tags: formData.tags.length > 0 ? formData.tags : undefined,
-            notes: formData.notes || undefined,
-          });
+            notes: formData.notes || undefined });
 
           uploadedFiles++;
           setUploadProgress((uploadedFiles / totalFiles) * 100);

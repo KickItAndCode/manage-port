@@ -1,7 +1,7 @@
 "use client";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -59,8 +59,9 @@ export function PropertyCard({
   const { user } = useUser();
   
   // Get cover image for this property
+  const { isAuthenticated } = useConvexAuth();
   const coverImage = useQuery(api.propertyImages.getCoverImage, 
-    user ? { propertyId: property._id as any, userId: user.id } : "skip"
+    isAuthenticated ? { propertyId: property._id as any} : "skip"
   );
   
   const isLoadingImage = coverImage === undefined;

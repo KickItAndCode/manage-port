@@ -61,7 +61,7 @@ function LeasesPageContent() {
   const totalPages = Math.ceil(totalLeases / itemsPerPage);
   
   // Get all documents (without pagination for lease document filtering)
-  const allDocumentsResult = useQuery(api.documents.getDocuments, user ? { userId: user.id, limit: 1000 } : "skip");
+  const allDocumentsResult = useQuery(api.documents.getDocuments, isAuthenticated ? {  limit: 1000 } : "skip");
   const allDocuments = allDocumentsResult?.documents || (Array.isArray(allDocumentsResult) ? allDocumentsResult : []);
   
   // Compute status for all leases

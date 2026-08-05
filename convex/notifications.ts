@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { requireUser } from "./lib/auth";
 
 // Notification types
 export const NOTIFICATION_TYPES = {
@@ -75,7 +76,6 @@ export async function createNotification(
 // Public mutation — callable from the client API
 export const createNotificationMutation = mutation({
   args: {
-    userId: v.string(),
     type: v.string(),
     title: v.string(),
     message: v.string(),
@@ -86,21 +86,22 @@ export const createNotificationMutation = mutation({
     metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    return await createNotification(ctx, args);
+    const userId = await requireUser(ctx);
+    return await createNotification(ctx, { ...args, userId });
   },
 });
 
 // Get notifications for a user
 export const getUserNotifications = query({
   args: {
-    userId: v.string(),
     unreadOnly: v.optional(v.boolean()),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     let notifications = await ctx.db
       .query("notifications")
-      .withIndex("by_user_created", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user_created", (q) => q.eq("userId", userId))
       .collect();
 
     // Filter by read status if specified
@@ -125,13 +126,13 @@ export const getUserNotifications = query({
 // Get unread notification count
 export const getUnreadNotificationCount = query({
   args: {
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const notifications = await ctx.db
       .query("notifications")
       .withIndex("by_user_read", (q) =>
-        q.eq("userId", args.userId).eq("read", false)
+        q.eq("userId", userId).eq("read", false)
       )
       .collect();
 
@@ -143,12 +144,12 @@ export const getUnreadNotificationCount = query({
 export const markNotificationAsRead = mutation({
   args: {
     notificationId: v.id("notifications"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const notification = await ctx.db.get(args.notificationId);
 
-    if (!notification || notification.userId !== args.userId) {
+    if (!notification || notification.userId !== userId) {
       throw new Error("Notification not found or unauthorized");
     }
 
@@ -164,13 +165,13 @@ export const markNotificationAsRead = mutation({
 // Mark all notifications as read
 export const markAllNotificationsAsRead = mutation({
   args: {
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const unreadNotifications = await ctx.db
       .query("notifications")
       .withIndex("by_user_read", (q) =>
-        q.eq("userId", args.userId).eq("read", false)
+        q.eq("userId", userId).eq("read", false)
       )
       .collect();
 
@@ -190,12 +191,12 @@ export const markAllNotificationsAsRead = mutation({
 export const deleteNotification = mutation({
   args: {
     notificationId: v.id("notifications"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const notification = await ctx.db.get(args.notificationId);
 
-    if (!notification || notification.userId !== args.userId) {
+    if (!notification || notification.userId !== userId) {
       throw new Error("Notification not found or unauthorized");
     }
 

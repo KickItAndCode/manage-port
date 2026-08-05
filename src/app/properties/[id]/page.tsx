@@ -89,13 +89,13 @@ export default function PropertyDetailsPage() {
   const leases = leasesResult?.leases || (Array.isArray(leasesResult) ? leasesResult : []);
   const documentsResult = useQuery(
     api.documents.getDocuments,
-    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any, limit: 1000 } : "skip"
+    user && isValidPropertyId ? {  propertyId: propertyId as any, limit: 1000 } : "skip"
   );
   // Extract documents array from paginated result
   const documents = documentsResult?.documents || (Array.isArray(documentsResult) ? documentsResult : []);
   const propertyImages = useQuery(
     api.propertyImages.getPropertyImages,
-    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
+    user && isValidPropertyId ? {  propertyId: propertyId as any } : "skip"
   );
   const propertyWithUnits = useQuery(
     api.properties.getPropertyWithUnits,

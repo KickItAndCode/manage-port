@@ -1,6 +1,6 @@
 "use client";
 import React from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -71,6 +71,7 @@ export function ActivityTimeline({
   showFilters = true,
   className,
 }: ActivityTimelineProps) {
+  const { isAuthenticated } = useConvexAuth();
   const { user } = useUser();
   const [dateRange, setDateRange] = React.useState<string>("month");
   const [activityType, setActivityType] = React.useState<string>("all");
@@ -83,21 +84,18 @@ export function ActivityTimeline({
       : leaseId
       ? api.activityLog.getLeaseActivities
       : api.activityLog.getUserActivities,
-    user
+    isAuthenticated
       ? propertyId
         ? {
-            userId: user.id,
             propertyId: propertyId as any,
             limit,
           }
         : leaseId
         ? {
-            userId: user.id,
             leaseId: leaseId as any,
             limit,
           }
         : {
-            userId: user.id,
             entityType: activityType !== "all" ? activityType : undefined,
             dateRange: dateRange as any,
             limit,

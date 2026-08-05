@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
@@ -45,9 +45,10 @@ export default function SettingsPage() {
   const [localSettings, setLocalSettings] = useState<any>(null);
 
   // Convex hooks
+  const { isAuthenticated } = useConvexAuth();
   const userSettings = useQuery(
     api.userSettings.getUserSettings,
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
   const updateDashboardComponents = useMutation(
     api.userSettings.updateDashboardComponents
@@ -99,7 +100,7 @@ export default function SettingsPage() {
   const handleThemeChange = async (newTheme: "light" | "dark" | "system") => {
     try {
       setTheme(newTheme);
-      await updateThemeMutation({ userId: user.id, theme: newTheme });
+      await updateThemeMutation({  theme: newTheme });
       setLocalSettings((prev: any) => ({ ...prev, theme: newTheme }));
       toast.success("Theme updated successfully");
     } catch (error) {
@@ -111,10 +112,8 @@ export default function SettingsPage() {
     try {
       // Save dashboard components if changed
       if (hasChanges) {
-        await updateDashboardComponents({
-          userId: user.id,
-          componentUpdates: localSettings.dashboardComponents,
-        });
+        await updateDashboardComponents({ 
+          componentUpdates: localSettings.dashboardComponents });
       }
       setHasChanges(false);
       toast.success("Settings saved successfully");
@@ -134,12 +133,9 @@ export default function SettingsPage() {
       }));
 
       // Save immediately for notification preferences
-      await updateNotificationPreferences({
-        userId: user.id,
+      await updateNotificationPreferences({ 
         notificationUpdates: {
-          [key]: value,
-        },
-      });
+          [key]: value } });
       toast.success("Notification preference updated");
     } catch (error) {
       toast.error(formatErrorForToast(error));

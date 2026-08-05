@@ -43,11 +43,11 @@ function SearchResultItem({
   onNavigate: (id: string) => void;
   onMouseEnter: (index: number) => void;
 }) {
-  const { user } = useUser();
+  const { isAuthenticated } = useConvexAuth();
 
   const coverImage = useQuery(
     api.propertyImages.getCoverImage,
-    user ? { propertyId: property._id as any, userId: user.id } : "skip"
+    isAuthenticated ? { propertyId: property._id as any} : "skip"
   );
 
   return (

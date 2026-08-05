@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef, useEffect, useCallback } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
@@ -61,8 +61,9 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
   const carouselRef = useRef<HTMLDivElement>(null);
 
   // Queries
+  const { isAuthenticated } = useConvexAuth();
   const images = useQuery(api.propertyImages.getPropertyImages, 
-    user ? { propertyId: propertyId as any, userId: user.id } : "skip"
+    isAuthenticated ? { propertyId: propertyId as any} : "skip"
   );
 
   // Mutations
@@ -73,7 +74,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
   const handleSetCoverImage = async (imageId: string) => {
     if (!user) return;
     try {
-      await setCoverImage({ userId: user.id, imageId: imageId as any });
+      await setCoverImage({  imageId: imageId as any });
     } catch (error) {
       console.error("Error setting cover image:", error);
     }
@@ -101,7 +102,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
           storageId: imageObj?.storageId
         });
         
-        const result = await deletePropertyImage({ userId: user.id, imageId: imageId as any });
+        const result = await deletePropertyImage({  imageId: imageId as any });
         console.log("Delete mutation completed successfully:", result);
         
         // Clear from selection
@@ -131,12 +132,10 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
     if (!user || !editingImage) return;
     
     try {
-      await updatePropertyImage({
-        userId: user.id,
+      await updatePropertyImage({ 
         imageId: editingImage._id as any,
         name: imageData.name,
-        description: imageData.description,
-      });
+        description: imageData.description });
       setEditingImage(null);
     } catch (error) {
       console.error("Error updating image:", error);
@@ -214,7 +213,7 @@ export function PropertyImageGallery({ propertyId, className }: PropertyImageGal
     
     try {
       const deletePromises = Array.from(selectedImages).map(imageId => 
-        deletePropertyImage({ userId: user.id, imageId: imageId as any })
+        deletePropertyImage({  imageId: imageId as any })
       );
       
       await Promise.all(deletePromises);

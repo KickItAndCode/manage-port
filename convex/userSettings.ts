@@ -1,6 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import type { QueryCtx, MutationCtx } from "./_generated/server";
+import { requireUser } from "./lib/auth";
 
 // Default dashboard component settings
 const DEFAULT_DASHBOARD_COMPONENTS = {
@@ -30,17 +31,18 @@ const DEFAULT_DISPLAY_PREFERENCES = {
 
 // Get user settings
 export const getUserSettings = query({
-  args: { userId: v.string() },
+  args: {},
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const settings = await ctx.db
       .query("userSettings")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
 
     // Return settings with defaults if none exist
     if (!settings) {
       return {
-        userId: args.userId,
+        userId,
         theme: "system" as const,
         dashboardComponents: DEFAULT_DASHBOARD_COMPONENTS,
         notificationPreferences: DEFAULT_NOTIFICATION_PREFERENCES,
@@ -165,7 +167,6 @@ async function updateUserSettingsHelper(
 // Update user settings
 export const updateUserSettings = mutation({
   args: {
-    userId: v.string(),
     theme: v.optional(v.union(v.literal("light"), v.literal("dark"), v.literal("system"))),
     dashboardComponents: v.optional(v.object({
       showMetrics: v.optional(v.boolean()),
@@ -191,14 +192,14 @@ export const updateUserSettings = mutation({
     })),
   },
   handler: async (ctx, args) => {
-    return await updateUserSettingsHelper(ctx, args);
+    const userId = await requireUser(ctx);
+    return await updateUserSettingsHelper(ctx, { ...args, userId });
   },
 });
 
 // Update dashboard component visibility
 export const updateDashboardComponents = mutation({
   args: {
-    userId: v.string(),
     componentUpdates: v.object({
       showMetrics: v.optional(v.boolean()),
       showCharts: v.optional(v.boolean()),
@@ -210,8 +211,9 @@ export const updateDashboardComponents = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     return await updateUserSettingsHelper(ctx, {
-      userId: args.userId,
+      userId,
       dashboardComponents: args.componentUpdates,
     });
   },
@@ -220,7 +222,6 @@ export const updateDashboardComponents = mutation({
 // Update notification preferences
 export const updateNotificationPreferences = mutation({
   args: {
-    userId: v.string(),
     notificationUpdates: v.object({
       emailNotifications: v.optional(v.boolean()),
       pushNotifications: v.optional(v.boolean()),
@@ -230,8 +231,9 @@ export const updateNotificationPreferences = mutation({
     }),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     return await updateUserSettingsHelper(ctx, {
-      userId: args.userId,
+      userId,
       notificationPreferences: args.notificationUpdates,
     });
   },
@@ -240,12 +242,12 @@ export const updateNotificationPreferences = mutation({
 // Update theme preference
 export const updateTheme = mutation({
   args: {
-    userId: v.string(),
     theme: v.union(v.literal("light"), v.literal("dark"), v.literal("system")),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     return await updateUserSettingsHelper(ctx, {
-      userId: args.userId,
+      userId,
       theme: args.theme,
     });
   },

@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { requireUser } from "./lib/auth";
 
 // Activity types
 export const ACTIVITY_TYPES = {
@@ -47,7 +48,6 @@ export async function logActivity(
 // Public mutation — callable from the client API
 export const logActivityMutation = mutation({
   args: {
-    userId: v.string(),
     entityType: v.string(),
     entityId: v.string(),
     action: v.string(),
@@ -55,14 +55,14 @@ export const logActivityMutation = mutation({
     metadata: v.optional(v.any()),
   },
   handler: async (ctx, args) => {
-    return await logActivity(ctx, args);
+    const userId = await requireUser(ctx);
+    return await logActivity(ctx, { ...args, userId });
   },
 });
 
 // Get activities for a user (with filters)
 export const getUserActivities = query({
   args: {
-    userId: v.string(),
     entityType: v.optional(v.string()),
     entityId: v.optional(v.string()),
     dateRange: v.optional(v.union(
@@ -75,9 +75,10 @@ export const getUserActivities = query({
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     let activities = await ctx.db
       .query("activityLog")
-      .withIndex("by_user_timestamp", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user_timestamp", (q) => q.eq("userId", userId))
       .collect();
 
     // Filter by entity type if provided
@@ -135,16 +136,16 @@ export const getUserActivities = query({
 // Get activities for a specific property
 export const getPropertyActivities = query({
   args: {
-    userId: v.string(),
     propertyId: v.id("properties"),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Get activities directly related to the property
     // Use by_user_timestamp index and filter by entityType and entityId
     const propertyActivities = await ctx.db
       .query("activityLog")
-      .withIndex("by_user_timestamp", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user_timestamp", (q) => q.eq("userId", userId))
       .collect();
 
     // Filter for property-related activities
@@ -168,14 +169,14 @@ export const getPropertyActivities = query({
 // Get activities for a specific lease
 export const getLeaseActivities = query({
   args: {
-    userId: v.string(),
     leaseId: v.id("leases"),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const activities = await ctx.db
       .query("activityLog")
-      .withIndex("by_user_timestamp", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user_timestamp", (q) => q.eq("userId", userId))
       .collect();
 
     // Filter for lease-related activities

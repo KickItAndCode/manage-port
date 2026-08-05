@@ -216,16 +216,14 @@ export function UtilityBillForm({
       
       const { storageId } = await result.json();
       
-      await addDocument({
-        userId: user.id,
+      await addDocument({ 
         url: storageId,
         name: file.name,
         type: DOCUMENT_TYPES.UTILITY_BILL,
         propertyId: propertyId ? propertyId as any : undefined,
         fileSize: file.size,
         mimeType: file.type,
-        notes: "Utility bill document uploaded during bill creation",
-      });
+        notes: "Utility bill document uploaded during bill creation" });
       
       setUploadedFile({ name: file.name, storageId });
     } catch (error) {

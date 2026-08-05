@@ -168,14 +168,10 @@ export const DashboardKPIs = memo(function DashboardKPIs({
 
   const metrics = useQuery(
     api.dashboard.getDashboardMetrics,
-    userId
-      ? {
-          userId,
+    isAuthenticated ? {
           propertyId: filters?.propertyId,
           dateRange: filters?.dateRange,
-          status: filters?.status,
-        }
-      : "skip"
+          status: filters?.status } : "skip"
   );
 
   const utilityInsights = useQuery(

@@ -248,17 +248,18 @@ const DashboardLoadingSkeleton = () => (
 );
 
 export default function DashboardPage() {
+  const { isAuthenticated } = useConvexAuth();
   const { user, isLoaded: isUserLoaded } = useUser();
   const router = useRouter();
   const metrics = useQuery(
     api.dashboard.getDashboardMetrics,
-    user?.id ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   // Get user settings for component visibility
   const userSettings = useQuery(
     api.userSettings.getUserSettings,
-    user?.id ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   // Modal states
@@ -280,7 +281,6 @@ export default function DashboardPage() {
   const addUtilityBill = useMutation(api.utilityBills.addUtilityBill);
 
   // Get additional data for forms
-  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
     isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for dashboard

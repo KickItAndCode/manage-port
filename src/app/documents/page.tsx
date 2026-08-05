@@ -473,12 +473,12 @@ export default function DocumentsPage() {
 
   const expiringDocs = useQuery(
     api.documents.getExpiringDocuments,
-    user ? { userId: user.id, daysAhead: 30 } : "skip"
+    isAuthenticated ? {  daysAhead: 30 } : "skip"
   );
 
   const docStats = useQuery(
     api.documents.getDocumentStats,
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   // Mutations
@@ -523,9 +523,7 @@ export default function DocumentsPage() {
       onConfirm: async () => {
         try {
           const result = await bulkDeleteDocuments({
-            documentIds: Array.from(selectedDocuments) as any,
-            userId: user.id,
-          });
+            documentIds: Array.from(selectedDocuments) as any });
 
           toast.success(
             `Successfully deleted ${result.success} document${result.success !== 1 ? "s" : ""}`,
@@ -556,12 +554,10 @@ export default function DocumentsPage() {
 
     try {
       const result = await bulkUpdateTags({
-        documentIds: Array.from(selectedDocuments) as any,
-        userId: user.id,
+        documentIds: Array.from(selectedDocuments) as any, 
         tagsToAdd: bulkTagsToAdd.length > 0 ? bulkTagsToAdd : undefined,
         tagsToRemove:
-          bulkTagsToRemove.length > 0 ? bulkTagsToRemove : undefined,
-      });
+          bulkTagsToRemove.length > 0 ? bulkTagsToRemove : undefined });
 
       toast.success(
         `Successfully updated tags for ${result.success} document${result.success !== 1 ? "s" : ""}`,
@@ -1087,9 +1083,7 @@ export default function DocumentsPage() {
                                     onConfirm: async () => {
                                       try {
                                         await deleteDocument({
-                                          id: doc._id,
-                                          userId: user.id,
-                                        });
+                                          id: doc._id });
                                       } catch (err: any) {
                                         console.error(
                                           "Delete document error:",

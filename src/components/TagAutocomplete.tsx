@@ -1,6 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "../../convex/_generated/api";
 import { Input } from "./ui/input";
@@ -29,9 +29,10 @@ export function TagAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Get all existing tags
+  const { isAuthenticated } = useConvexAuth();
   const allTags = useQuery(
     api.documents.getAllTags,
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   ) || [];
 
   // Filter suggestions based on input

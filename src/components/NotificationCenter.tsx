@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { api } from "../../convex/_generated/api";
@@ -57,14 +57,15 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
+  const { isAuthenticated } = useConvexAuth();
   const notifications = useQuery(
     api.notifications.getUserNotifications,
-    user ? { userId: user.id, limit: 50 } : "skip"
+    isAuthenticated ? {  limit: 50 } : "skip"
   );
 
   const unreadCount = useQuery(
     api.notifications.getUnreadNotificationCount,
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   const markAsRead = useMutation(api.notifications.markNotificationAsRead);
@@ -81,9 +82,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
     if (!notification.read) {
       try {
         await markAsRead({
-          notificationId: notification._id,
-          userId: user!.id,
-        });
+          notificationId: notification._id });
       } catch (error) {
         console.error("Error marking notification as read:", error);
       }
@@ -101,7 +100,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
     if (!user) return;
 
     try {
-      await markAllAsRead({ userId: user.id });
+      await markAllAsRead({});
     } catch (error) {
       console.error("Error marking all as read:", error);
     }
@@ -116,9 +115,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
 
     try {
       await deleteNotification({
-        notificationId,
-        userId: user.id,
-      });
+        notificationId });
     } catch (error) {
       console.error("Error deleting notification:", error);
     }
