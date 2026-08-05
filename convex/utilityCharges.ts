@@ -9,6 +9,7 @@ import {
   requireChargeOwner,
 } from "./lib/auth";
 import { filterActiveLeases } from "./lib/leaseStatus";
+import { allocateCents } from "./lib/money";
 
 /** Shape returned by calculateAllTenantCharges */
 export interface CalculatedTenantCharge {
@@ -55,7 +56,8 @@ async function generateChargesForBillHelper(ctx: MutationCtx, billId: Id<"utilit
 
   const charges = [];
 
-  // 3. For each active lease, calculate charge
+  // 3. Collect each active lease's responsibility for this utility.
+  const shares = [];
   for (const lease of activeLeases) {
     const utilitySetting = await ctx.db
       .query("leaseUtilitySettings")
@@ -64,23 +66,32 @@ async function generateChargesForBillHelper(ctx: MutationCtx, billId: Id<"utilit
       .first();
 
     if (utilitySetting && utilitySetting.responsibilityPercentage > 0) {
-      const chargedAmount = (bill.totalAmount * utilitySetting.responsibilityPercentage) / 100;
-      
-      // Create the charge
-      const chargeId = await ctx.db.insert("utilityCharges", {
-        leaseId: lease._id,
-        utilityBillId: billId,
-        unitId: lease.unitId,
-        tenantName: lease.tenantName,
-        chargedAmount,
-        responsibilityPercentage: utilitySetting.responsibilityPercentage,
-        dueDate: bill.dueDate,
-        status: "pending",
-        createdAt: new Date().toISOString(),
+      shares.push({
+        item: lease,
+        percentage: utilitySetting.responsibilityPercentage,
       });
-
-      charges.push(chargeId);
     }
+  }
+
+  // 4. Split in cents so the stored charges sum back to the bill total and
+  //    match what getBillSplitPreview showed.
+  const { allocations } = allocateCents(bill.totalAmount, shares);
+
+  for (const allocation of allocations) {
+    const lease = allocation.item;
+    const chargeId = await ctx.db.insert("utilityCharges", {
+      leaseId: lease._id,
+      utilityBillId: billId,
+      unitId: lease.unitId,
+      tenantName: lease.tenantName,
+      chargedAmount: allocation.amount,
+      responsibilityPercentage: allocation.percentage,
+      dueDate: bill.dueDate,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+    });
+
+    charges.push(chargeId);
   }
 
   // 4. Comprehensive validation

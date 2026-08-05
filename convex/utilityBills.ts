@@ -8,6 +8,7 @@ import {
 } from "./utilityCharges";
 import { requireUser } from "./lib/auth";
 import { filterActiveLeases } from "./lib/leaseStatus";
+import { allocateCents } from "./lib/money";
 
 // Types for aggregated data
 export interface UtilityPageData {
@@ -905,13 +906,13 @@ export const getBillSplitPreview = query({
       }
 
       if (setting && setting.responsibilityPercentage > 0) {
-        const chargedAmount =
-          (args.totalAmount * setting.responsibilityPercentage) / 100;
+        // Amount is filled in below by the shared cent allocator, so the
+        // preview matches the charges that generation will persist.
         charges.push({
           leaseId: lease._id,
           unitId: lease.unitId,
           tenantName: lease.tenantName,
-          chargedAmount: Math.round(chargedAmount * 100) / 100, // Round to cents
+          chargedAmount: 0,
           responsibilityPercentage: setting.responsibilityPercentage,
           unit: unitInfo,
           hasUtilitySettings: true,
@@ -932,9 +933,17 @@ export const getBillSplitPreview = query({
       }
     }
 
-    // Calculate owner portion
-    const ownerPortion =
-      args.totalAmount - (args.totalAmount * totalTenantPercentage) / 100;
+    // Split in cents across the charges that carry a percentage. This is the
+    // same allocator charge generation uses, so preview and stored charges
+    // agree to the penny and always sum back to the bill total.
+    const billable = charges.filter((c) => c.responsibilityPercentage > 0);
+    const { allocations, ownerAmount: ownerPortion } = allocateCents(
+      args.totalAmount,
+      billable.map((c) => ({ item: c, percentage: c.responsibilityPercentage }))
+    );
+    for (const allocation of allocations) {
+      allocation.item.chargedAmount = allocation.amount;
+    }
 
     // Determine validity and messages
     let isValid = true;
@@ -962,7 +971,7 @@ export const getBillSplitPreview = query({
 
     return {
       charges,
-      ownerPortion: Math.round(ownerPortion * 100) / 100,
+      ownerPortion,
       totalTenantPercentage,
       leasesWithSettings,
       totalLeases: activeLeases.length,

@@ -140,14 +140,20 @@ export function sortLeasesByStatus<T extends { startDate: string; endDate: strin
     const priorityDiff = statusPriority[statusA] - statusPriority[statusB];
     
     if (priorityDiff !== 0) return priorityDiff;
-    
-    // Within same status, sort by relevant date
-    if (statusA === "active" || statusA === "expired") {
-      // Sort by end date (soonest first for active, most recent first for expired)
-      return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
-    } else {
-      // Sort pending by start date (soonest first)
-      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+
+    // Within the same status, sort by the date that matters for that status.
+    // Dates are YYYY-MM-DD, so string comparison orders them correctly and
+    // avoids the timezone shifts that Date parsing introduces.
+    if (statusA === "active") {
+      // Soonest expiry first — those are the ones needing attention.
+      return a.endDate.localeCompare(b.endDate);
     }
+    if (statusA === "expired") {
+      // Most recently expired first; a lease that lapsed years ago is the
+      // least interesting thing on the list.
+      return b.endDate.localeCompare(a.endDate);
+    }
+    // Pending: soonest to start first.
+    return a.startDate.localeCompare(b.startDate);
   });
 }

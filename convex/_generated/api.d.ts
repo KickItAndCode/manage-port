@@ -23,6 +23,7 @@ import type * as leaseUtilitySettings from "../leaseUtilitySettings.js";
 import type * as leases from "../leases.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_leaseStatus from "../lib/leaseStatus.js";
+import type * as lib_money from "../lib/money.js";
 import type * as listingJobs from "../listingJobs.js";
 import type * as listingPublications from "../listingPublications.js";
 import type * as migrate from "../migrate.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   leases: typeof leases;
   "lib/auth": typeof lib_auth;
   "lib/leaseStatus": typeof lib_leaseStatus;
+  "lib/money": typeof lib_money;
   listingJobs: typeof listingJobs;
   listingPublications: typeof listingPublications;
   migrate: typeof migrate;
