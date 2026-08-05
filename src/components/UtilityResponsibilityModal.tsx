@@ -93,7 +93,7 @@ export function UtilityResponsibilityModal({
   
   // Get existing utility settings
   const utilitySettings = useQuery(api.leaseUtilitySettings.getUtilitySettingsByProperty, 
-    selectedPropertyId ? { propertyId: selectedPropertyId, userId } : "skip"
+    selectedPropertyId ? { propertyId: selectedPropertyId } : "skip"
   );
 
   const saveUtilitySettings = useMutation(api.leaseUtilitySettings.setPropertyUtilityAllocations);
@@ -320,10 +320,7 @@ export function UtilityResponsibilityModal({
         propertyId: selectedPropertyId!,
         allocations: propertyAllocation.leases.map(lease => ({
           leaseId: lease.leaseId,
-          percentage: lease.percentage,
-        })),
-        userId,
-      });
+          percentage: lease.percentage })) });
 
       const ownerPercentage = 100 - propertyAllocation.totalAllocated;
       if (ownerPercentage > 0) {

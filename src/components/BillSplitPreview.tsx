@@ -38,7 +38,7 @@ export function BillSplitPreview({
   // Get bill details for display
   const billDetails = useQuery(
     api.utilityBills.getUtilityBill,
-    billId ? { billId, userId } : "skip"
+    billId ? { billId } : "skip"
   );
 
   // Get real-time split preview for form mode
@@ -47,9 +47,7 @@ export function BillSplitPreview({
     !billId && propertyId && utilityType && totalAmount > 0 ? {
       propertyId,
       utilityType,
-      totalAmount,
-      userId,
-    } : "skip"
+      totalAmount } : "skip"
   );
 
   // Mutation for marking charges as paid
@@ -161,9 +159,7 @@ export function BillSplitPreview({
                         const newStatus = charge.status === "paid" ? "pending" : "paid";
                         await markChargePaid({
                           chargeId: charge._id,
-                          status: newStatus,
-                          userId,
-                        });
+                          status: newStatus });
                         toast.success(`Payment status updated to ${newStatus}`);
                       } catch (error: any) {
                         toast.error("Failed to update payment status", {

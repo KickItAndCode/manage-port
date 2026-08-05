@@ -55,16 +55,14 @@ export function QuickAddBill({ defaultPropertyId, onSuccess }: QuickAddBillProps
       monthDate.setMonth(monthDate.getMonth() + 1);
       const dueDate = `${monthDate.toISOString().slice(0, 7)}-15`;
 
-      await addBill({
-        userId: user.id,
+      await addBill({ 
         propertyId: propertyId as Id<"properties">,
         utilityType,
         provider: utilityType, // Default provider to utility type for quick add
         totalAmount: parseFloat(amount),
         billMonth,
         billDate,
-        dueDate,
-      });
+        dueDate });
 
       toast.success(`${utilityType} bill added — $${parseFloat(amount).toFixed(2)}`);
 

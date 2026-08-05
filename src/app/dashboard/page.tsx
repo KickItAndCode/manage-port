@@ -1100,11 +1100,9 @@ export default function DashboardPage() {
               onSubmit={async (data) => {
                 setLoading(true);
                 try {
-                  await addUtilityBill({
-                    userId: user.id,
+                  await addUtilityBill({ 
                     ...data,
-                    propertyId: data.propertyId as any,
-                  });
+                    propertyId: data.propertyId as any });
                   setUtilityBillModalOpen(false);
                 } catch (err: any) {
                   console.error("Add utility bill error:", err);

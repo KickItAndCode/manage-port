@@ -58,17 +58,13 @@ export function PaymentHistory({
 
   // Get payment history
   const payments = useQuery(api.utilityPayments.getPaymentHistory, {
-    userId,
     propertyId,
-    leaseId,
-  });
+    leaseId });
 
   // Get summary statistics
   const summary = useQuery(api.utilityPayments.getPaymentSummary, {
-    userId,
     propertyId,
-    leaseId,
-  });
+    leaseId });
 
   const getPaymentMethodIcon = (method: string) => {
     switch (method) {

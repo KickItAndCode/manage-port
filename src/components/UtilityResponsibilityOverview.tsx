@@ -58,9 +58,7 @@ export function UtilityResponsibilityOverview({
 
   // Get utility settings for all leases
   const utilitySettings = useQuery(api.leaseUtilitySettings.getUtilitySettingsByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   const getUtilityIcon = (type: string) => {
     const utility = UTILITY_TYPES.find(u => u.type === type);

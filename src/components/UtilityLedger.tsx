@@ -65,13 +65,13 @@ export function UtilityLedger({
   // Get bill details
   const bill = useQuery(
     api.utilityBills.getUtilityBill,
-    billId ? { billId, userId } : "skip"
+    billId ? { billId } : "skip"
   );
 
   // Get charges for this bill
   const charges = useQuery(
     api.utilityBills.getChargesForBill,
-    billId ? { billId, userId } : "skip"
+    billId ? { billId } : "skip"
   );
 
   // Get leases for context
@@ -96,9 +96,7 @@ export function UtilityLedger({
     try {
       await updateBill({
         id: billId,
-        userId,
-        noTenantCharges: isHistorical,
-      });
+        noTenantCharges: isHistorical });
       toast.success(
         isHistorical
           ? "Bill marked as historical - no tenant charges will be generated"

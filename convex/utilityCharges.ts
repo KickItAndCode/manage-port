@@ -2,6 +2,12 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import {
+  requireUser,
+  requireBillOwner,
+  requireLeaseOwner,
+  requireChargeOwner,
+} from "./lib/auth";
 
 /** Shape returned by calculateAllTenantCharges */
 export interface CalculatedTenantCharge {
@@ -154,6 +160,7 @@ export const generateChargesForBill = mutation({
     billId: v.id("utilityBills") 
   },
   handler: async (ctx, args) => {
+    await requireBillOwner(ctx, args.billId);
     return await rebuildChargesForBill(ctx, args.billId);
   },
 });
@@ -164,6 +171,7 @@ export const generateChargesForBill = mutation({
 export const getChargesForBill = query({
   args: { billId: v.id("utilityBills") },
   handler: async (ctx, args) => {
+    await requireBillOwner(ctx, args.billId);
     return await ctx.db
       .query("utilityCharges")
       .withIndex("by_bill", (q) => q.eq("utilityBillId", args.billId))
@@ -177,6 +185,7 @@ export const getChargesForBill = query({
 export const getOutstandingCharges = query({
   args: { leaseId: v.id("leases") },
   handler: async (ctx, args) => {
+    await requireLeaseOwner(ctx, args.leaseId);
     return await ctx.db
       .query("utilityCharges")
       .withIndex("by_lease", (q) => q.eq("leaseId", args.leaseId))
@@ -191,13 +200,13 @@ export const getOutstandingCharges = query({
 export const getChargesByStatus = query({
   args: { 
     status: v.union(v.literal("pending"), v.literal("paid"), v.literal("partial")),
-    userId: v.string()
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Get all charges for user's leases with the specified status
     const userLeases = await ctx.db
       .query("leases")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     const charges = [];
@@ -223,6 +232,7 @@ export const updateChargeStatus = mutation({
     status: v.union(v.literal("pending"), v.literal("paid"), v.literal("partial")),
   },
   handler: async (ctx, args) => {
+    await requireChargeOwner(ctx, args.chargeId);
     await ctx.db.patch(args.chargeId, {
       status: args.status,
       updatedAt: new Date().toISOString(),
@@ -256,6 +266,7 @@ async function deleteChargesForBillHelper(ctx: MutationCtx, billId: Id<"utilityB
 export const deleteChargesForBill = mutation({
   args: { billId: v.id("utilityBills") },
   handler: async (ctx, args) => {
+    await requireBillOwner(ctx, args.billId);
     return await deleteChargesForBillHelper(ctx, args.billId);
   },
 });
@@ -326,6 +337,7 @@ async function validateChargeAmounts(ctx: MutationCtx, billId: Id<"utilityBills"
 export const getTotalPaidForCharge = query({
   args: { chargeId: v.id("utilityCharges") },
   handler: async (ctx, args) => {
+    await requireChargeOwner(ctx, args.chargeId);
     const payments = await ctx.db
       .query("utilityPayments")
       .withIndex("by_charge", (q) => q.eq("chargeId", args.chargeId))
@@ -341,6 +353,7 @@ export const getTotalPaidForCharge = query({
 export const getChargePayments = query({
   args: { chargeId: v.id("utilityCharges") },
   handler: async (ctx, args) => {
+    await requireChargeOwner(ctx, args.chargeId);
     return await ctx.db
       .query("utilityPayments")
       .withIndex("by_charge", (q) => q.eq("chargeId", args.chargeId))
@@ -355,10 +368,10 @@ export const getChargePayments = query({
  */
 export const calculateAllTenantCharges = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Get user's leases (filtered by property if specified)
     let leases;
     if (args.propertyId) {
@@ -366,12 +379,12 @@ export const calculateAllTenantCharges = query({
       leases = await ctx.db
         .query("leases")
         .withIndex("by_property", (q) => q.eq("propertyId", propertyId))
-        .filter((q) => q.eq(q.field("userId"), args.userId))
+        .filter((q) => q.eq(q.field("userId"), userId))
         .collect();
     } else {
       leases = await ctx.db
         .query("leases")
-        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect();
     }
 
@@ -436,14 +449,14 @@ export const calculateAllTenantCharges = query({
 export const getChargesForStatement = query({
   args: {
     leaseId: v.id("leases"),
-    userId: v.string(),
     startMonth: v.string(), // "YYYY-MM"
     endMonth: v.string(),   // "YYYY-MM"
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify ownership through the lease
     const lease = await ctx.db.get(args.leaseId);
-    if (!lease || lease.userId !== args.userId) {
+    if (!lease || lease.userId !== userId) {
       return { charges: [], payments: [], totalCharged: 0, totalPaid: 0 };
     }
 
@@ -527,14 +540,14 @@ export const getChargesForStatement = query({
 export const getPropertyChargeSummary = query({
   args: { 
     propertyId: v.id("properties"),
-    userId: v.string()
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Get all bills for the property
     const bills = await ctx.db
       .query("utilityBills")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     let totalCharges = 0;
@@ -575,21 +588,21 @@ export const getPropertyChargeSummary = query({
  */
 export const backfillUtilityCharges = mutation({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
     limit: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     let billsQuery = ctx.db
       .query("utilityBills")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId));
+      .withIndex("by_user", (q) => q.eq("userId", userId));
 
     if (args.propertyId) {
       const propertyId = args.propertyId;
       billsQuery = ctx.db
         .query("utilityBills")
         .withIndex("by_property", (q) => q.eq("propertyId", propertyId))
-        .filter((q) => q.eq(q.field("userId"), args.userId));
+        .filter((q) => q.eq(q.field("userId"), userId));
     }
 
     const bills = await billsQuery.collect();

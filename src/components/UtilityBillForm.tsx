@@ -261,10 +261,8 @@ export function UtilityBillForm({
 
     setSeeding(true);
     try {
-      const result = await seedUtilityBills({
-        userId: user.id,
-        propertyId: propertyId as Id<"properties">,
-      });
+      const result = await seedUtilityBills({ 
+        propertyId: propertyId as Id<"properties"> });
       
       toast.success(result.message);
       

@@ -64,11 +64,9 @@ export function useAnalyticsPerformance(userId: string, timeframeMonths: number)
   }, []);
 
   // Optimized data fetching with intelligent pre-loading
-  const utilityBills = useQuery(api.utilityBills.getUtilityBills, { userId });
+  const utilityBills = useQuery(api.utilityBills.getUtilityBills, {});
   const analyticsData = useQuery(api.utilityAnalytics.getEnhancedUtilityAnalytics, {
-    userId,
-    timeframeMonths,
-  });
+    timeframeMonths });
 
   // Memoized calculations with performance tracking
   const processedData = useMemo(() => {

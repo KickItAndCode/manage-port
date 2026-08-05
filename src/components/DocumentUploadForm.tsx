@@ -110,8 +110,7 @@ export default function DocumentUploadForm({
   // Extract leases array from paginated result
   const leases = leasesResult?.leases || (Array.isArray(leasesResult) ? leasesResult : []);
   const utilityBills = useQuery(api.utilityBills.getUtilityBills,
-    user && formData.selectedPropertyId ? { 
-      userId: user.id, 
+    user && formData.selectedPropertyId ? {  
       propertyId: formData.selectedPropertyId as any
     } : "skip"
   );

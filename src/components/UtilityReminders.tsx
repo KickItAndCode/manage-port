@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "@/../convex/_generated/api";
 import {
@@ -48,9 +48,10 @@ export const UtilityReminders = memo(function UtilityReminders({
 }: UtilityRemindersProps) {
   const router = useRouter();
 
+  const { isAuthenticated } = useConvexAuth();
   const reminders = useQuery(
     api.utilityInsights.getUtilityReminders,
-    userId ? { userId, propertyId: propertyId as any } : "skip"
+    isAuthenticated ? { propertyId: propertyId as any } : "skip"
   );
 
   if (!reminders) {

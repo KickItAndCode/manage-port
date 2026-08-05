@@ -47,9 +47,7 @@ export function LeaseUtilitySettings({
 
   // Queries
   const existingSettings = useQuery(api.leaseUtilitySettings.getLeaseUtilities, {
-    leaseId,
-    userId,
-  });
+    leaseId });
 
   // const validationResult = useQuery(
   //   api.leaseUtilitySettings.validatePropertyUtilityPercentages,
@@ -125,9 +123,7 @@ export function LeaseUtilitySettings({
       
       await setLeaseUtilities({
         leaseId,
-        utilities: utilitiesToSave,
-        userId,
-      });
+        utilities: utilitiesToSave });
 
       // Show success message
       if (utilitiesToSave.length === 0) {

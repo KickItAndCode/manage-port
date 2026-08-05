@@ -97,12 +97,12 @@ export function UtilityResponsibilitySnapshot({
   // Get utility settings
   const utilitySettingsByProperty = useQuery(
     api.leaseUtilitySettings.getUtilitySettingsByProperty,
-    propertyId ? { propertyId, userId } : "skip"
+    propertyId ? { propertyId } : "skip"
   );
   
   const utilitySettingsByLease = useQuery(
     api.leaseUtilitySettings.getLeaseUtilities,
-    leaseId ? { leaseId, userId } : "skip"
+    leaseId ? { leaseId } : "skip"
   );
   
   // Use property settings if propertyId provided, otherwise use lease settings

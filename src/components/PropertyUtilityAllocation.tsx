@@ -54,9 +54,7 @@ export function PropertyUtilityAllocation({
 
   // Get existing utility settings
   const utilitySettings = useQuery(api.leaseUtilitySettings.getUtilitySettingsByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   // Get property information to check for utility defaults
   const property = useQuery(api.properties.getProperty, {
@@ -170,10 +168,7 @@ export function PropertyUtilityAllocation({
         propertyId,
         allocations: allocations.map(allocation => ({
           leaseId: allocation.leaseId,
-          percentage: allocation.percentage,
-        })),
-        userId,
-      });
+          percentage: allocation.percentage })) });
       
       if (!isComplete) {
         toast.success("Utility responsibilities saved!", {

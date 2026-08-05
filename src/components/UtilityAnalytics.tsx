@@ -53,15 +53,11 @@ export const UtilityAnalytics = memo(function UtilityAnalytics({
   const analyticsData = useQuery(
     api.utilityAnalytics.getEnhancedUtilityAnalytics,
     {
-      userId,
-      timeframeMonths: timeframe,
-    }
+      timeframeMonths: timeframe }
   );
 
   // Get utility bills for backward compatibility
-  const utilityBills = useQuery(api.utilityBills.getUtilityBills, {
-    userId,
-  });
+  const utilityBills = useQuery(api.utilityBills.getUtilityBills, {});
 
   // Get properties for context
   const propertiesResult = useQuery(api.properties.getProperties, {});

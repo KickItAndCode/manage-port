@@ -72,3 +72,41 @@ export async function requirePropertyOwner(
   const property = await requireOwned<{ userId: string }>(ctx, propertyId);
   return property.userId;
 }
+
+/** Asserts the caller owns the utility bill. */
+export async function requireBillOwner(
+  ctx: DbCtx,
+  billId: Id<"utilityBills">,
+): Promise<string> {
+  const bill = await requireOwned<{ userId: string }>(ctx, billId);
+  return bill.userId;
+}
+
+/** Asserts the caller owns the lease. */
+export async function requireLeaseOwner(
+  ctx: DbCtx,
+  leaseId: Id<"leases">,
+): Promise<string> {
+  const lease = await requireOwned<{ userId: string }>(ctx, leaseId);
+  return lease.userId;
+}
+
+/**
+ * Asserts the caller owns the charge, reached through its parent lease.
+ * utilityCharges has no userId column of its own.
+ */
+export async function requireChargeOwner(
+  ctx: DbCtx,
+  chargeId: Id<"utilityCharges">,
+): Promise<string> {
+  const userId = await requireUser(ctx);
+  const charge = await ctx.db.get(chargeId);
+  if (!charge) {
+    throw new ConvexError({ code: "NOT_FOUND", message: "Resource not found." });
+  }
+  const lease = await ctx.db.get(charge.leaseId);
+  if (!lease || lease.userId !== userId) {
+    throw new ConvexError({ code: "NOT_FOUND", message: "Resource not found." });
+  }
+  return userId;
+}

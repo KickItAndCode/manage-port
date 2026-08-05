@@ -163,6 +163,7 @@ export const DashboardKPIs = memo(function DashboardKPIs({
   compact = false,
   filters,
 }: DashboardKPIsProps) {
+  const { isAuthenticated } = useConvexAuth();
   const router = useRouter();
 
   const metrics = useQuery(
@@ -179,11 +180,10 @@ export const DashboardKPIs = memo(function DashboardKPIs({
 
   const utilityInsights = useQuery(
     api.utilityInsights.getUtilityInsights,
-    userId ? { userId } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   // Get properties to show property name when filter is active
-  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
     isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for KPIs
@@ -196,7 +196,7 @@ export const DashboardKPIs = memo(function DashboardKPIs({
   // Get utility bills for property breakdown
   const utilityBills = useQuery(
     api.utilityBills.getUtilityBills,
-    userId ? { userId } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   // Get property name when property filter is active

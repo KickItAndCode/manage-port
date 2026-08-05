@@ -75,9 +75,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
 
   // Get outstanding charges using on-demand calculation
   const allCharges = useQuery(api.utilityCharges.calculateAllTenantCharges, {
-    userId,
-    propertyId,
-  });
+    propertyId });
 
   // Filter charges based on selected tenant and only outstanding amounts
   const charges = allCharges?.filter((charge) => {
@@ -88,7 +86,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
   });
 
   // Get utility bills for context
-  const utilityBills = useQuery(api.utilityBills.getUnpaidBills, { userId });
+  const utilityBills = useQuery(api.utilityBills.getUnpaidBills, {});
 
   const recordPayment = useMutation(api.utilityPayments.recordUtilityPayment);
 
@@ -666,9 +664,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
                     paymentDate: data.paymentDate,
                     paymentMethod: data.paymentMethod,
                     referenceNumber: data.referenceNumber,
-                    notes: data.notes,
-                    userId,
-                  });
+                    notes: data.notes });
                   const chargeKey = `${selectedCharge.leaseId}-${selectedCharge.utilityBillId}`;
                   handlePaymentSuccess(chargeKey);
                   setPaymentDialogOpen(false);

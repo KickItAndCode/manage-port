@@ -6,6 +6,7 @@ import {
   rebuildChargesForBill,
   deleteChargesForBillInternal,
 } from "./utilityCharges";
+import { requireUser } from "./lib/auth";
 
 // Types for aggregated data
 export interface UtilityPageData {
@@ -61,7 +62,6 @@ async function deletePaymentsForBill(ctx: any, billId: Id<"utilityBills">) {
 // Add a monthly utility bill
 export const addUtilityBill = mutation({
   args: {
-    userId: v.string(),
     propertyId: v.id("properties"),
     utilityType: v.string(),
     provider: v.string(),
@@ -75,11 +75,12 @@ export const addUtilityBill = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
     const isOwner = await verifyPropertyOwnership(
       ctx,
       args.propertyId,
-      args.userId
+      userId
     );
     if (!isOwner) {
       throw new Error(
@@ -118,13 +119,14 @@ export const addUtilityBill = mutation({
     // Create the bill
     const billId = await ctx.db.insert("utilityBills", {
       ...args,
+      userId,
       landlordPaidUtilityCompany: false,
       createdAt: new Date().toISOString(),
     });
 
     // Log activity
     await logActivity(ctx, {
-      userId: args.userId,
+      userId,
       entityType: ACTIVITY_TYPES.UTILITY_BILL,
       entityId: billId,
       action: ACTIVITY_ACTIONS.CREATED,
@@ -155,7 +157,6 @@ export const addUtilityBill = mutation({
 export const updateUtilityBill = mutation({
   args: {
     id: v.id("utilityBills"),
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
     utilityType: v.optional(v.string()),
     provider: v.optional(v.string()),
@@ -171,6 +172,7 @@ export const updateUtilityBill = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const bill = await ctx.db.get(args.id);
     if (!bill) {
       throw new Error("Bill not found");
@@ -180,7 +182,7 @@ export const updateUtilityBill = mutation({
     const isOwner = await verifyPropertyOwnership(
       ctx,
       bill.propertyId,
-      args.userId
+      userId
     );
     if (!isOwner) {
       throw new Error("You do not have permission to update this bill");
@@ -248,13 +250,13 @@ export const updateUtilityBill = mutation({
 // Seed utility bills for testing/demo purposes
 export const seedUtilityBills = mutation({
   args: {
-    userId: v.string(),
     propertyId: v.id("properties"),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
     const property = await ctx.db.get(args.propertyId);
-    if (!property || property.userId !== args.userId) {
+    if (!property || property.userId !== userId) {
       throw new Error(
         "Unauthorized: Property not found or doesn't belong to user"
       );
@@ -383,7 +385,7 @@ export const seedUtilityBills = mutation({
         const dueDate = new Date(currentYear, month + 1, 15);
 
         const billId = await ctx.db.insert("utilityBills", {
-          userId: args.userId,
+          userId,
           propertyId: args.propertyId,
           utilityType: config.type,
           provider: config.provider,
@@ -433,9 +435,9 @@ export const seedUtilityBills = mutation({
 export const deleteUtilityBill = mutation({
   args: {
     id: v.id("utilityBills"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const bill = await ctx.db.get(args.id);
     if (!bill) {
       throw new Error("Bill not found");
@@ -445,7 +447,7 @@ export const deleteUtilityBill = mutation({
     const isOwner = await verifyPropertyOwnership(
       ctx,
       bill.propertyId,
-      args.userId
+      userId
     );
     if (!isOwner) {
       throw new Error("You do not have permission to delete this bill");
@@ -462,16 +464,16 @@ export const deleteUtilityBill = mutation({
 // Get utility bills with filters
 export const getUtilityBills = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
     billMonth: v.optional(v.string()),
     utilityType: v.optional(v.string()),
     landlordPaid: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     let bills = await ctx.db
       .query("utilityBills")
-      .withIndex("by_user", (q: any) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
       .collect();
 
     // Apply filters
@@ -503,11 +505,11 @@ export const getUtilityBills = query({
 export const getUtilityBill = query({
   args: {
     billId: v.id("utilityBills"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const bill = await ctx.db.get(args.billId);
-    if (!bill || bill.userId !== args.userId) {
+    if (!bill || bill.userId !== userId) {
       return null;
     }
     return bill;
@@ -518,11 +520,11 @@ export const getUtilityBill = query({
 export const getChargesForBill = query({
   args: {
     billId: v.id("utilityBills"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const bill = await ctx.db.get(args.billId);
-    if (!bill || bill.userId !== args.userId) {
+    if (!bill || bill.userId !== userId) {
       return [];
     }
 
@@ -536,11 +538,11 @@ export const getChargesForBill = query({
 export const getUtilityBillWithCharges = query({
   args: {
     billId: v.id("utilityBills"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const bill = await ctx.db.get(args.billId);
-    if (!bill || bill.userId !== args.userId) {
+    if (!bill || bill.userId !== userId) {
       return null;
     }
 
@@ -561,10 +563,10 @@ export const getUtilityBillWithCharges = query({
 // Get unpaid bills summary
 export const getUnpaidBills = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     let bills = await ctx.db
       .query("utilityBills")
       .withIndex("by_paid_status", (q: any) =>
@@ -573,7 +575,7 @@ export const getUnpaidBills = query({
       .collect();
 
     // Filter by user
-    bills = bills.filter((b) => b.userId === args.userId);
+    bills = bills.filter((b) => b.userId === userId);
 
     // Filter by property if specified
     if (args.propertyId) {
@@ -596,15 +598,15 @@ export const getUnpaidBills = query({
 // Get bills by month for comparison
 export const getBillsByMonth = query({
   args: {
-    userId: v.string(),
     propertyId: v.id("properties"),
     startMonth: v.string(), // YYYY-MM
     endMonth: v.string(), // YYYY-MM
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
     const property = await ctx.db.get(args.propertyId);
-    if (!property || property.userId !== args.userId) {
+    if (!property || property.userId !== userId) {
       return [];
     }
 
@@ -662,7 +664,6 @@ export const getBillsByMonth = query({
 // Bulk add utility bills
 export const bulkAddUtilityBills = mutation({
   args: {
-    userId: v.string(),
     propertyId: v.id("properties"),
     billMonth: v.string(),
     noTenantCharges: v.optional(v.boolean()),
@@ -678,11 +679,12 @@ export const bulkAddUtilityBills = mutation({
     ),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
     const isOwner = await verifyPropertyOwnership(
       ctx,
       args.propertyId,
-      args.userId
+      userId
     );
     if (!isOwner) {
       throw new Error(
@@ -724,7 +726,7 @@ export const bulkAddUtilityBills = mutation({
 
         // Create the bill
         const billId = await ctx.db.insert("utilityBills", {
-          userId: args.userId,
+          userId,
           propertyId: args.propertyId,
           utilityType: billData.utilityType,
           provider: billData.provider,
@@ -770,16 +772,16 @@ export const bulkAddUtilityBills = mutation({
 export const getUtilityBillsByProperty = query({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
     startMonth: v.optional(v.string()),
     endMonth: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
     const isOwner = await verifyPropertyOwnership(
       ctx,
       args.propertyId,
-      args.userId
+      userId
     );
     if (!isOwner) return [];
 
@@ -824,14 +826,14 @@ export const getBillSplitPreview = query({
     propertyId: v.id("properties"),
     utilityType: v.string(),
     totalAmount: v.number(),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
     const isOwner = await verifyPropertyOwnership(
       ctx,
       args.propertyId,
-      args.userId
+      userId
     );
     if (!isOwner) {
       throw new Error("You do not have permission to access this property");
@@ -1162,16 +1164,16 @@ async function calculateChargesForBill(
 // Main aggregated query for utility bills page
 export const getUtilityPageData = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
     startMonth: v.optional(v.string()),
     endMonth: v.optional(v.string()),
   },
   handler: async (ctx, args): Promise<UtilityPageData> => {
+    const userId = await requireUser(ctx);
     // Get properties with calculated monthly rent
     const properties = await ctx.db
       .query("properties")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     const propertiesWithRent = await Promise.all(
@@ -1179,7 +1181,7 @@ export const getUtilityPageData = query({
         const monthlyRent = await calculateMonthlyRentFromLeases(
           ctx,
           property._id,
-          args.userId
+          userId
         );
         return {
           ...property,
@@ -1191,7 +1193,7 @@ export const getUtilityPageData = query({
     // Get active leases with unit information
     const leases = await ctx.db
       .query("leases")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) => q.eq(q.field("status"), "active"))
       .collect();
 
@@ -1208,7 +1210,7 @@ export const getUtilityPageData = query({
     // Get bills and charges efficiently
     const { bills, charges } = await getBillsWithCharges(
       ctx,
-      args.userId,
+      userId,
       args.propertyId,
       args.startMonth,
       args.endMonth
@@ -1242,10 +1244,10 @@ export const getUtilityPageData = query({
 export const bulkMarkNoTenantCharges = mutation({
   args: {
     billIds: v.array(v.id("utilityBills")),
-    userId: v.string(),
     noTenantCharges: v.boolean(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const updatedBills = [];
     const errors = [];
 
@@ -1261,7 +1263,7 @@ export const bulkMarkNoTenantCharges = mutation({
         const isOwner = await verifyPropertyOwnership(
           ctx,
           bill.propertyId,
-          args.userId
+          userId
         );
         if (!isOwner) {
           errors.push({ billId, error: "Permission denied" });
@@ -1292,14 +1294,14 @@ export const bulkMarkNoTenantCharges = mutation({
 // Get bills summary with tenant charge status for migration analysis
 export const getBillsTenantChargeStatus = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Get all bills for the user
     let bills = await ctx.db
       .query("utilityBills")
-      .withIndex("by_user", (q: any) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q: any) => q.eq("userId", userId))
       .collect();
 
     // Filter by property if specified

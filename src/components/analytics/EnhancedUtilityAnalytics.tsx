@@ -43,7 +43,7 @@ export function EnhancedUtilityAnalytics({ userId }: UtilityAnalyticsProps) {
   const [selectedMetric, setSelectedMetric] = useState<'total' | 'trend' | 'forecast'>('total');
   const router = useRouter();
 
-  const utilityBills = useQuery(api.utilityBills.getUtilityBills, { userId });
+  const utilityBills = useQuery(api.utilityBills.getUtilityBills, {});
   const propertiesResult = useQuery(api.properties.getProperties, {});
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
 

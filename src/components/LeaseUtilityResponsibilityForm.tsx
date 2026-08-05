@@ -58,9 +58,7 @@ export function LeaseUtilityResponsibilityForm({
 }: LeaseUtilityResponsibilityFormProps) {
   // Get current settings for this lease
   const currentSettings = useQuery(api.leaseUtilitySettings.getLeaseUtilities, {
-    leaseId,
-    userId,
-  });
+    leaseId });
 
   // Get all property leases for percentage validation
   const propertyLeases = useQuery(api.leases.getLeasesByProperty, {
@@ -68,9 +66,7 @@ export function LeaseUtilityResponsibilityForm({
 
   // Get all utility settings for the property to show context
   const propertyUtilitySettings = useQuery(api.leaseUtilitySettings.getUtilitySettingsByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   const [settings, setSettings] = useState<UtilitySetting[]>([]);
   const [loading, setLoading] = useState(false);
@@ -211,9 +207,7 @@ export function LeaseUtilityResponsibilityForm({
       
       const result = await setLeaseUtilities({
         leaseId,
-        utilities: utilitiesToSave,
-        userId,
-      });
+        utilities: utilitiesToSave });
       
       console.log("Save result:", result);
       

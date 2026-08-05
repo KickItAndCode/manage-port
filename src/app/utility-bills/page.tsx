@@ -389,7 +389,7 @@ function UtilityBillsContent() {
         try {
           await Promise.all(
             billsToDelete.map(bill => 
-              deleteBill({ id: bill._id as any, userId: user.id })
+              deleteBill({ id: bill._id as any })
             )
           );
           setSelectedUtilityBills([]);
@@ -407,11 +407,9 @@ function UtilityBillsContent() {
       await Promise.all(
         billsToUpdate.map(bill => 
           updateBill({
-            id: bill._id as any,
-            userId: user.id,
+            id: bill._id as any, 
             landlordPaidUtilityCompany: true,
-            landlordPaidDate: new Date().toISOString().split('T')[0],
-          })
+            landlordPaidDate: new Date().toISOString().split('T')[0] })
         )
       );
       setSelectedUtilityBills([]);
@@ -427,11 +425,9 @@ function UtilityBillsContent() {
       await Promise.all(
         billsToUpdate.map(bill => 
           updateBill({
-            id: bill._id as any,
-            userId: user.id,
+            id: bill._id as any, 
             landlordPaidUtilityCompany: false,
-            landlordPaidDate: undefined,
-          })
+            landlordPaidDate: undefined })
         )
       );
       setSelectedUtilityBills([]);
@@ -450,10 +446,8 @@ function UtilityBillsContent() {
       onConfirm: async () => {
         try {
           const result = await bulkMarkNoTenantCharges({
-            billIds: billsToUpdate.map(bill => bill._id as any),
-            userId: user.id,
-            noTenantCharges: true,
-          });
+            billIds: billsToUpdate.map(bill => bill._id as any), 
+            noTenantCharges: true });
           setSelectedUtilityBills([]);
           toast.success(`${result.updatedBills} bills marked as historical`);
         } catch (error: any) {
@@ -472,10 +466,8 @@ function UtilityBillsContent() {
       onConfirm: async () => {
         try {
           const result = await bulkMarkNoTenantCharges({
-            billIds: billsToUpdate.map(bill => bill._id as any),
-            userId: user.id,
-            noTenantCharges: false,
-          });
+            billIds: billsToUpdate.map(bill => bill._id as any), 
+            noTenantCharges: false });
           setSelectedUtilityBills([]);
           toast.success(`${result.updatedBills} bills updated to generate tenant charges`);
         } catch (error: any) {
@@ -492,7 +484,7 @@ function UtilityBillsContent() {
       variant: "destructive",
       onConfirm: async () => {
         try {
-          await deleteBill({ id: bill._id, userId: user!.id });
+          await deleteBill({ id: bill._id });
           toast.success("Bill deleted successfully");
         } catch (error: any) {
           toast.error(formatErrorForToast(error));
@@ -505,10 +497,8 @@ function UtilityBillsContent() {
     try {
       await updateBill({
         id: bill._id,
-        userId: user!.id,
         landlordPaidUtilityCompany: !bill.landlordPaidUtilityCompany,
-        landlordPaidDate: !bill.landlordPaidUtilityCompany ? new Date().toISOString().split('T')[0] : undefined,
-      });
+        landlordPaidDate: !bill.landlordPaidUtilityCompany ? new Date().toISOString().split('T')[0] : undefined });
       toast.success(`Bill marked as ${!bill.landlordPaidUtilityCompany ? 'paid' : 'unpaid'}`);
     } catch (error: any) {
       toast.error(formatErrorForToast(error));
@@ -939,18 +929,14 @@ function UtilityBillsContent() {
               try {
                 if (selectedBill) {
                   await updateBill({
-                    id: selectedBill._id,
-                    userId: user.id,
+                    id: selectedBill._id, 
                     ...data,
-                    propertyId: data.propertyId as any,
-                  });
+                    propertyId: data.propertyId as any });
                   toast.success("Bill updated successfully");
                 } else {
-                  await addBill({
-                    userId: user.id,
+                  await addBill({ 
                     ...data,
-                    propertyId: data.propertyId as any,
-                  });
+                    propertyId: data.propertyId as any });
                   toast.success("Bill added successfully");
                 }
                 setBillDialogOpen(false);
@@ -978,12 +964,10 @@ function UtilityBillsContent() {
               propertyId={selectedPropertyData._id as any}
               propertyName={selectedPropertyData.name}
               onSubmit={async (billMonth, billsData) => {
-                const result = await bulkAddBills({
-                  userId: user.id,
+                const result = await bulkAddBills({ 
                   propertyId: selectedPropertyData._id as any,
                   billMonth: billMonth,
-                  bills: billsData,
-                });
+                  bills: billsData });
                 if (result.createdBillIds.length > 0) {
                   setBulkDialogOpen(false);
                   toast.success(`Successfully added ${result.createdBillIds.length} bills`);

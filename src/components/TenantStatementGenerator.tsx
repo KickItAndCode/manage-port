@@ -53,10 +53,8 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
     api.utilityCharges.getChargesForStatement,
     selectedLeaseId ? {
       leaseId: selectedLeaseId as Id<"leases">,
-      userId,
       startMonth: startDate,
-      endMonth: endDate,
-    } : "skip"
+      endMonth: endDate } : "skip"
   );
 
   const getUtilityIcon = (type: string) => {

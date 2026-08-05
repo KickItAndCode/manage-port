@@ -1,15 +1,16 @@
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { requireUser } from "./lib/auth";
 
 // Utility analytics with enhanced insights
 export const getEnhancedUtilityAnalytics = query({
   args: {
-    userId: v.string(),
     timeframeMonths: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const { userId, timeframeMonths = 12 } = args;
+    const userId = await requireUser(ctx);
+    const { timeframeMonths = 12 } = args;
 
     // Get utility bills
     const allBills = await ctx.db
