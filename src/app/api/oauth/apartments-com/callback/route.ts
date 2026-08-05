@@ -15,7 +15,7 @@ const oauthService = new OAuthService();
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.redirect(
         new URL('/sign-in?error=oauth_unauthorized', request.url)
@@ -70,10 +70,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(errorUrl);
     }
 
-    // Store tokens in database
+    // Store tokens in database. Convex derives identity from this token;
+    // without it the call is anonymous.
+    const convexToken = (await getToken({ template: 'convex' })) ?? undefined;
     const tokens = tokenResult.tokens;
     await fetchMutation(api.platformTokens.storeTokens, {
-      userId,
       platform: 'apartments_com',
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
@@ -81,8 +82,7 @@ export async function GET(request: NextRequest) {
       expiresAt: tokens.expiresAt,
       platformUserId: tokens.platformUserId,
       platformUserEmail: tokens.platformUserEmail,
-      platformAccountName: tokens.platformAccountName,
-    });
+      platformAccountName: tokens.platformAccountName }, { token: convexToken });
 
     // Redirect to success page
     const successUrl = new URL('/settings?tab=platforms', request.url);

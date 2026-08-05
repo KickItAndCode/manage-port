@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -104,8 +104,9 @@ export function ListingManager({ propertyId }: { propertyId: Id<"properties"> })
     propertyId ? { propertyId } : "skip"
   ) as ListingPublication[] | undefined;
 
+  const { isAuthenticated } = useConvexAuth();
   const userConnections = useQuery(api.platformTokens.getUserConnections, 
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   // Initialize form with property data

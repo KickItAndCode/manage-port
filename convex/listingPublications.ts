@@ -3,15 +3,15 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { requireUser, requireOwned, requirePropertyOwner } from "./lib/auth";
 
 /**
  * Create a new listing publication
  */
 export const createPublication = mutation({
   args: {
-    userId: v.string(),
     propertyId: v.id("properties"),
     platform: v.string(),
     listingTitle: v.optional(v.string()),
@@ -22,6 +22,7 @@ export const createPublication = mutation({
     autoRenew: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const now = new Date().toISOString();
 
     // Check if publication already exists for this property-platform combination
@@ -38,7 +39,7 @@ export const createPublication = mutation({
 
     // Create the publication
     const publicationId = await ctx.db.insert("listingPublications", {
-      userId: args.userId,
+      userId,
       propertyId: args.propertyId,
       platform: args.platform,
       status: "pending",
@@ -76,6 +77,7 @@ export const updatePublicationStatus = mutation({
     retryCount: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    await requireOwned(ctx, args.publicationId);
     const now = new Date().toISOString();
 
     await ctx.db.patch(args.publicationId, {
@@ -100,6 +102,7 @@ export const getPropertyPublications = query({
     propertyId: v.id("properties"),
   },
   handler: async (ctx, args) => {
+    await requirePropertyOwner(ctx, args.propertyId);
     const publications = await ctx.db
       .query("listingPublications")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
@@ -114,12 +117,12 @@ export const getPropertyPublications = query({
  */
 export const getUserPublications = query({
   args: {
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const publications = await ctx.db
       .query("listingPublications")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     return publications;
@@ -131,14 +134,14 @@ export const getUserPublications = query({
  */
 export const getPlatformPublications = query({
   args: {
-    userId: v.string(),
     platform: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const publications = await ctx.db
       .query("listingPublications")
       .withIndex("by_user_platform", (q) =>
-        q.eq("userId", args.userId).eq("platform", args.platform)
+        q.eq("userId", userId).eq("platform", args.platform)
       )
       .collect();
 
@@ -151,7 +154,6 @@ export const getPlatformPublications = query({
  */
 export const getPublicationsByStatus = query({
   args: {
-    userId: v.string(),
     status: v.union(
       v.literal("pending"),
       v.literal("active"),
@@ -161,10 +163,11 @@ export const getPublicationsByStatus = query({
     ),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const publications = await ctx.db
       .query("listingPublications")
       .withIndex("by_status", (q) => q.eq("status", args.status))
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     return publications;
@@ -174,7 +177,7 @@ export const getPublicationsByStatus = query({
 /**
  * Get publication with property details
  */
-export const getPublicationWithProperty = query({
+export const getPublicationWithProperty = internalQuery({
   args: {
     publicationId: v.id("listingPublications"),
   },
@@ -198,15 +201,15 @@ export const getPublicationWithProperty = query({
 export const deletePublication = mutation({
   args: {
     publicationId: v.id("listingPublications"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const publication = await ctx.db.get(args.publicationId);
     if (!publication) {
       throw new Error("Publication not found");
     }
 
-    if (publication.userId !== args.userId) {
+    if (publication.userId !== userId) {
       throw new Error("Unauthorized: Cannot delete publication");
     }
 
@@ -221,7 +224,6 @@ export const deletePublication = mutation({
 export const updatePublication = mutation({
   args: {
     publicationId: v.id("listingPublications"),
-    userId: v.string(),
     listingTitle: v.optional(v.string()),
     listingDescription: v.optional(v.string()),
     monthlyRent: v.optional(v.number()),
@@ -230,12 +232,13 @@ export const updatePublication = mutation({
     autoRenew: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const publication = await ctx.db.get(args.publicationId);
     if (!publication) {
       throw new Error("Publication not found");
     }
 
-    if (publication.userId !== args.userId) {
+    if (publication.userId !== userId) {
       throw new Error("Unauthorized: Cannot update publication");
     }
 
@@ -257,7 +260,7 @@ export const updatePublication = mutation({
 /**
  * Get listings needing sync (stale listings)
  */
-export const getStaleListings = query({
+export const getStaleListings = internalQuery({
   args: {
     hoursStale: v.optional(v.number()), // Default 24 hours
   },
@@ -290,12 +293,12 @@ export const getStaleListings = query({
  */
 export const getPublicationStats = query({
   args: {
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const publications = await ctx.db
       .query("listingPublications")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     const stats = {
@@ -330,15 +333,15 @@ export const bulkUpdateStatus = mutation({
       v.literal("expired"),
       v.literal("paused")
     ),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const now = new Date().toISOString();
     let updatedCount = 0;
 
     for (const publicationId of args.publicationIds) {
       const publication = await ctx.db.get(publicationId);
-      if (publication && publication.userId === args.userId) {
+      if (publication && publication.userId === userId) {
         await ctx.db.patch(publicationId, {
           status: args.status,
           lastSyncAt: now,

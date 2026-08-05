@@ -4,14 +4,14 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query, action } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 
 /**
  * Create a background job for bulk listing operations
  */
-export const createBulkPublishJob = mutation({
+export const createBulkPublishJob = internalMutation({
   args: {
     userId: v.string(),
     propertyIds: v.array(v.id("properties")),
@@ -101,7 +101,7 @@ export const createBulkPublishJob = mutation({
 /**
  * Get pending publications (internal query)
  */
-export const getPendingPublications = query({
+export const getPendingPublications = internalQuery({
   args: {
     userId: v.optional(v.string()),
     limit: v.optional(v.number()),
@@ -124,7 +124,7 @@ export const getPendingPublications = query({
 /**
  * Get property data for publication (internal query)
  */
-export const getPropertyForPublication = query({
+export const getPropertyForPublication = internalQuery({
   args: {
     propertyId: v.id("properties"),
     userId: v.string(),
@@ -141,7 +141,7 @@ export const getPropertyForPublication = query({
 /**
  * Get platform tokens (internal query)
  */
-export const getPlatformTokens = query({
+export const getPlatformTokens = internalQuery({
   args: {
     userId: v.string(),
     platform: v.string(),
@@ -161,7 +161,7 @@ export const getPlatformTokens = query({
 /**
  * Update publication as successful (internal mutation)
  */
-export const updatePublicationSuccess = mutation({
+export const updatePublicationSuccess = internalMutation({
   args: {
     publicationId: v.id("listingPublications"),
     externalId: v.string(),
@@ -186,7 +186,7 @@ export const updatePublicationSuccess = mutation({
 /**
  * Update publication as failed (internal mutation)
  */
-export const updatePublicationError = mutation({
+export const updatePublicationError = internalMutation({
   args: {
     publicationId: v.id("listingPublications"),
     errorMessage: v.string(),
@@ -235,7 +235,7 @@ export const updatePublicationError = mutation({
 /**
  * Get stale listings (internal query)
  */
-export const getStaleListings = query({
+export const getStaleListings = internalQuery({
   args: {
     hoursStale: v.number(),
   },
@@ -265,7 +265,7 @@ export const getStaleListings = query({
 /**
  * Update sync timestamp (internal mutation)
  */
-export const updateSyncTimestamp = mutation({
+export const updateSyncTimestamp = internalMutation({
   args: {
     publicationId: v.id("listingPublications"),
   },

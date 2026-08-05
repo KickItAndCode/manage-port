@@ -65,17 +65,18 @@ export function ListingsDashboard() {
     platformInfo.map(p => [p.platform, p])
   );
 
+  const { isAuthenticated } = useConvexAuth();
+
   // Convex queries
-  const publications = useQuery(api.listingPublications.getUserPublications, 
-    user ? { userId: user.id } : "skip"
+  const publications = useQuery(api.listingPublications.getUserPublications,
+    isAuthenticated ? {} : "skip"
   ) as ListingPublication[] | undefined;
 
   const stats = useQuery(api.listingPublications.getPublicationStats, 
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
-  const { isAuthenticated } = useConvexAuth();
-  const propertiesResult = useQuery(api.properties.getProperties, 
+  const propertiesResult = useQuery(api.properties.getProperties,
     isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for listings
   );
   // Extract properties array from paginated result

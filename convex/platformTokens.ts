@@ -3,15 +3,15 @@
  */
 
 import { v } from "convex/values";
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalQuery, internalMutation } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { requireUser } from "./lib/auth";
 
 /**
  * Store OAuth tokens for a platform
  */
 export const storeTokens = mutation({
   args: {
-    userId: v.string(),
     platform: v.string(),
     accessToken: v.string(),
     refreshToken: v.optional(v.string()),
@@ -23,13 +23,14 @@ export const storeTokens = mutation({
     platformAccountName: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const now = new Date().toISOString();
 
     // Check if tokens already exist for this user-platform combination
     const existingTokens = await ctx.db
       .query("platformTokens")
       .withIndex("by_user_platform", (q) => 
-        q.eq("userId", args.userId).eq("platform", args.platform)
+        q.eq("userId", userId).eq("platform", args.platform)
       )
       .first();
 
@@ -53,7 +54,7 @@ export const storeTokens = mutation({
     } else {
       // Create new token record
       const tokenId = await ctx.db.insert("platformTokens", {
-        userId: args.userId,
+        userId,
         platform: args.platform,
         accessToken: args.accessToken,
         refreshToken: args.refreshToken,
@@ -78,14 +79,14 @@ export const storeTokens = mutation({
  */
 export const getTokens = query({
   args: {
-    userId: v.string(),
     platform: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const tokens = await ctx.db
       .query("platformTokens")
       .withIndex("by_user_platform", (q) => 
-        q.eq("userId", args.userId).eq("platform", args.platform)
+        q.eq("userId", userId).eq("platform", args.platform)
       )
       .first();
 
@@ -98,12 +99,12 @@ export const getTokens = query({
  */
 export const getUserConnections = query({
   args: {
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const connections = await ctx.db
       .query("platformTokens")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     // Return safe version without sensitive token data
@@ -124,7 +125,7 @@ export const getUserConnections = query({
 /**
  * Update token validity status
  */
-export const updateTokenValidity = mutation({
+export const updateTokenValidity = internalMutation({
   args: {
     tokenId: v.id("platformTokens"),
     isValid: v.boolean(),
@@ -141,7 +142,7 @@ export const updateTokenValidity = mutation({
 /**
  * Refresh stored tokens
  */
-export const refreshTokens = mutation({
+export const refreshTokens = internalMutation({
   args: {
     tokenId: v.id("platformTokens"),
     accessToken: v.string(),
@@ -167,14 +168,14 @@ export const refreshTokens = mutation({
  */
 export const deleteConnection = mutation({
   args: {
-    userId: v.string(),
     platform: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const tokens = await ctx.db
       .query("platformTokens")
       .withIndex("by_user_platform", (q) => 
-        q.eq("userId", args.userId).eq("platform", args.platform)
+        q.eq("userId", userId).eq("platform", args.platform)
       )
       .first();
 
@@ -190,7 +191,7 @@ export const deleteConnection = mutation({
 /**
  * Get tokens that are about to expire (for background refresh job)
  */
-export const getExpiringTokens = query({
+export const getExpiringTokens = internalQuery({
   args: {
     hoursBeforeExpiry: v.optional(v.number()), // Default 24 hours
   },
@@ -217,7 +218,7 @@ export const getExpiringTokens = query({
 /**
  * Get all invalid tokens (for cleanup)
  */
-export const getInvalidTokens = query({
+export const getInvalidTokens = internalQuery({
   handler: async (ctx) => {
     const invalidTokens = await ctx.db
       .query("platformTokens")
@@ -231,7 +232,7 @@ export const getInvalidTokens = query({
 /**
  * Clean up old invalid tokens
  */
-export const cleanupInvalidTokens = mutation({
+export const cleanupInvalidTokens = internalMutation({
   args: {
     olderThanDays: v.optional(v.number()), // Default 30 days
   },
@@ -260,7 +261,7 @@ export const cleanupInvalidTokens = mutation({
 /**
  * Get platform statistics for admin dashboard
  */
-export const getPlatformStats = query({
+export const getPlatformStats = internalQuery({
   handler: async (ctx) => {
     const allTokens = await ctx.db.query("platformTokens").collect();
     

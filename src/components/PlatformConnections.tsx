@@ -7,7 +7,7 @@
 
 import { useState, useEffect } from "react";
 import { useUser } from "@clerk/nextjs";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "../../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -48,8 +48,9 @@ export function PlatformConnections() {
   const platformInfo = getPlatformDisplayInfo();
 
   // Convex queries
+  const { isAuthenticated } = useConvexAuth();
   const connections = useQuery(api.platformTokens.getUserConnections, 
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   ) as PlatformConnection[] | undefined;
 
   const deleteConnection = useMutation(api.platformTokens.deleteConnection);
@@ -94,10 +95,8 @@ export function PlatformConnections() {
     if (!user) return;
 
     try {
-      await deleteConnection({
-        userId: user.id,
-        platform,
-      });
+      await deleteConnection({ 
+        platform });
       
       toast.success('Platform disconnected');
     } catch (error) {

@@ -36,11 +36,11 @@ export default function ListingsPage() {
   const properties = propertiesResult?.properties ?? [];
 
   const stats = useQuery(api.listingPublications.getPublicationStats, 
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   const userConnections = useQuery(api.platformTokens.getUserConnections, 
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   // Get platform info

@@ -67,9 +67,7 @@ export async function POST(request: NextRequest) {
         
         // Get stored tokens for this platform
         const tokens = await fetchQuery(api.platformTokens.getTokens, {
-          userId,
-          platform,
-        });
+          platform }, { token });
 
         if (!tokens || !tokens.isValid) {
           errors[platform] = 'Platform not connected or tokens expired';
@@ -101,19 +99,16 @@ export async function POST(request: NextRequest) {
           // Create or update publication record
           if (publishResult.success) {
             await fetchMutation(api.listingPublications.createPublication, {
-              userId,
               propertyId: propertyId as Id<"properties">,
               platform,
               listingTitle: transformedData.title,
               listingDescription: transformedData.description,
               monthlyRent: transformedData.monthlyRent,
-              availableDate: transformedData.availableDate,
-            });
+              availableDate: transformedData.availableDate }, { token });
 
             // Update publication status
             const publicationId = await fetchQuery(api.listingPublications.getPropertyPublications, {
-              propertyId: propertyId as Id<"properties">,
-            });
+              propertyId: propertyId as Id<"properties"> }, { token });
 
             const publication = publicationId.find(p => p.platform === platform);
             if (publication) {
@@ -122,8 +117,7 @@ export async function POST(request: NextRequest) {
                 status: 'active',
                 externalId: publishResult.externalId,
                 externalUrl: publishResult.externalUrl,
-                publishedAt: new Date().toISOString(),
-              });
+                publishedAt: new Date().toISOString() }, { token });
             }
           } else {
             // Record error
@@ -140,14 +134,12 @@ export async function POST(request: NextRequest) {
 
           // Create publication record with pending status
           await fetchMutation(api.listingPublications.createPublication, {
-            userId,
             propertyId: propertyId as Id<"properties">,
             platform,
             listingTitle: transformedData.title,
             listingDescription: transformedData.description,
             monthlyRent: transformedData.monthlyRent,
-            availableDate: transformedData.availableDate,
-          });
+            availableDate: transformedData.availableDate }, { token });
         }
 
       } catch (error) {
@@ -187,13 +179,16 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
-    const { userId } = await auth();
+    const { userId, getToken } = await auth();
     if (!userId) {
       return NextResponse.json(
         { error: 'Unauthorized' },
         { status: 401 }
       );
     }
+
+    // Convex derives identity from this token; without it the call is anonymous.
+    const token = (await getToken({ template: 'convex' })) ?? undefined;
 
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
@@ -203,29 +198,22 @@ export async function GET(request: NextRequest) {
     if (propertyId) {
       // Get publications for specific property
       const publications = await fetchQuery(api.listingPublications.getPropertyPublications, {
-        propertyId: propertyId as Id<"properties">,
-      });
+        propertyId: propertyId as Id<"properties"> }, { token });
 
       return NextResponse.json({ publications });
     
     } else if (platform) {
       // Get publications for specific platform
       const publications = await fetchQuery(api.listingPublications.getPlatformPublications, {
-        userId,
-        platform,
-      });
+        platform }, { token });
 
       return NextResponse.json({ publications });
 
     } else {
       // Get all user publications
-      const publications = await fetchQuery(api.listingPublications.getUserPublications, {
-        userId,
-      });
+      const publications = await fetchQuery(api.listingPublications.getUserPublications, {}, { token });
 
-      const stats = await fetchQuery(api.listingPublications.getPublicationStats, {
-        userId,
-      });
+      const stats = await fetchQuery(api.listingPublications.getPublicationStats, {}, { token });
 
       return NextResponse.json({ 
         publications,
