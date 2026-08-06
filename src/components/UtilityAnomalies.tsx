@@ -65,6 +65,9 @@ export const UtilityAnomalies = memo(function UtilityAnomalies({
 
   const anomalies = insights.anomalies.slice(0, maxItems);
   const hasAnomalies = anomalies.length > 0;
+  // A green "all normal" on an account with no bills is a false reassurance.
+  const billsAnalyzed = insights.billsAnalyzed ?? 0;
+  const hasEnoughData = billsAnalyzed >= 3;
 
   if (!hasAnomalies) {
     return (
@@ -78,14 +81,32 @@ export const UtilityAnomalies = memo(function UtilityAnomalies({
           </CardTitle>
           {!compact && (
             <CardDescription>
-              No unusual spikes detected in utility bills
+              {hasEnoughData
+                ? "No unusual spikes detected in utility bills"
+                : "Not enough history to detect anomalies yet"}
             </CardDescription>
           )}
         </CardHeader>
         <CardContent>
           <div className="text-center py-4 text-muted-foreground text-sm">
-            <CheckCircle className="h-8 w-8 mx-auto mb-2 text-success opacity-50" />
-            <p>All utility bills are within normal ranges</p>
+            {hasEnoughData ? (
+              <>
+                <CheckCircle className="h-8 w-8 mx-auto mb-2 text-success opacity-50" />
+                <p>All utility bills are within normal ranges</p>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <p>
+                  {billsAnalyzed === 0
+                    ? "No utility bills recorded yet."
+                    : `Only ${billsAnalyzed} bill${billsAnalyzed === 1 ? "" : "s"} recorded.`}{" "}
+                  Spike detection compares each bill against the same utility in
+                  earlier months, so it needs a few months of history before it
+                  can say anything.
+                </p>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>

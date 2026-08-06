@@ -135,12 +135,15 @@ export const getActiveLeases = query({
   args: {},
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
-    const leases = await ctx.db
-      .query("leases")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
-      .collect();
-    
-    const userLeases = leases.filter(l => l.userId === userId);
+    // Was indexed on the deprecated stored status column, which is written once
+    // and never recomputed — so this returned leases that ended months ago as
+    // "active". Scoped by user and filtered on the date-derived status instead.
+    const userLeases = filterActiveLeases(
+      await ctx.db
+        .query("leases")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect()
+    );
     
     // Add unit information to each lease
     const leasesWithUnits = await Promise.all(

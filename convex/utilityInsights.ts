@@ -365,6 +365,10 @@ export const getUtilityInsights = query({
     return {
       anomalies: sortedAnomalies,
       deltas: sortedDeltas,
+      // Detection needs a history to compare against. Reporting the sample size
+      // lets the UI distinguish "no spikes" from "not enough data to say",
+      // which previously both rendered as a reassuring green tick.
+      billsAnalyzed: bills.length,
       anomalyCount: sortedAnomalies.length,
       highSeverityAnomalies: sortedAnomalies.filter(
         (a) => a.severity === "high"

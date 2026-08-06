@@ -466,7 +466,7 @@ export default function DashboardPage() {
             <div className="flex justify-end items-center sm:flex-col sm:items-end gap-2">
               <div className="text-right">
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Portfolio Value
+                  Annualised Rent
                 </p>
                 <p className="text-sm sm:text-xl font-semibold text-green-600 dark:text-green-400">
                   ${(metrics.totalMonthlyRent * 12).toLocaleString()}/yr
