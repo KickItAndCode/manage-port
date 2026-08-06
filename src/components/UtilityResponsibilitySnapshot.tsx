@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { getLeaseStatus } from "@/lib/lease-status";
 
 interface UtilityResponsibilitySnapshotProps {
   propertyId?: Id<"properties">;
@@ -132,7 +133,7 @@ export function UtilityResponsibilitySnapshot({
   const calculateUtilityBreakdowns = (): UtilityBreakdown[] => {
     if (!filteredLeases || !utilitySettings || (propertyId && !units)) return [];
 
-    const activeLeases = filteredLeases.filter(l => l.status === "active");
+    const activeLeases = filteredLeases.filter(l => getLeaseStatus(l.startDate, l.endDate) === "active");
     if (activeLeases.length === 0) return [];
 
     const breakdowns: UtilityBreakdown[] = [];

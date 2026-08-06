@@ -27,6 +27,7 @@ import {
   Trash,
   Home
 } from "lucide-react";
+import { getLeaseStatus } from "@/lib/lease-status";
 
 interface UtilityResponsibilityModalProps {
   open: boolean;
@@ -104,7 +105,7 @@ export function UtilityResponsibilityModal({
   // Filter properties that have active leases (for configuration)
   const propertiesWithActiveLeases = properties?.filter(property => {
     const propertyLeases = allLeases?.filter(
-      lease => lease.propertyId === property._id && lease.status === "active"
+      lease => lease.propertyId === property._id && getLeaseStatus(lease.startDate, lease.endDate) === "active"
     );
     return propertyLeases && propertyLeases.length > 0;
   }) || [];
@@ -119,7 +120,7 @@ export function UtilityResponsibilityModal({
       if (!property || !property._id) return;
       
       const propertyLeases = allLeases.filter(
-        lease => lease.propertyId === property._id && lease.status === "active"
+        lease => lease.propertyId === property._id && getLeaseStatus(lease.startDate, lease.endDate) === "active"
       );
 
       if (!propertyLeases || propertyLeases.length === 0) return;
@@ -377,7 +378,7 @@ export function UtilityResponsibilityModal({
                     <option value="">Select a property</option>
                     {propertiesWithActiveLeases.map(property => {
                       const activeLeases = allLeases?.filter(
-                        lease => lease.propertyId === property._id && lease.status === "active"
+                        lease => lease.propertyId === property._id && getLeaseStatus(lease.startDate, lease.endDate) === "active"
                       ) || [];
                       return (
                         <option key={property._id} value={property._id}>

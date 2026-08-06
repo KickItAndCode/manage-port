@@ -212,8 +212,31 @@ export const getUnitsByProperty = query({
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
       .collect();
 
-    // Sort by unit identifier
-    return units.sort((a, b) => a.unitIdentifier.localeCompare(b.unitIdentifier));
+    // Report occupancy derived from active leases rather than the stored
+    // unit.status, which only changes when a lease is written and therefore
+    // still reads "occupied" for units whose leases have ended. "maintenance"
+    // is a real manual state and is preserved.
+    const propertyLeases = await ctx.db
+      .query("leases")
+      .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .collect();
+    const occupiedUnitIds = new Set(
+      filterActiveLeases(propertyLeases)
+        .map((lease) => lease.unitId)
+        .filter(Boolean)
+    );
+
+    return units
+      .map((unit) => ({
+        ...unit,
+        status:
+          unit.status === "maintenance"
+            ? ("maintenance" as const)
+            : occupiedUnitIds.has(unit._id)
+              ? ("occupied" as const)
+              : ("available" as const),
+      }))
+      .sort((a, b) => a.unitIdentifier.localeCompare(b.unitIdentifier));
   },
 });
 
@@ -350,17 +373,28 @@ export const getUnitStats = query({
       occupancyRate: 0,
     };
 
+    // Occupancy is derived from whether a unit has a lease that is active
+    // today, not from the stored unit.status. That column is only updated when
+    // a lease is created or edited, so it kept reporting "occupied" for units
+    // whose leases had long since ended. "maintenance" stays a real manual
+    // state — it is a decision about the unit, not a consequence of a lease.
+    const propertyLeases = await ctx.db
+      .query("leases")
+      .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .collect();
+    const occupiedUnitIds = new Set(
+      filterActiveLeases(propertyLeases)
+        .map((lease) => lease.unitId)
+        .filter(Boolean)
+    );
+
     for (const unit of units) {
-      switch (unit.status) {
-        case "available":
-          stats.availableUnits++;
-          break;
-        case "occupied":
-          stats.occupiedUnits++;
-          break;
-        case "maintenance":
-          stats.maintenanceUnits++;
-          break;
+      if (unit.status === "maintenance") {
+        stats.maintenanceUnits++;
+      } else if (occupiedUnitIds.has(unit._id)) {
+        stats.occupiedUnits++;
+      } else {
+        stats.availableUnits++;
       }
     }
 

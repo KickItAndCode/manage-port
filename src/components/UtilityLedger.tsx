@@ -25,6 +25,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { format } from "date-fns";
+import { getLeaseStatus } from "@/lib/lease-status";
 
 interface UtilityLedgerProps {
   billId: Id<"utilityBills">;
@@ -233,7 +234,7 @@ export function UtilityLedger({
                     <span className="text-sm font-medium">Step 1: Active Leases</span>
                   </div>
                   <p className="text-xs text-muted-foreground ml-6">
-                    Found {leases?.filter((l) => l.status === "active").length || 0} active
+                    Found {leases?.filter((l) => getLeaseStatus(l.startDate, l.endDate) === "active").length || 0} active
                     lease(s) for this property
                   </p>
                 </div>

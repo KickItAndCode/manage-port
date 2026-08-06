@@ -20,6 +20,7 @@ import {
   Edit,
   Home
 } from "lucide-react";
+import { getLeaseStatus } from "@/lib/lease-status";
 
 interface PropertyUtilityAllocationProps {
   propertyId: Id<"properties">;
@@ -59,7 +60,7 @@ export function PropertyUtilityAllocation({
   // Initialize allocations when data loads
   useEffect(() => {
     if (leases && utilitySettings && units) {
-      const activeLeases = leases.filter(l => l.status === "active");
+      const activeLeases = leases.filter(l => getLeaseStatus(l.startDate, l.endDate) === "active");
       
       if (activeLeases.length > 0) {
         const newAllocations = activeLeases.map(lease => {
@@ -97,7 +98,7 @@ export function PropertyUtilityAllocation({
     }
   }, [leases, utilitySettings, units]);
 
-  const activeLeases = leases?.filter(l => l.status === "active") || [];
+  const activeLeases = leases?.filter(l => getLeaseStatus(l.startDate, l.endDate) === "active") || [];
 
   const totalAllocated = allocations.reduce((sum, a) => sum + a.percentage, 0);
   const ownerPercentage = Math.max(0, 100 - totalAllocated);

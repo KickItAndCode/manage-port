@@ -455,8 +455,27 @@ export const getProperties = query({
           property._id,
           userId
         );
+
+        // Same derivation as getPropertyWithUnits: occupancy follows from the
+        // leases rather than the stored status column, which drifts.
+        const hasActiveLease =
+          filterActiveLeases(
+            await ctx.db
+              .query("leases")
+              .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+              .collect()
+          ).length > 0;
+        const derivedStatus =
+          property.status === "Maintenance" ||
+          property.status === "Under Contract"
+            ? property.status
+            : hasActiveLease
+              ? "Occupied"
+              : "Available";
+
         return {
           ...property,
+          status: derivedStatus,
           monthlyRent,
         };
       })
@@ -516,8 +535,20 @@ export const getPropertyWithUnits = query({
       })
     );
 
+    // Occupancy is a consequence of the leases, not a field someone remembered
+    // to update. The stored property.status still reported "Occupied" for a
+    // property whose every lease had expired. "Maintenance" and "Under
+    // Contract" are genuine manual states and are left alone.
+    const derivedStatus =
+      property.status === "Maintenance" || property.status === "Under Contract"
+        ? property.status
+        : unitsWithLeases.some((unit) => unit.activeLease)
+          ? "Occupied"
+          : "Available";
+
     return {
       ...property,
+      status: derivedStatus,
       monthlyRent,
       units: unitsWithLeases.sort((a, b) =>
         a.unitIdentifier.localeCompare(b.unitIdentifier)
@@ -831,8 +862,25 @@ export const getProperty = query({
         userId
       );
 
+      // Same derivation as getProperties/getPropertyWithUnits so every view of
+      // a property agrees about whether it is occupied.
+      const hasActiveLease =
+        filterActiveLeases(
+          await ctx.db
+            .query("leases")
+            .withIndex("by_property", (q) => q.eq("propertyId", args.id))
+            .collect()
+        ).length > 0;
+      const derivedStatus =
+        property.status === "Maintenance" || property.status === "Under Contract"
+          ? property.status
+          : hasActiveLease
+            ? "Occupied"
+            : "Available";
+
       return {
         ...property,
+        status: derivedStatus,
         monthlyRent,
       };
     } catch (error) {

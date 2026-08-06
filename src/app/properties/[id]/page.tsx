@@ -49,6 +49,7 @@ import { PropertyUtilityAllocation } from "@/components/PropertyUtilityAllocatio
 import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
 import { UtilityResponsibilitySnapshot } from "@/components/UtilityResponsibilitySnapshot";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
+import { getLeaseStatus } from "@/lib/lease-status";
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -102,6 +103,11 @@ export default function PropertyDetailsPage() {
     user && isValidPropertyId ? { propertyId: propertyId as any } : "skip"
   );
 
+  // Lease status is derived from dates, never read from the stored column,
+  // which is deprecated and drifts. See convex/lib/leaseStatus.ts.
+  const leaseStatus = (lease: { startDate: string; endDate: string }) =>
+    getLeaseStatus(lease.startDate, lease.endDate);
+
   // Helper functions
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -128,7 +134,7 @@ export default function PropertyDetailsPage() {
 
   const getActiveLeases = () => {
     if (!leases) return [];
-    return leases.filter((lease: any) => lease.status === "active");
+    return leases.filter((lease: any) => leaseStatus(lease) === "active");
   };
 
   const getCurrentTenant = () => {
@@ -138,7 +144,7 @@ export default function PropertyDetailsPage() {
   
   const getExpiredLeases = () => {
     if (!leases) return [];
-    return leases.filter((lease: any) => lease.status === "expired");
+    return leases.filter((lease: any) => leaseStatus(lease) === "expired");
   };
   
   const getDisplayedLeases = () => {
@@ -146,7 +152,7 @@ export default function PropertyDetailsPage() {
     if (showExpiredLeases) {
       return leases;
     }
-    return leases.filter((lease: any) => lease.status !== "expired");
+    return leases.filter((lease: any) => leaseStatus(lease) !== "expired");
   };
 
   // Comprehensive property detail loading skeleton
@@ -808,7 +814,7 @@ export default function PropertyDetailsPage() {
                               )}
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                              {getLeaseStatusBadge(lease.status, lease.endDate)}
+                              {getLeaseStatusBadge(leaseStatus(lease), lease.endDate)}
                               <Badge variant="default" className="bg-green-600 text-xs">
                                 Current Tenant
                               </Badge>
@@ -876,7 +882,7 @@ export default function PropertyDetailsPage() {
                     ))}
 
                     {/* Non-Active Leases (pending, etc.) */}
-                    {leases?.filter((lease: any) => lease.status !== "active" && lease.status !== "expired").map((lease: any) => (
+                    {leases?.filter((lease: any) => leaseStatus(lease) === "pending").map((lease: any) => (
                       <div 
                         key={lease._id} 
                         className="border rounded-lg p-4"
@@ -892,7 +898,7 @@ export default function PropertyDetailsPage() {
                               )}
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                              {getLeaseStatusBadge(lease.status, lease.endDate)}
+                              {getLeaseStatusBadge(leaseStatus(lease), lease.endDate)}
                             </div>
                           </div>
                           <div className="text-left sm:text-right">
@@ -964,7 +970,7 @@ export default function PropertyDetailsPage() {
                                     )}
                                   </div>
                                   <div className="flex items-center gap-2 mt-1">
-                                    {getLeaseStatusBadge(lease.status, lease.endDate)}
+                                    {getLeaseStatusBadge(leaseStatus(lease), lease.endDate)}
                                   </div>
                                 </div>
                                 <div className="text-left sm:text-right">
