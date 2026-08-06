@@ -111,6 +111,17 @@ export function GlobalSearch() {
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  /**
+   * Starts as "Ctrl" on every render, including the server's, and switches to
+   * ⌘ after mount. Reading the platform during render would make the server
+   * and client disagree, which is the hydration mismatch this codebase already
+   * shipped once in ConditionalLayout.
+   */
+  const [shortcutKey, setShortcutKey] = useState("Ctrl+");
+  useEffect(() => {
+    if (navigator.platform.toUpperCase().includes("MAC")) setShortcutKey("⌘");
+  }, []);
+
   const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
@@ -150,6 +161,36 @@ export function GlobalSearch() {
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  /**
+   * ⌘K / Ctrl-K focuses search from anywhere, Escape leaves it.
+   *
+   * The field sat in the top bar reachable only by mouse. The shortcut is
+   * conventional enough that people try it before looking for the box.
+   *
+   * Bound on keydown with preventDefault so the browser's own find-in-page or
+   * search-bar binding does not also fire.
+   */
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      if (event.key === "k" && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        inputRef.current?.focus();
+        inputRef.current?.select();
+        return;
+      }
+
+      // Only surrender focus if search actually has it, so Escape keeps
+      // working for whatever dialog is on screen.
+      if (event.key === "Escape" && document.activeElement === inputRef.current) {
+        setIsOpen(false);
+        inputRef.current?.blur();
+      }
+    };
+
+    document.addEventListener("keydown", handleShortcut);
+    return () => document.removeEventListener("keydown", handleShortcut);
   }, []);
 
   // Navigation function
@@ -221,6 +262,16 @@ export function GlobalSearch() {
           className="pl-10 pr-10 w-full bg-input text-foreground border-border focus:ring-2 focus:ring-primary"
           data-testid="global-search-input"
         />
+        {/* A shortcut nobody knows about is not a shortcut. Hidden on touch
+            layouts, where there is no keyboard to press it with. */}
+        {!search && (
+          <kbd
+            aria-hidden="true"
+            className="pointer-events-none absolute right-3 top-1/2 hidden -translate-y-1/2 select-none items-center gap-0.5 rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[10px] font-medium text-muted-foreground sm:flex"
+          >
+            {shortcutKey}K
+          </kbd>
+        )}
         {search && (
           <Button
             variant="ghost"

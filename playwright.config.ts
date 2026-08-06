@@ -59,7 +59,7 @@ export default defineConfig({
     // The suites that must pass: routes render, views agree, forms submit.
     {
       name: 'chromium',
-      testMatch: /(routes|consistency|forms|hydration)\.spec\.ts/,
+      testMatch: /(routes|consistency|forms|hydration|interactions)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'playwright/.auth/user.json',
