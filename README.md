@@ -5,7 +5,8 @@
 
 > 📖 **Quick Start**: See `docs/QUICK_START.md` for immediate next steps  
 > 📊 **Current Status**: See `docs/CURRENT_STATUS.md` for detailed progress  
-> 📦 **Bun Commands**: See `docs/BUN_COMMANDS.md` for command reference
+> 📦 **Bun Commands**: See `docs/BUN_COMMANDS.md` for command reference  
+> 📝 **Changelog**: See `CHANGELOG.md` for what shipped and when
 
 ---
 
