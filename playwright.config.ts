@@ -77,20 +77,6 @@ export default defineConfig({
       },
       dependencies: ['setup'],
     },
-
-    // Pre-existing specs, kept but not part of the default run. They were
-    // written against earlier UI and have not been revalidated; run with
-    // `playwright test --project=legacy` to work through them.
-    {
-      name: 'legacy',
-      testIgnore: /(routes|consistency|forms|hydration)\.spec\.ts/,
-      testMatch: /.*\.spec\.ts/,
-      use: {
-        ...devices['Desktop Chrome'],
-        storageState: 'playwright/.auth/user.json',
-      },
-      dependencies: ['setup'],
-    },
   ],
 
   /* Run your local dev server before starting the tests */

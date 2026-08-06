@@ -1,178 +1,58 @@
-# Playwright Testing Setup
+# Tests
 
-This directory contains end-to-end tests for the Property Management application using Playwright.
-
-## Quick Start
-
-### Run All Tests
-```bash
-npm test
-```
-
-### Run Tests with UI Mode (Visual Test Runner)
-```bash
-npm run test:ui
-```
-
-### Run Tests in Headed Mode (See Browser)
-```bash
-npm run test:headed
-```
-
-### Debug Tests
-```bash
-npm run test:debug
-```
-
-### View Test Report
-```bash
-npm run test:report
-```
-
-## Test Structure
-
-```
-tests/
-├── auth.setup.ts           # Authentication setup for all tests
-├── dashboard.spec.ts       # Dashboard functionality tests
-├── navigation.spec.ts      # Navigation and routing tests
-├── property-management.spec.ts  # Property CRUD operations
-└── helpers/
-    └── test-data.ts        # Test data factories and helpers
-```
-
-## Test Categories
-
-### 🔐 Authentication Tests
-- User login flow
-- Session management
-- Protected route access
-
-### 🏠 Property Management Tests
-- Create, read, update, delete properties
-- Property form validation
-- Property details navigation
-
-### 📊 Dashboard Tests
-- Dashboard statistics display
-- Quick actions functionality
-- Analytics visualization
-
-### 🧭 Navigation Tests
-- Page navigation
-- Mobile responsiveness
-- Loading states
-
-### 💰 Utility Management Tests
-- Utility bill creation
-- Payment recording
-- Statement generation
-
-## Configuration
-
-### Environment Variables
-Create a `.env.local` file for test configuration:
-
-```env
-# Test user credentials (for Clerk authentication)
-TEST_USER_EMAIL=test@example.com
-TEST_USER_PASSWORD=your-test-password
-
-# Test database configuration
-TEST_DATABASE_URL=your-test-db-url
-```
-
-### Browser Configuration
-Tests run on:
-- ✅ Chromium (Desktop)
-- ✅ Firefox (Desktop)
-- ✅ WebKit/Safari (Desktop)
-- ✅ Mobile Chrome (Pixel 5)
-- ✅ Mobile Safari (iPhone 12)
-
-## Best Practices
-
-### Writing Tests
-1. **Use descriptive test names**: `should display property form when Add Property is clicked`
-2. **Test user flows, not implementation**: Focus on what users do, not how it's coded
-3. **Use test data factories**: Import from `helpers/test-data.ts`
-4. **Wait for elements properly**: Use `expect().toBeVisible()` instead of manual waits
-5. **Clean up test data**: Remove created test data after tests
-
-### Test Data
-```typescript
-import { TestData, TestHelpers } from './helpers/test-data';
-
-// Use consistent test data
-await TestHelpers.fillPropertyForm(page, TestData.property.basic);
-```
-
-### Debugging Failed Tests
-1. **Screenshot on failure**: Automatically captured in `test-results/`
-2. **Video recording**: Available for failed tests
-3. **Trace viewer**: Run `npx playwright show-trace trace.zip`
-4. **Debug mode**: Run `npm run test:debug` for step-by-step debugging
-
-## CI/CD Integration
-
-Tests automatically run on:
-- Push to `main` or `develop` branches
-- Pull requests to `main`
-
-### GitHub Actions Setup
-The workflow file is located at `.github/workflows/playwright.yml`
-
-### Required Secrets
-Add these secrets to your GitHub repository:
-- `TEST_USER_EMAIL`: Test account email
-- `TEST_USER_PASSWORD`: Test account password
-
-## Common Commands
+Three layers, each guarding a way this application has actually broken.
 
 ```bash
-# Install Playwright browsers
-npx playwright install
-
-# Run specific test file
-npx playwright test dashboard.spec.ts
-
-# Run tests matching pattern
-npx playwright test --grep "property"
-
-# Run tests in specific browser
-npx playwright test --project=chromium
-
-# Generate test code by recording actions
-npx playwright codegen localhost:3000
+bun run test              # unit — pure functions, offline, ~200ms
+bun run test:integration  # Convex + Clerk contract, ~12s
+bun run test:e2e          # Playwright, ~50s
 ```
 
-## Troubleshooting
+## Layers
 
-### Authentication Issues
-- Ensure test credentials are valid
-- Check Clerk configuration for test environment
-- Verify auth setup in `auth.setup.ts`
+**Unit** (`src/**/*.test.ts`, `convex/**/*.test.ts`) — pure functions only, no
+network. `convex/lib/money.test.ts` covers the cent allocator across 80
+total/split combinations, asserting no money is lost or invented.
 
-### Test Timeouts
-- Increase timeout in `playwright.config.ts`
-- Add explicit waits for slow-loading content
-- Check network conditions in CI
+**Integration** (`tests/integration/`) — calls the real Convex deployment as
+real Clerk users.
 
-### Flaky Tests
-- Use Playwright's auto-wait features
-- Avoid hard-coded sleep() calls
-- Test in multiple browsers to identify browser-specific issues
+- `authorization.test.ts` — cross-tenant reads and writes, anonymous access,
+  spoofed `userId` arguments, and internal endpoints staying off the public API.
+  Convex functions are public HTTP endpoints; the app once accepted `userId` as
+  a client argument and trusted it.
+- `writeFlows.test.ts` — create/update/delete for bills and leases, bill
+  splitting, and occupancy derived in both directions.
 
-### Development Server Issues
-- Ensure dev server starts successfully
-- Check port 3000 is available
-- Verify `webServer` configuration in `playwright.config.ts`
+Needs `CLERK_SECRET_KEY` and `NEXT_PUBLIC_CONVEX_URL`. Without them the suites
+skip rather than fail, so a missing key does not read as broken code.
 
-## Contributing
+**End-to-end** (`tests/*.spec.ts`)
 
-When adding new tests:
-1. Follow existing naming conventions
-2. Add tests for new features
-3. Update test data factories as needed
-4. Ensure tests pass in all browsers
-5. Add documentation for complex test scenarios
+- `routes.spec.ts` — every route mounts with no error boundary and no console
+  errors, and redirects signed-out visitors. Three pages once shipped dead
+  behind the error boundary while typecheck, lint and the build were green.
+- `consistency.spec.ts` — views compared against each other, not against fixed
+  values. Occupancy drifted between the dashboard, the property list and
+  property detail; it was fixed four times and the next view was still wrong.
+- `hydration.spec.ts` — seeds the client-only state that provokes a server/client
+  mismatch.
+- `forms.spec.ts` — drives real controls. Setting a `<select>` value
+  programmatically does not fire React's `onChange`, so a form can look filled
+  while its state is empty.
+
+## Authentication
+
+`auth.setup.ts` mints a single-use Clerk sign-in ticket through the Backend API
+and passes it to `/sign-in`, rather than filling the sign-in form. About 4.8s
+instead of ~30s, no password, and no coupling to Clerk's markup.
+
+The ticket must be a **query parameter**. In the URL fragment it never reaches
+Clerk and the exchange silently does nothing.
+
+## Fixtures
+
+Records created by tests are removed in `global-teardown.ts` through Convex
+rather than by driving the delete UI, which depends on a menu, a dialog, and the
+page still being open. Leftovers from a crashed run are identifiable by a
+distinctive amount in a far-future month.
