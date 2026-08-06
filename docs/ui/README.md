@@ -7,7 +7,7 @@ Welcome to the ManagePort UI System documentation. This directory contains all d
 1. **New to the system?** Start with [Component Usage Guidelines](./COMPONENT_USAGE.md)
 2. **Building forms?** Read [Form Patterns](./FORM_PATTERNS.md)
 3. **Styling components?** Check [Design Tokens](./DESIGN_TOKENS.md)
-4. **Migrating existing code?** Review [Component Inventory](../../COMPONENT_INVENTORY.md)
+4. **Wondering what the app currently does?** See [Current Status](../CURRENT_STATUS.md)
 
 ## Documentation Index
 
@@ -25,7 +25,7 @@ Common form patterns and best practices for building consistent, accessible form
 All UI components are located in `src/components/ui/`. Key components:
 
 - **Form Components**: `FormField`, `Input`, `SelectNative`, `Textarea`, `FormContainer`
-- **Layout Components**: `FormGrid` (planned), `FormActions` (planned)
+- **Layout Components**: `FormGrid`, `FormActions`
 - **Data Display**: `ResponsiveTable`, `StatusBadge`
 - **Feedback**: `Skeleton`, `Toast` (Sonner)
 
@@ -41,7 +41,6 @@ All UI components are located in `src/components/ui/`. Key components:
 
 - Check the component documentation in `src/components/ui/`
 - Review existing implementations in `src/components/`
-- See [Component Inventory](../../COMPONENT_INVENTORY.md) for migration examples
 
 ## Contributing
 
@@ -53,12 +52,18 @@ When adding new components or patterns:
 4. Add examples to component files
 5. Test in both light and dark modes
 
-## Phase Status
+## Status
 
-- ✅ **Phase 0**: Component inventory, design tokens, documentation (Complete)
-- ⏳ **Phase 1**: Unified interaction layer (In Progress)
-- ⏳ **Phase 2**: Utility simplicity & trust (Planned)
-- ⏳ **Phase 3**: Experience deepening (Planned)
+Every component listed above exists in `src/components/ui/` and this document
+was verified against them in August 2026.
 
-See [NEXT_PHASE_PLAN.md](../../NEXT_PHASE_PLAN.md) for the full roadmap.
+Two known gaps, tracked in [Current Status](../CURRENT_STATUS.md):
+
+- `src/styles/tokens.ts` is imported by nothing. Point 1 under Contributing
+  describes an intent, not current practice — either adopt the file or delete it
+- Form controls are split between raw `<select>` (11 files) and `SelectNative`
+  (9 files)
+
+The phase roadmap this document used to track ended; its plans are in
+[`docs/archive/`](../archive/README.md).
 

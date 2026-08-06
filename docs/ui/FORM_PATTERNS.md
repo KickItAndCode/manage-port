@@ -282,5 +282,6 @@ export function PropertyForm({ onSubmit, serverError }) {
 
 - [Component Usage Guidelines](./COMPONENT_USAGE.md)
 - [Design Tokens](./DESIGN_TOKENS.md)
-- [Component Inventory](../../COMPONENT_INVENTORY.md)
+- [Current Status](../CURRENT_STATUS.md)
+- [Component Inventory](../archive/COMPONENT_INVENTORY.md) — archived, partly outdated
 

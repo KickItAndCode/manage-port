@@ -3,10 +3,10 @@
 **Last Updated**: August 6, 2026  
 **Package Manager**: Bun
 
-> 📖 **Quick Start**: See `docs/QUICK_START.md` for immediate next steps  
-> 📊 **Current Status**: See `docs/CURRENT_STATUS.md` for detailed progress  
-> 📦 **Bun Commands**: See `docs/BUN_COMMANDS.md` for command reference  
-> 📝 **Changelog**: See `CHANGELOG.md` for what shipped and when
+> 📊 **Current Status**: [`docs/CURRENT_STATUS.md`](docs/CURRENT_STATUS.md) — what works, what's left, and the commands to run it  
+> 📝 **Changelog**: [`CHANGELOG.md`](CHANGELOG.md) — what shipped and when  
+> 🎨 **UI System**: [`docs/ui/`](docs/ui/README.md) — component usage, form patterns, design tokens  
+> 🗄️ **Archive**: [`docs/archive/`](docs/archive/README.md) — historical records, unmaintained and in places superseded
 
 ---
 

@@ -2,8 +2,11 @@
 
 **Last Updated**: August 6, 2026
 
-This is the single status document. Anything under `docs/archive/` is a
-historical record of a finished phase and is not maintained.
+This is the single status document. Anything under
+[`docs/archive/`](archive/README.md) is a historical record — accurate when
+written, unmaintained since, and in places describing features that have since
+been deleted. `docs/PRDMobile.md` is a forward-looking proposal, not a
+description of what exists.
 
 ---
 
@@ -43,7 +46,7 @@ every call.
   `requirePropertyOwner`, `requireBillOwner`, `requireLeaseOwner`,
   `requireChargeOwner`. Unauthorized and missing both report `NOT_FOUND` so IDs
   cannot be probed
-- All 146 public handlers converted. Tables without their own `userId`
+- All 131 public handlers converted. Tables without their own `userId`
   (`units`, `utilityCharges`, `leaseUtilitySettings`, `utilityPayments`) reach
   ownership through the parent property, bill or lease
 - Maintenance and background-job functions became `internalQuery`/
@@ -140,6 +143,20 @@ plainly rather than offering toggles that control nothing.
 
 - The deployment has tables absent from `schema.ts` left by earlier iterations
   (`jobQueue`, `jobLogs`, `tenantUtilityCharges`, `unitUtilityResponsibilities`)
+
+**Carried over from retired task lists**
+
+These outlived the documents that tracked them. Each was re-verified as still
+open when `docs/archive/` was consolidated; the rest of those lists had been
+completed.
+
+- The dashboard mounts `LeaseForm`, `UtilityBillForm` and the property wizard
+  inline. Linking to `/properties?action=add` and friends would drop three form
+  imports from the heaviest page, but no page reads an `action` parameter yet
+- `: any` appears ~70 times across the Convex backend
+- Form controls are split between raw `<select>` (11 files) and `SelectNative`
+  (9 files). `src/styles/tokens.ts` is imported by nothing — either adopt it or
+  delete it
 
 ---
 

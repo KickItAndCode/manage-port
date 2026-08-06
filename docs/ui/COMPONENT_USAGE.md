@@ -316,5 +316,6 @@ When migrating existing forms:
 
 - [Design Tokens](./DESIGN_TOKENS.md)
 - [Form Patterns](./FORM_PATTERNS.md)
-- [Component Inventory](../../COMPONENT_INVENTORY.md)
+- [Current Status](../CURRENT_STATUS.md)
+- [Component Inventory](../archive/COMPONENT_INVENTORY.md) — archived, partly outdated
 
