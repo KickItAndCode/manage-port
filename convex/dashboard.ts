@@ -1,22 +1,9 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
+import { requireUser } from "./lib/auth";
+import { getLeaseStatus } from "./lib/leaseStatus";
 
-// Helper function to compute lease status based on dates
-function computeLeaseStatus(startDate: string, endDate: string): "active" | "expired" | "pending" {
-  const now = new Date();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  
-  // Clear time components for date-only comparison
-  now.setHours(0, 0, 0, 0);
-  start.setHours(0, 0, 0, 0);
-  end.setHours(0, 0, 0, 0);
-  
-  if (start > now) return "pending";
-  if (end < now) return "expired";
-  return "active";
-}
 
 // Helper function to calculate date range start date
 function getDateRangeStart(dateRange?: "week" | "month" | "quarter" | "year" | "all"): Date | null {
@@ -47,23 +34,23 @@ function getDateRangeStart(dateRange?: "week" | "month" | "quarter" | "year" | "
 // Get dashboard metrics for a user
 export const getDashboardMetrics = query({
   args: { 
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
     dateRange: v.optional(v.union(v.literal("week"), v.literal("month"), v.literal("quarter"), v.literal("year"), v.literal("all"))),
     status: v.optional(v.union(v.literal("all"), v.literal("active"), v.literal("expired"), v.literal("pending"))),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Get properties using index (optimized)
     let properties;
     if (args.propertyId) {
       // If filtering by specific property, get it directly
       const property = await ctx.db.get(args.propertyId);
-      properties = property && property.userId === args.userId ? [property] : [];
+      properties = property && property.userId === userId ? [property] : [];
     } else {
       // Use index for userId query
       properties = await ctx.db
         .query("properties")
-        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect();
     }
 
@@ -76,13 +63,13 @@ export const getDashboardMetrics = query({
       leases = await ctx.db
         .query("leases")
         .withIndex("by_property", (q) => q.eq("propertyId", propertyId))
-        .filter((q) => q.eq(q.field("userId"), args.userId))
+        .filter((q) => q.eq(q.field("userId"), userId))
         .collect();
     } else {
       // Use userId index
       leases = await ctx.db
         .query("leases")
-        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect();
     }
 
@@ -94,13 +81,13 @@ export const getDashboardMetrics = query({
       utilityBills = await ctx.db
         .query("utilityBills")
         .withIndex("by_property", (q) => q.eq("propertyId", propertyId))
-        .filter((q) => q.eq(q.field("userId"), args.userId))
+        .filter((q) => q.eq(q.field("userId"), userId))
         .collect();
     } else {
       // Use userId index
       utilityBills = await ctx.db
         .query("utilityBills")
-        .withIndex("by_user", (q) => q.eq("userId", args.userId))
+        .withIndex("by_user", (q) => q.eq("userId", userId))
         .collect();
     }
 
@@ -134,14 +121,14 @@ export const getDashboardMetrics = query({
     // Apply status filter to leases
     if (args.status && args.status !== "all") {
       leases = leases.filter(l => {
-        const computedStatus = computeLeaseStatus(l.startDate, l.endDate);
+        const computedStatus = getLeaseStatus(l.startDate, l.endDate);
         return computedStatus === args.status;
       });
     }
     
     // Calculate occupancy and rent from active leases (computed from dates)
     const activeLeases = leases.filter(l => {
-      const computedStatus = computeLeaseStatus(l.startDate, l.endDate);
+      const computedStatus = getLeaseStatus(l.startDate, l.endDate);
       return computedStatus === "active";
     });
     

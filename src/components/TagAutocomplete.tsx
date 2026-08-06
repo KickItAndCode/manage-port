@@ -1,9 +1,7 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
-import { useQuery } from "convex/react";
-import { useUser } from "@clerk/nextjs";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import { Input } from "./ui/input";
 import { Badge } from "./ui/badge";
 import { X, Tag as TagIcon } from "lucide-react";
 import { cn } from "../lib/utils";
@@ -19,9 +17,9 @@ export function TagAutocomplete({
   value,
   onChange,
   placeholder = "Add tags...",
-  className,
+  className
 }: TagAutocompleteProps) {
-  const { user } = useUser();
+  
   const [inputValue, setInputValue] = useState("");
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(-1);
@@ -29,9 +27,10 @@ export function TagAutocomplete({
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Get all existing tags
+  const { isAuthenticated } = useConvexAuth();
   const allTags = useQuery(
     api.documents.getAllTags,
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   ) || [];
 
   // Filter suggestions based on input

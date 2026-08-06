@@ -1,7 +1,10 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { createNotification, NOTIFICATION_TYPES } from "./notifications";
+import { requireUser } from "./lib/auth";
+import { filterActiveLeases } from "./lib/leaseStatus";
 
 export interface UtilityAnomaly {
   billId: Id<"utilityBills">;
@@ -30,21 +33,21 @@ export interface MonthlyDelta {
  */
 export const detectUtilityAnomalies = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
     threshold: v.optional(v.number()), // Percentage increase threshold (default 30%)
   },
   handler: async (ctx, args): Promise<UtilityAnomaly[]> => {
+    const userId = await requireUser(ctx);
     const threshold = args.threshold || 30; // Default 30% increase threshold
 
     // Get all bills for the user/property
     const bills = await ctx.db
       .query("utilityBills")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) =>
         args.propertyId
           ? q.eq(q.field("propertyId"), args.propertyId)
-          : q.eq(q.field("userId"), args.userId)
+          : q.eq(q.field("userId"), userId)
       )
       .collect();
 
@@ -132,21 +135,21 @@ export const detectUtilityAnomalies = query({
  */
 export const getMonthlyDeltas = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
     months: v.optional(v.number()), // Number of months to analyze (default 6)
   },
   handler: async (ctx, args): Promise<MonthlyDelta[]> => {
+    const userId = await requireUser(ctx);
     const monthsToAnalyze = args.months || 6;
 
     // Get all bills
     const bills = await ctx.db
       .query("utilityBills")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) =>
         args.propertyId
           ? q.eq(q.field("propertyId"), args.propertyId)
-          : q.eq(q.field("userId"), args.userId)
+          : q.eq(q.field("userId"), userId)
       )
       .collect();
 
@@ -230,19 +233,19 @@ export const getMonthlyDeltas = query({
  */
 export const getUtilityInsights = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Inline anomaly detection logic
     const threshold = 30;
     const bills = await ctx.db
       .query("utilityBills")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) =>
         args.propertyId
           ? q.eq(q.field("propertyId"), args.propertyId)
-          : q.eq(q.field("userId"), args.userId)
+          : q.eq(q.field("userId"), userId)
       )
       .collect();
 
@@ -362,6 +365,10 @@ export const getUtilityInsights = query({
     return {
       anomalies: sortedAnomalies,
       deltas: sortedDeltas,
+      // Detection needs a history to compare against. Reporting the sample size
+      // lets the UI distinguish "no spikes" from "not enough data to say",
+      // which previously both rendered as a reassuring green tick.
+      billsAnalyzed: bills.length,
       anomalyCount: sortedAnomalies.length,
       highSeverityAnomalies: sortedAnomalies.filter(
         (a) => a.severity === "high"
@@ -398,11 +405,11 @@ export interface MissingReadingReminder {
  */
 export const getOverdueBills = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
     daysOverdueThreshold: v.optional(v.number()), // Minimum days overdue to show (default 1)
   },
   handler: async (ctx, args): Promise<OverdueBillReminder[]> => {
+    const userId = await requireUser(ctx);
     const threshold = args.daysOverdueThreshold || 1;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -410,13 +417,13 @@ export const getOverdueBills = query({
     // Get all unpaid bills
     const bills = await ctx.db
       .query("utilityBills")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) =>
         q.and(
           q.eq(q.field("landlordPaidUtilityCompany"), false),
           args.propertyId
             ? q.eq(q.field("propertyId"), args.propertyId)
-            : q.eq(q.field("userId"), args.userId)
+            : q.eq(q.field("userId"), userId)
         )
       )
       .collect();
@@ -462,11 +469,11 @@ export const getOverdueBills = query({
  */
 export const getMissingReadings = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
     lookbackMonths: v.optional(v.number()), // How many months back to check (default 2)
   },
   handler: async (ctx, args): Promise<MissingReadingReminder[]> => {
+    const userId = await requireUser(ctx);
     const lookback = args.lookbackMonths || 2;
     const today = new Date();
     const currentYear = today.getFullYear();
@@ -478,7 +485,7 @@ export const getMissingReadings = query({
       .filter((q) =>
         args.propertyId
           ? q.eq(q.field("_id"), args.propertyId)
-          : q.eq(q.field("userId"), args.userId)
+          : q.eq(q.field("userId"), userId)
       )
       .collect();
 
@@ -486,11 +493,10 @@ export const getMissingReadings = query({
 
     for (const property of properties) {
       // Get active leases for this property
-      const leases = await ctx.db
+      const leases = filterActiveLeases(await ctx.db
         .query("leases")
         .withIndex("by_property", (q) => q.eq("propertyId", property._id))
-        .filter((q) => q.eq(q.field("status"), "active"))
-        .collect();
+        .collect());
 
       if (leases.length === 0) continue;
 
@@ -588,23 +594,23 @@ export const getMissingReadings = query({
  */
 export const getUtilityReminders = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Inline overdue bills detection
     const threshold = 1;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const unpaidBills = await ctx.db
       .query("utilityBills")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) =>
         q.and(
           q.eq(q.field("landlordPaidUtilityCompany"), false),
           args.propertyId
             ? q.eq(q.field("propertyId"), args.propertyId)
-            : q.eq(q.field("userId"), args.userId)
+            : q.eq(q.field("userId"), userId)
         )
       )
       .collect();
@@ -644,16 +650,15 @@ export const getUtilityReminders = query({
       .filter((q) =>
         args.propertyId
           ? q.eq(q.field("_id"), args.propertyId)
-          : q.eq(q.field("userId"), args.userId)
+          : q.eq(q.field("userId"), userId)
       )
       .collect();
     const missingReadings: MissingReadingReminder[] = [];
     for (const property of properties) {
-      const leases = await ctx.db
+      const leases = filterActiveLeases(await ctx.db
         .query("leases")
         .withIndex("by_property", (q) => q.eq("propertyId", property._id))
-        .filter((q) => q.eq(q.field("status"), "active"))
-        .collect();
+        .collect());
       if (leases.length === 0) continue;
       const utilityTypes = new Set<string>();
       for (const lease of leases) {
@@ -735,11 +740,18 @@ export const getUtilityReminders = query({
 // Generate notifications from utility reminders
 // This mutation creates notifications for overdue bills and missing readings
 // Note: Inlines reminder detection logic since we can't call queries from mutations
-export const generateNotificationsFromReminders = mutation({
-  args: {
-    userId: v.string(),
-  },
-  handler: async (ctx, args) => {
+/**
+ * Creates overdue-bill and missing-reading notifications for one user.
+ *
+ * Split out from the mutation so a scheduled job can run it for everybody.
+ * createNotification suppresses duplicates, so a daily run only surfaces bills
+ * that have newly gone overdue.
+ */
+async function notifyUtilityRemindersForUser(
+  ctx: MutationCtx,
+  userId: string
+): Promise<number> {
+  {
     let createdCount = 0;
 
     // Detect overdue bills (inline logic from getUtilityReminders)
@@ -748,7 +760,7 @@ export const generateNotificationsFromReminders = mutation({
     today.setHours(0, 0, 0, 0);
     const unpaidBills = await ctx.db
       .query("utilityBills")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) => q.eq(q.field("landlordPaidUtilityCompany"), false))
       .collect();
 
@@ -764,8 +776,8 @@ export const generateNotificationsFromReminders = mutation({
           const propertyName = property?.name || "Unknown Property";
 
           try {
-            await createNotification(ctx, {
-              userId: args.userId,
+            const result = await createNotification(ctx, {
+              userId,
               type: NOTIFICATION_TYPES.UTILITY_BILL_REMINDER,
               title: `Overdue Utility Bill`,
               message: `${bill.utilityType} bill for ${propertyName} is ${daysOverdue} day${daysOverdue !== 1 ? 's' : ''} overdue ($${bill.totalAmount.toFixed(2)})`,
@@ -780,7 +792,7 @@ export const generateNotificationsFromReminders = mutation({
                 amount: bill.totalAmount,
               },
             });
-            createdCount++;
+            if (result.created) createdCount++;
           } catch (error) {
             console.error("Error creating notification for overdue bill:", error);
           }
@@ -791,7 +803,7 @@ export const generateNotificationsFromReminders = mutation({
     // Detect missing readings (simplified version)
     const properties = await ctx.db
       .query("properties")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     const currentYear = today.getFullYear();
@@ -799,11 +811,10 @@ export const generateNotificationsFromReminders = mutation({
     const lookback = 2;
 
     for (const property of properties) {
-      const leases = await ctx.db
+      const leases = filterActiveLeases(await ctx.db
         .query("leases")
         .withIndex("by_property", (q) => q.eq("propertyId", property._id))
-        .filter((q) => q.eq(q.field("status"), "active"))
-        .collect();
+        .collect());
 
       if (leases.length === 0) continue;
 
@@ -854,8 +865,8 @@ export const generateNotificationsFromReminders = mutation({
           const hasBill = billsByTypeAndMonth[utilityType]?.has(expectedMonth);
           if (!hasBill) {
             try {
-              await createNotification(ctx, {
-                userId: args.userId,
+              const result = await createNotification(ctx, {
+                userId,
                 type: NOTIFICATION_TYPES.UTILITY_BILL_REMINDER,
                 title: `Missing Utility Reading`,
                 message: `No ${utilityType} bill found for ${property.name} (expected: ${expectedMonth})`,
@@ -870,7 +881,7 @@ export const generateNotificationsFromReminders = mutation({
                   expectedMonth,
                 },
               });
-              createdCount++;
+              if (result.created) createdCount++;
             } catch (error) {
               console.error("Error creating notification for missing reading:", error);
             }
@@ -879,6 +890,32 @@ export const generateNotificationsFromReminders = mutation({
       }
     }
 
-    return { created: createdCount };
+    return createdCount;
+  }
+}
+
+export const generateNotificationsFromReminders = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireUser(ctx);
+    return { created: await notifyUtilityRemindersForUser(ctx, userId) };
+  },
+});
+
+/**
+ * Scheduled counterpart, run daily by convex/crons.ts. A cron has no signed-in
+ * user, so it fans out over every user that owns a utility bill.
+ */
+export const notifyUtilityRemindersForAllUsers = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const userIds = new Set(
+      (await ctx.db.query("utilityBills").collect()).map((bill) => bill.userId)
+    );
+    let created = 0;
+    for (const userId of userIds) {
+      created += await notifyUtilityRemindersForUser(ctx, userId);
+    }
+    return { users: userIds.size, created };
   },
 });

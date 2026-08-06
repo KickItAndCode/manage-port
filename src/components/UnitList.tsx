@@ -21,14 +21,13 @@ import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 
 interface UnitListProps {
   propertyId: Id<"properties">;
-  userId: string;
   onEditUnit?: (unit: any) => void;
   onAddUnit?: () => void;
 }
 
-export function UnitList({ propertyId, userId, onEditUnit, onAddUnit }: UnitListProps) {
-  const units = useQuery(api.units.getUnitsByProperty, { propertyId, userId });
-  const unitStats = useQuery(api.units.getUnitStats, { propertyId, userId });
+export function UnitList({ propertyId, onEditUnit, onAddUnit }: UnitListProps) {
+  const units = useQuery(api.units.getUnitsByProperty, { propertyId });
+  const unitStats = useQuery(api.units.getUnitStats, { propertyId });
   const deleteUnit = useMutation(api.units.deleteUnit);
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -41,7 +40,7 @@ export function UnitList({ propertyId, userId, onEditUnit, onAddUnit }: UnitList
       onConfirm: async () => {
         setDeletingId(unit._id);
         try {
-          await deleteUnit({ id: unit._id, userId });
+          await deleteUnit({ id: unit._id });
         } catch (error: any) {
           toast.error(formatErrorForToast(error));
         } finally {

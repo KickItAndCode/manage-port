@@ -1,9 +1,8 @@
 "use client";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
-import { useUser } from "@clerk/nextjs";
 import {
   Search,
   MapPin,
@@ -43,11 +42,11 @@ function SearchResultItem({
   onNavigate: (id: string) => void;
   onMouseEnter: (index: number) => void;
 }) {
-  const { user } = useUser();
+  const { isAuthenticated } = useConvexAuth();
 
   const coverImage = useQuery(
     api.propertyImages.getCoverImage,
-    user ? { propertyId: property._id as any, userId: user.id } : "skip"
+    isAuthenticated ? { propertyId: property._id as any} : "skip"
   );
 
   return (
@@ -104,7 +103,7 @@ function SearchResultItem({
 }
 
 export function GlobalSearch() {
-  const { user } = useUser();
+  
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [search, setSearch] = useState("");
@@ -112,9 +111,10 @@ export function GlobalSearch() {
   const searchRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
-    user ? { userId: user.id, limit: 1000 } : "skip" // Get more properties for search
+    isAuthenticated ? { limit: 1000 } : "skip" // Get more properties for search
   );
 
   // Extract properties array from paginated result

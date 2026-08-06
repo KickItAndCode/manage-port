@@ -2,7 +2,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/../convex/_generated/api";
-import { Id, Doc } from "@/../convex/_generated/dataModel";
+import { Id } from "@/../convex/_generated/dataModel";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,10 +14,8 @@ import {
   Users, 
   DollarSign, 
   Percent,
-  AlertCircle,
   CheckCircle,
   History,
-  FileText,
   Building2,
   ChevronDown,
   ChevronUp
@@ -27,17 +25,17 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { format } from "date-fns";
+import { getLeaseStatus } from "@/lib/lease-status";
 
 interface UtilityLedgerProps {
   billId: Id<"utilityBills">;
-  userId: string;
   /** Show compact view */
   compact?: boolean;
   /** Show edit controls */
   showEdit?: boolean;
 }
 
-interface ChargeBreakdown {
+interface _ChargeBreakdown {
   leaseId: Id<"leases">;
   tenantName: string;
   unitIdentifier?: string;
@@ -55,9 +53,8 @@ interface ChargeBreakdown {
  */
 export function UtilityLedger({
   billId,
-  userId,
   compact = false,
-  showEdit = true,
+  showEdit = true
 }: UtilityLedgerProps) {
   const [expanded, setExpanded] = useState(!compact);
   const [updating, setUpdating] = useState(false);
@@ -65,40 +62,38 @@ export function UtilityLedger({
   // Get bill details
   const bill = useQuery(
     api.utilityBills.getUtilityBill,
-    billId ? { billId, userId } : "skip"
+    billId ? { billId } : "skip"
   );
 
   // Get charges for this bill
   const charges = useQuery(
     api.utilityBills.getChargesForBill,
-    billId ? { billId, userId } : "skip"
+    billId ? { billId } : "skip"
   );
 
   // Get leases for context
   const leases = useQuery(
     api.leases.getLeasesByProperty,
-    bill?.propertyId ? { propertyId: bill.propertyId, userId } : "skip"
+    bill?.propertyId ? { propertyId: bill.propertyId } : "skip"
   );
 
   // Get property for context
   const property = useQuery(
     api.properties.getProperty,
-    bill?.propertyId ? { id: bill.propertyId, userId } : "skip"
+    bill?.propertyId ? { id: bill.propertyId } : "skip"
   );
 
   // Mutations
   const updateBill = useMutation(api.utilityBills.updateUtilityBill);
 
   const handleToggleHistorical = async (isHistorical: boolean) => {
-    if (!bill || !userId) return;
+    if (!bill) return;
 
     setUpdating(true);
     try {
       await updateBill({
         id: billId,
-        userId,
-        noTenantCharges: isHistorical,
-      });
+        noTenantCharges: isHistorical });
       toast.success(
         isHistorical
           ? "Bill marked as historical - no tenant charges will be generated"
@@ -239,7 +234,7 @@ export function UtilityLedger({
                     <span className="text-sm font-medium">Step 1: Active Leases</span>
                   </div>
                   <p className="text-xs text-muted-foreground ml-6">
-                    Found {leases?.filter((l) => l.status === "active").length || 0} active
+                    Found {leases?.filter((l) => getLeaseStatus(l.startDate, l.endDate) === "active").length || 0} active
                     lease(s) for this property
                   </p>
                 </div>

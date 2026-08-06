@@ -18,10 +18,7 @@ import {
   Check, 
   Home, 
   Users, 
-  Zap,
-  Edit,
-  Plus,
-  Trash2
+  Zap
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -37,7 +34,7 @@ const basicInfoSchema = z.object({
   squareFeet: z.coerce.number().min(0, "Square feet required"),
   purchaseDate: z.string().min(4, "Purchase date required"),
   monthlyMortgage: z.coerce.number().min(0).optional(),
-  monthlyCapEx: z.coerce.number().min(0).optional(),
+  monthlyCapEx: z.coerce.number().min(0).optional()
 });
 
 const propertyTypeSchema = z.object({
@@ -46,8 +43,8 @@ const propertyTypeSchema = z.object({
   units: z.array(z.object({
     identifier: z.string().min(1, "Unit identifier required"),
     displayName: z.string().min(1, "Display name required"),
-    customName: z.boolean(),
-  })).optional(),
+    customName: z.boolean()
+  })).optional()
 });
 
 const utilitySetupSchema = z.object({
@@ -55,8 +52,8 @@ const utilitySetupSchema = z.object({
   customSplit: z.array(z.object({
     unitId: z.string(),
     unitName: z.string(),
-    percentage: z.number().min(0).max(100),
-  })).optional(),
+    percentage: z.number().min(0).max(100)
+  })).optional()
 });
 
 type BasicInfoForm = z.infer<typeof basicInfoSchema>;
@@ -78,8 +75,6 @@ const STEPS = [
   { id: 3, title: "Utility Setup", icon: Zap },
 ] as const;
 
-const UTILITY_TYPES = ["Electric", "Water", "Gas", "Sewer", "Trash", "Internet"];
-
 export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = false }: PropertyCreationWizardProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [wizardData, setWizardData] = useState<Partial<PropertyWizardData>>({});
@@ -88,7 +83,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
   // Forms for each step
   const basicForm = useForm<BasicInfoForm>({
     resolver: zodResolver(basicInfoSchema),
-    mode: "onBlur",
+    mode: "onBlur"
   });
 
   const typeForm = useForm<PropertyTypeForm>({
@@ -97,16 +92,16 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
     defaultValues: {
       propertyType: "single-family",
       unitCount: 2,
-      units: [],
-    },
+      units: []
+    }
   });
 
   const utilityForm = useForm<UtilitySetupForm>({
     resolver: zodResolver(utilitySetupSchema),
     mode: "onBlur",
     defaultValues: {
-      utilityPreset: "tenant-pays",
-    },
+      utilityPreset: "tenant-pays"
+    }
   });
 
   // Watch values
@@ -114,7 +109,6 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
   const unitCount = typeForm.watch("unitCount");
   const units = typeForm.watch("units") || [];
   const utilityPreset = utilityForm.watch("utilityPreset");
-  const customSplit = utilityForm.watch("customSplit") || [];
 
   // Auto-calculate CapEx when mortgage changes
   const monthlyMortgage = basicForm.watch("monthlyMortgage");
@@ -139,7 +133,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
           newUnits.push({
             identifier,
             displayName: `Unit ${identifier}`,
-            customName: false,
+            customName: false
           });
         }
       }
@@ -149,7 +143,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
       typeForm.setValue("units", [{
         identifier: "Main",
         displayName: "Main Unit",
-        customName: false,
+        customName: false
       }]);
     }
   }, [propertyType, unitCount, typeForm]);
@@ -163,7 +157,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
         newCustomSplit = units.map(unit => ({
           unitId: unit.identifier,
           unitName: unit.displayName,
-          percentage: 0,
+          percentage: 0
         }));
       } else if (utilityPreset === "tenant-pays") {
         const equalSplit = Math.round(100 / units.length);
@@ -191,7 +185,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
     currentUnits[index] = {
       ...currentUnits[index],
       displayName: newName,
-      customName: newName !== `Unit ${currentUnits[index].identifier}`,
+      customName: newName !== `Unit ${currentUnits[index].identifier}`
     };
     typeForm.setValue("units", currentUnits);
   };
@@ -250,7 +244,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
         ...wizardData,
         ...basicForm.getValues(),
         ...typeForm.getValues(),
-        ...utilityForm.getValues(),
+        ...utilityForm.getValues()
       };
       onSubmit(finalData);
     }
@@ -269,12 +263,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
     ];
     const types = ["Single Family", "Duplex", "Apartment", "Condo", "Townhouse"];
     const statuses = ["Available", "Occupied", "Maintenance"];
-    const images = [
-      "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80",
-      "https://images.unsplash.com/photo-1460518451285-97b6aa326961?auto=format&fit=crop&w=400&q=80",
-      "https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=400&q=80"
-    ];
-    
+
     const randomInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min;
     const randomDate = (start: Date, end: Date) => {
       const date = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
@@ -293,7 +282,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
       squareFeet: randomInt(700, 3500),
       purchaseDate: randomDate(new Date(2015, 0, 1), new Date()),
       monthlyMortgage: mortgage,
-      monthlyCapEx: Math.round(mortgage * 0.1),
+      monthlyCapEx: Math.round(mortgage * 0.1)
     });
   };
 
@@ -319,7 +308,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
         units.push({
           identifier,
           displayName: nameSet[i] || `Unit ${identifier}`,
-          customName: !!nameSet[i],
+          customName: !!nameSet[i]
         });
       }
       typeForm.setValue("units", units);
@@ -328,7 +317,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
       typeForm.setValue("units", [{
         identifier: "Main",
         displayName: "Main Unit", 
-        customName: false,
+        customName: false
       }]);
     }
   };
@@ -351,7 +340,7 @@ export function PropertyCreationWizard({ onSubmit, onCancel, loading, isModal = 
         return {
           unitId: unit.identifier,
           unitName: unit.displayName,
-          percentage: index === 0 ? basePercentage + remainder : basePercentage,
+          percentage: index === 0 ? basePercentage + remainder : basePercentage
         };
       });
       utilityForm.setValue("customSplit", customSplit);

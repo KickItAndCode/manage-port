@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, memo } from "react";
+import { useState, memo, useMemo} from "react";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
@@ -11,7 +11,7 @@ import {
   Dialog,
   DialogContent,
   DialogHeader,
-  DialogTitle,
+  DialogTitle
 } from "@/components/ui/dialog";
 import { PaymentRecordForm } from "@/components/PaymentRecordForm";
 import { Label } from "@/components/ui/label";
@@ -31,9 +31,10 @@ import {
   Wifi,
   Trash,
   Calendar,
-  Percent,
+  Percent
 } from "lucide-react";
 import { Id } from "@/../convex/_generated/dataModel";
+import { formatDate } from "@/utils/utilityBillHelpers";
 
 interface OutstandingBalancesProps {
   userId: string;
@@ -59,9 +60,9 @@ interface TenantGroup {
 }
 
 export const OutstandingBalances = memo(function OutstandingBalances({
-  userId,
+  
   propertyId,
-  tenantId,
+  tenantId
 }: OutstandingBalancesProps) {
   const [selectedTenant, setSelectedTenant] = useState<string>(
     tenantId || "all"
@@ -71,13 +72,18 @@ export const OutstandingBalances = memo(function OutstandingBalances({
   const [paidCharges, setPaidCharges] = useState<Set<string>>(new Set());
 
   // Get all active leases
-  const leases = useQuery(api.leases.getActiveLeases, { userId });
+  const leases = useQuery(api.leases.getActiveLeases, {});
+  // A debt survives the lease that created it, so these balances are real. But
+  // listing a departed tenant identically to a current one invites chasing the
+  // wrong person, or assuming the unit is still occupied.
+  const activeLeaseIds = useMemo(
+    () => new Set((leases ?? []).map((lease: any) => lease._id)),
+    [leases]
+  );
 
   // Get outstanding charges using on-demand calculation
   const allCharges = useQuery(api.utilityCharges.calculateAllTenantCharges, {
-    userId,
-    propertyId,
-  });
+    propertyId });
 
   // Filter charges based on selected tenant and only outstanding amounts
   const charges = allCharges?.filter((charge) => {
@@ -88,7 +94,6 @@ export const OutstandingBalances = memo(function OutstandingBalances({
   });
 
   // Get utility bills for context
-  const utilityBills = useQuery(api.utilityBills.getUnpaidBills, { userId });
 
   const recordPayment = useMutation(api.utilityPayments.recordUtilityPayment);
 
@@ -148,7 +153,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
           unitIdentifier: charge.unitIdentifier,
           utilitiesByType: [],
           totalOwed: 0,
-          totalCharges: 0,
+          totalCharges: 0
         };
       }
 
@@ -161,7 +166,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
           utilityType: charge.utilityType || "Unknown",
           charges: [],
           totalOwed: 0,
-          totalBillAmount: 0,
+          totalBillAmount: 0
         };
         groups[key].utilitiesByType.push(utilityGroup);
       }
@@ -459,7 +464,17 @@ export const OutstandingBalances = memo(function OutstandingBalances({
                       <Users className="w-4 h-4" />
                     </div>
                     <div>
-                      <h3 className="font-semibold">{group.tenantName}</h3>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h3 className="font-semibold">{group.tenantName}</h3>
+                        {!activeLeaseIds.has(group.leaseId) && (
+                          <Badge
+                            variant="outline"
+                            className="text-xs border-orange-500 text-orange-600 dark:text-orange-400"
+                          >
+                            Former tenant
+                          </Badge>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground">
                         {group.propertyName}
                         {group.unitIdentifier && ` - ${group.unitIdentifier}`}
@@ -545,9 +560,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
                                   {charge.dueDate && (
                                     <p className="text-xs text-muted-foreground">
                                       Due:{" "}
-                                      {new Date(
-                                        charge.dueDate
-                                      ).toLocaleDateString()}
+                                      {formatDate(charge.dueDate)}
                                     </p>
                                   )}
                                 </div>
@@ -666,9 +679,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
                     paymentDate: data.paymentDate,
                     paymentMethod: data.paymentMethod,
                     referenceNumber: data.referenceNumber,
-                    notes: data.notes,
-                    userId,
-                  });
+                    notes: data.notes });
                   const chargeKey = `${selectedCharge.leaseId}-${selectedCharge.utilityBillId}`;
                   handlePaymentSuccess(chargeKey);
                   setPaymentDialogOpen(false);

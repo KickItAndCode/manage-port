@@ -2,7 +2,7 @@
 import { useState, useCallback } from "react";
 import { useDropzone } from "react-dropzone";
 import { toast } from "sonner";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -32,8 +32,7 @@ import {
   FileText, 
   Loader2,
   Plus,
-  Image as ImageIcon,
-  File,
+  Image as File,
   CheckCircle2
 } from "lucide-react";
 import { TagAutocomplete } from "./TagAutocomplete";
@@ -67,13 +66,13 @@ interface FileWithPreview extends File {
 }
 
 export default function DocumentUploadForm({
-  folderId,
+  
   propertyId,
   leaseId,
   utilityBillId,
   open,
   onOpenChange,
-  onUploadComplete,
+  onUploadComplete
 }: DocumentUploadFormProps) {
   // Support both controlled and uncontrolled patterns
   const [internalOpen, setInternalOpen] = useState(false);
@@ -90,7 +89,7 @@ export default function DocumentUploadForm({
     expiryDate: "",
     selectedPropertyId: propertyId as string | undefined,
     selectedLeaseId: leaseId as string | undefined,
-    selectedUtilityBillId: utilityBillId as string | undefined,
+    selectedUtilityBillId: utilityBillId as string | undefined
   });
 
   const { user } = useUser();
@@ -98,19 +97,19 @@ export default function DocumentUploadForm({
   const addDocument = useMutation(api.documents.addDocument);
 
   // Queries for dropdowns
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(api.properties.getProperties, 
-    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dropdown
+    isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for dropdown
   );
   // Extract properties array from paginated result
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
   const leasesResult = useQuery(api.leases.getLeases,
-    user ? { userId: user.id, limit: 1000 } : "skip" // Get all leases for dropdown
+    isAuthenticated ? {  limit: 1000 } : "skip" // Get all leases for dropdown
   );
   // Extract leases array from paginated result
   const leases = leasesResult?.leases || (Array.isArray(leasesResult) ? leasesResult : []);
   const utilityBills = useQuery(api.utilityBills.getUtilityBills,
-    user && formData.selectedPropertyId ? { 
-      userId: user.id, 
+    user && formData.selectedPropertyId ? {  
       propertyId: formData.selectedPropertyId as any
     } : "skip"
   );
@@ -137,7 +136,7 @@ export default function DocumentUploadForm({
     onDrop,
     accept: ACCEPTED_FILE_TYPES,
     maxSize: MAX_FILE_SIZE,
-    multiple: true,
+    multiple: true
   });
 
   const removeFile = (fileToRemove: FileWithPreview) => {
@@ -177,7 +176,7 @@ export default function DocumentUploadForm({
           const result = await fetch(uploadUrl, {
             method: "POST",
             headers: { "Content-Type": file.type },
-            body: file,
+            body: file
           });
 
           if (!result.ok) {
@@ -187,8 +186,7 @@ export default function DocumentUploadForm({
           const { storageId } = await result.json();
 
           // Create document record using the older addDocument mutation for better compatibility
-          await addDocument({
-            userId: user.id,
+          await addDocument({ 
             url: storageId,
             name: file.name,
             type: formData.type,
@@ -199,8 +197,7 @@ export default function DocumentUploadForm({
             mimeType: file.type,
             expiryDate: formData.expiryDate || undefined,
             tags: formData.tags.length > 0 ? formData.tags : undefined,
-            notes: formData.notes || undefined,
-          });
+            notes: formData.notes || undefined });
 
           uploadedFiles++;
           setUploadProgress((uploadedFiles / totalFiles) * 100);
@@ -227,7 +224,7 @@ export default function DocumentUploadForm({
         expiryDate: "",
         selectedPropertyId: propertyId as string | undefined,
         selectedLeaseId: leaseId as string | undefined,
-        selectedUtilityBillId: utilityBillId as string | undefined,
+        selectedUtilityBillId: utilityBillId as string | undefined
       });
       setIsOpen(false);
       

@@ -4,23 +4,14 @@ import { useQuery } from "convex/react";
 import { useRouter } from "next/navigation";
 import { api } from "@/../convex/_generated/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
   PieChart,
   Pie,
-  Cell,
+  Cell
 } from "recharts";
 import {
   TrendingUp,
@@ -29,11 +20,11 @@ import {
   Droplets,
   Flame,
   Calendar,
-  PieChart as PieChartIcon,
+  PieChart as PieChartIcon
 } from "lucide-react";
 import { InteractiveChart } from "./charts/InteractiveChart";
 import { createEnhancedTooltip } from "./charts/AdvancedTooltip";
-import { formatCurrency, calculateChange } from "@/utils/chartUtils";
+import { formatCurrency } from "@/utils/chartUtils";
 import { MonthlyTrendsChart } from "./charts/MonthlyTrendsChart";
 import { SeasonalInsights } from "./charts/SeasonalInsights";
 
@@ -44,7 +35,7 @@ interface UtilityAnalyticsProps {
 const COLORS = ["#10b981", "#3b82f6", "#f59e0b", "#ef4444", "#8b5cf6"];
 
 export const UtilityAnalytics = memo(function UtilityAnalytics({
-  userId,
+  
 }: UtilityAnalyticsProps) {
   const [timeframe, setTimeframe] = useState(6); // months as number
   const router = useRouter();
@@ -53,21 +44,12 @@ export const UtilityAnalytics = memo(function UtilityAnalytics({
   const analyticsData = useQuery(
     api.utilityAnalytics.getEnhancedUtilityAnalytics,
     {
-      userId,
-      timeframeMonths: timeframe,
-    }
+      timeframeMonths: timeframe }
   );
 
   // Get utility bills for backward compatibility
-  const utilityBills = useQuery(api.utilityBills.getUtilityBills, {
-    userId,
-  });
 
   // Get properties for context
-  const propertiesResult = useQuery(api.properties.getProperties, {
-    userId,
-  });
-  const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
 
   const getUtilityIcon = (type: string) => {
     switch (type) {
@@ -84,7 +66,7 @@ export const UtilityAnalytics = memo(function UtilityAnalytics({
 
   // Enhanced monthly trends data with anomaly detection
   const enhancedMonthlyTrends =
-    analyticsData?.monthlyTrends.map((month, idx) => {
+    analyticsData?.monthlyTrends.map((month, _idx) => {
       const insights = analyticsData.insights;
       const anomaly = insights.anomalies.find((a) => a.month === month.month);
 
@@ -95,7 +77,7 @@ export const UtilityAnalytics = memo(function UtilityAnalytics({
         savingsOpportunity:
           anomaly?.isAnomaly && month.total > insights.averageMonthly
             ? month.total - insights.averageMonthly
-            : undefined,
+            : undefined
       };
     }) || [];
 
@@ -125,15 +107,6 @@ export const UtilityAnalytics = memo(function UtilityAnalytics({
   };
 
   // Enhanced tooltip configurations
-  const utilityTrendTooltipConfig = createEnhancedTooltip({
-    getLabel: (payload, label) => "Monthly Utility Cost",
-    formatValue: (value) => {
-      if (typeof value === "number") {
-        return formatCurrency(value);
-      }
-      return value?.toString() || "N/A";
-    },
-  });
 
   const utilityTypeTooltipConfig = createEnhancedTooltip({
     getLabel: (payload, label) => `${label || "Utility"} Cost`,
@@ -142,7 +115,7 @@ export const UtilityAnalytics = memo(function UtilityAnalytics({
         return formatCurrency(value);
       }
       return value?.toString() || "N/A";
-    },
+    }
   });
 
   // Loading skeleton component
@@ -342,6 +315,9 @@ export const UtilityAnalytics = memo(function UtilityAnalytics({
             data={enhancedMonthlyTrends}
             onDrillDown={handleUtilityTrendDrillDown}
             height={400}
+            totalBillsAllTime={analyticsData?.totalBillsAllTime ?? 0}
+            oldestBillMonth={analyticsData?.oldestBillMonth ?? null}
+            timeframeMonths={timeframe}
           />
         </div>
 

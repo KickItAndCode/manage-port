@@ -1,6 +1,5 @@
 import { useMemo, useReducer, useCallback } from 'react';
-import { useUser } from '@clerk/nextjs';
-import { useQuery } from 'convex/react';
+import { useQuery, useConvexAuth } from 'convex/react';
 import { api } from '@/../convex/_generated/api';
 import { Id } from '@/../convex/_generated/dataModel';
 import {
@@ -22,8 +21,6 @@ import {
 export function useUtilityBillsData(
   initialFilters?: Partial<UtilityBillFilters>
 ): UseUtilityBillsDataReturn {
-  const { user } = useUser();
-  
   // Initialize filter state with any provided initial filters
   const [filterState, dispatch] = useReducer(utilityBillFilterReducer, {
     ...initialFilterState,
@@ -42,13 +39,10 @@ export function useUtilityBillsData(
   // Extract query parameters from filters
   const queryParams = useMemo(() => {
     const params: {
-      userId: string;
       propertyId?: Id<"properties">;
       startMonth?: string;
       endMonth?: string;
-    } = {
-      userId: user?.id || '',
-    };
+    } = {};
 
     if (debouncedFilters.propertyId) {
       params.propertyId = debouncedFilters.propertyId;
@@ -61,12 +55,13 @@ export function useUtilityBillsData(
     }
 
     return params;
-  }, [user?.id, debouncedFilters.propertyId, debouncedFilters.dateRange]);
+  }, [debouncedFilters.propertyId, debouncedFilters.dateRange]);
 
   // Single query to get all page data
+  const { isAuthenticated } = useConvexAuth();
   const pageData = useQuery(
     api.utilityBills.getUtilityPageData,
-    user ? queryParams : "skip"
+    isAuthenticated ? queryParams : "skip"
   );
 
   // Process and filter the data client-side for instant response
@@ -122,15 +117,13 @@ export function useUtilityBillsData(
 
 // Hook specifically for getting property and lease options for filters
 export function useUtilityBillFilterOptions(propertyId?: Id<"properties">) {
-  const { user } = useUser();
-  
+  const { isAuthenticated } = useConvexAuth();
+
   // Get basic data for filter options
   const pageData = useQuery(
     api.utilityBills.getUtilityPageData,
-    user ? { 
-      userId: user.id,
-      propertyId,
-    } : "skip"
+    isAuthenticated ? { 
+      propertyId } : "skip"
   );
 
   return useMemo(() => {

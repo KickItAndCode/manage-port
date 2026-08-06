@@ -135,16 +135,14 @@ export function PropertyImageUpload({
           const { storageId } = await result.json();
           
           // Add to property images
-          await addPropertyImage({
-            userId: user.id,
+          await addPropertyImage({ 
             propertyId: propertyId as any,
             storageId,
             name: fileData.file.name,
             fileSize: fileData.file.size,
             mimeType: fileData.file.type,
             description: fileData.description || undefined,
-            isCover: fileData.isCover,
-          });
+            isCover: fileData.isCover });
 
           setUploadingFiles(prev => {
             const newFiles = [...prev];

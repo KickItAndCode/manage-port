@@ -11,14 +11,13 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/utils/utilityBillHelpers";
 
 interface BillSplitPreviewProps {
   propertyId: Id<"properties">;
   utilityType: string;
   totalAmount: number;
   billId?: Id<"utilityBills">;
-  userId: string;
-  mode?: "preview" | "actual";
 }
 
 export function BillSplitPreview({ 
@@ -26,8 +25,6 @@ export function BillSplitPreview({
   utilityType, 
   totalAmount, 
   billId,
-  userId,
-  mode = "preview"
 }: BillSplitPreviewProps) {
   // Get actual stored charges if bill ID is provided
   const storedCharges = useQuery(
@@ -38,7 +35,7 @@ export function BillSplitPreview({
   // Get bill details for display
   const billDetails = useQuery(
     api.utilityBills.getUtilityBill,
-    billId ? { billId, userId } : "skip"
+    billId ? { billId } : "skip"
   );
 
   // Get real-time split preview for form mode
@@ -47,9 +44,7 @@ export function BillSplitPreview({
     !billId && propertyId && utilityType && totalAmount > 0 ? {
       propertyId,
       utilityType,
-      totalAmount,
-      userId,
-    } : "skip"
+      totalAmount } : "skip"
   );
 
   // Mutation for marking charges as paid
@@ -142,7 +137,7 @@ export function BillSplitPreview({
                       <span>{charge.responsibilityPercentage}%</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span>Due: {charge.dueDate}</span>
+                      <span>Due: {formatDate(charge.dueDate)}</span>
                     </div>
                   </div>
                 </div>
@@ -161,13 +156,11 @@ export function BillSplitPreview({
                         const newStatus = charge.status === "paid" ? "pending" : "paid";
                         await markChargePaid({
                           chargeId: charge._id,
-                          status: newStatus,
-                          userId,
-                        });
+                          status: newStatus });
                         toast.success(`Payment status updated to ${newStatus}`);
                       } catch (error: any) {
                         toast.error("Failed to update payment status", {
-                          description: error.message || "Please try again or contact support.",
+                          description: error.message || "Please try again or contact support."
                         });
                       }
                     }}

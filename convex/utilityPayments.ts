@@ -2,15 +2,16 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import type { MutationCtx, QueryCtx } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { requireUser } from "./lib/auth";
 
 // Update charge status directly
 export const markUtilityPaid = mutation({
   args: {
     chargeId: v.id("utilityCharges"),
     status: v.union(v.literal("pending"), v.literal("paid"), v.literal("partial")),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Get the charge to verify ownership
     const charge = await ctx.db.get(args.chargeId);
     if (!charge) {
@@ -19,7 +20,7 @@ export const markUtilityPaid = mutation({
 
     // Verify ownership through the bill
     const bill = await ctx.db.get(charge.utilityBillId);
-    if (!bill || bill.userId !== args.userId) {
+    if (!bill || bill.userId !== userId) {
       throw new Error("You do not have permission to update this charge");
     }
 
@@ -34,13 +35,13 @@ export const markUtilityPaid = mutation({
 // Get payment history with detailed payment records
 export const getPaymentHistory = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
     leaseId: v.optional(v.id("leases")),
     startDate: v.optional(v.string()),
     endDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Get all payments
     let payments = await ctx.db
       .query("utilityPayments")
@@ -59,7 +60,7 @@ export const getPaymentHistory = query({
 
     for (const payment of payments) {
       const bill = await ctx.db.get(payment.utilityBillId);
-      if (!bill || bill.userId !== args.userId) continue;
+      if (!bill || bill.userId !== userId) continue;
 
       // Apply property filter if specified
       if (args.propertyId && bill.propertyId !== args.propertyId) continue;
@@ -107,9 +108,9 @@ export const recordUtilityPayment = mutation({
     paymentMethod: v.string(),
     referenceNumber: v.optional(v.string()),
     notes: v.optional(v.string()),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Get the charge
     const charge = await ctx.db.get(args.chargeId);
     if (!charge) {
@@ -118,7 +119,7 @@ export const recordUtilityPayment = mutation({
 
     // Verify ownership through the bill
     const bill = await ctx.db.get(charge.utilityBillId);
-    if (!bill || bill.userId !== args.userId) {
+    if (!bill || bill.userId !== userId) {
       throw new Error("You do not have permission to record payments for this charge");
     }
 
@@ -178,11 +179,11 @@ export const recordUtilityPayment = mutation({
 // Get payment summary statistics
 export const getPaymentSummary = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
     leaseId: v.optional(v.id("leases")),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     let payments = await ctx.db
       .query("utilityPayments")
       .collect();
@@ -191,7 +192,7 @@ export const getPaymentSummary = query({
 
     for (const payment of payments) {
       const bill = await ctx.db.get(payment.utilityBillId);
-      if (!bill || bill.userId !== args.userId) continue;
+      if (!bill || bill.userId !== userId) continue;
 
       if (args.propertyId && bill.propertyId !== args.propertyId) continue;
       if (args.leaseId && payment.leaseId !== args.leaseId) continue;
@@ -264,12 +265,12 @@ export const getPaymentSummary = query({
 export const getPaymentsByLease = query({
   args: {
     leaseId: v.id("leases"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify lease ownership
     const lease = await ctx.db.get(args.leaseId);
-    if (!lease || lease.userId !== args.userId) {
+    if (!lease || lease.userId !== userId) {
       return [];
     }
 

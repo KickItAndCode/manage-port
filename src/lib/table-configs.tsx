@@ -8,6 +8,7 @@ import { TableConfig, ColumnDefinition, BulkAction } from "@/components/ui/respo
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { cn } from "@/lib/utils";
 import { Id } from "@/../convex/_generated/dataModel";
+import { formatDate } from "@/utils/utilityBillHelpers";
 
 // Type definitions for our data models
 export interface Property {
@@ -108,12 +109,18 @@ export function createPropertyTableConfig(
       sortable: true,
       render: (value, item) => (
         <div>
-          <p 
-            className="font-medium cursor-pointer hover:text-primary transition-colors"
+          {/* A button rather than a click-handled <p>: this is the primary way
+              into a property, and as a paragraph it could not be reached by
+              keyboard, was not announced as interactive, and had no role for
+              tests to target. */}
+          <button
+            type="button"
+            data-testid="property-name-link"
+            className="font-medium cursor-pointer hover:text-primary transition-colors text-left"
             onClick={() => onView(item)}
           >
             {value}
-          </p>
+          </button>
           <p className="text-sm text-muted-foreground">{item.address}</p>
         </div>
       )
@@ -485,7 +492,7 @@ export function UtilityBillMobileCard({
                   )}
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Calendar className="w-3 h-3 flex-shrink-0" />
-                    <span>Due: {bill.dueDate}</span>
+                    <span>Due: {formatDate(bill.dueDate)}</span>
                   </div>
                 </div>
               </div>
@@ -596,12 +603,17 @@ export function PropertyMobileCard({
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h3 
-                    className="font-semibold text-base cursor-pointer hover:text-primary transition-colors truncate"
+                  {/* Same reasoning as the desktop table: a click-handled
+                      heading is not keyboard reachable and is not announced as
+                      interactive. The button carries the heading styling. */}
+                  <button
+                    type="button"
+                    data-testid="property-name-link"
+                    className="font-semibold text-base cursor-pointer hover:text-primary transition-colors truncate text-left"
                     onClick={() => onView(property)}
                   >
                     {property.name}
-                  </h3>
+                  </button>
                   <Badge variant="outline" className="text-xs shrink-0">{property.type}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mb-2 leading-relaxed">{property.address}</p>
@@ -863,7 +875,7 @@ export function LeaseMobileCard({
   onSelect, 
   onEdit, 
   onDelete, 
-  onViewDocuments,
+  
   properties,
   getLeaseDocuments
 }: {

@@ -8,27 +8,29 @@ import { LeaseForm } from "@/components/LeaseForm";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
-import { Archive, Eye, EyeOff, Layers, Plus } from "lucide-react";
+import { Archive, Eye, EyeOff, Layers, Plus, Download
+} from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { createLeaseTableConfig, LeaseMobileCard, type Lease, type Property } from "@/lib/table-configs";
 import { UtilityResponsibilitySnapshot } from "@/components/UtilityResponsibilitySnapshot";
 import { useLeaseStatuses } from "@/hooks/use-lease-status";
 import { sortLeasesByStatus } from "@/lib/lease-status";
+import { exportCsv } from "@/lib/csv";
 
 function LeasesPageContent() {
   const { user } = useUser();
   const searchParams = useSearchParams();
   const preSelectedPropertyId = searchParams.get('propertyId');
   
-  const propertiesResult = useQuery(api.properties.getProperties, user ? { userId: user.id } : "skip");
+  const { isAuthenticated } = useConvexAuth();
+  const propertiesResult = useQuery(api.properties.getProperties, isAuthenticated ? {} : "skip");
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
   
   // State declarations
@@ -47,12 +49,10 @@ function LeasesPageContent() {
   // Query leases with pagination when not searching, or fetch all when searching
   const leasesResult = useQuery(
     api.leases.getLeases,
-    user ? {
-      userId: user.id,
+    isAuthenticated ? { 
       propertyId: filterProperty ? (filterProperty as any) : undefined,
       limit: isSearchMode ? 1000 : itemsPerPage,
-      offset: isSearchMode ? 0 : (currentPage - 1) * itemsPerPage,
-    } : "skip"
+      offset: isSearchMode ? 0 : (currentPage - 1) * itemsPerPage } : "skip"
   );
   
   // Extract leases and pagination info
@@ -62,7 +62,7 @@ function LeasesPageContent() {
   const totalPages = Math.ceil(totalLeases / itemsPerPage);
   
   // Get all documents (without pagination for lease document filtering)
-  const allDocumentsResult = useQuery(api.documents.getDocuments, user ? { userId: user.id, limit: 1000 } : "skip");
+  const allDocumentsResult = useQuery(api.documents.getDocuments, isAuthenticated ? {  limit: 1000 } : "skip");
   const allDocuments = allDocumentsResult?.documents || (Array.isArray(allDocumentsResult) ? allDocumentsResult : []);
   
   // Compute status for all leases
@@ -73,7 +73,7 @@ function LeasesPageContent() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showExpiredLeases, setShowExpiredLeases] = useState(false);
-  const [selectedLeases, setSelectedLeases] = useState<Lease[]>([]);
+  
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
   // Auto-open modal if coming from property page
@@ -116,10 +116,6 @@ function LeasesPageContent() {
   const displayExpired = sortedExpired;
 
   // Format date
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
 
   // Get documents for a specific lease
   const getLeaseDocuments = (leaseId: string) => {
@@ -128,22 +124,6 @@ function LeasesPageContent() {
   };
 
   // Get status badge with computed status and expiry info
-  const getStatusBadge = (lease: any) => {
-    const status = lease.computedStatus;
-    const daysLeft = lease.daysUntilExpiry;
-    
-    if (status === "active" && daysLeft !== null && daysLeft <= 60 && daysLeft >= 0) {
-      return (
-        <div className="flex items-center gap-2">
-          <StatusBadge status={status} variant="compact" />
-          <Badge variant="outline" className="border-orange-500 text-orange-500 text-xs">
-            {daysLeft}d left
-          </Badge>
-        </div>
-      );
-    }
-    return <StatusBadge status={status} variant="compact" />;
-  };
 
   // Handlers for ResponsiveTable
   const handleEditLease = (lease: Lease) => {
@@ -161,7 +141,7 @@ function LeasesPageContent() {
         setLoading(true);
         setError(null);
         try {
-          await deleteLease({ id: lease._id as any, userId: user.id });
+          await deleteLease({ id: lease._id as any });
           toast.success("Lease deleted successfully");
         } catch (err: any) {
           const errorMessage = formatErrorForToast(err);
@@ -174,12 +154,12 @@ function LeasesPageContent() {
     });
   };
 
-  const handleViewDocuments = (lease: Lease) => {
+  const handleViewDocuments = (_lease: Lease) => {
     // This will be handled by the mobile card's document viewer
     // The table config already includes document viewing in the dropdown
   };
 
-  const handleSort = (column: keyof Lease, direction: "asc" | "desc") => {
+  const handleSort = (_column: keyof Lease, _direction: "asc" | "desc") => {
     // Sorting is handled by ResponsiveTable internally
   };
 
@@ -192,13 +172,12 @@ function LeasesPageContent() {
       if (editLease) {
         await updateLease({ 
           ...form, 
-          id: editLease._id, 
-          userId: user.id, 
+          id: editLease._id,  
           propertyId: form.propertyId as any,
           unitId: form.unitId as any
         });
       } else {
-        await addLease({ ...form, userId: user.id, propertyId: form.propertyId as any });
+        await addLease({ ...form,  propertyId: form.propertyId as any });
       }
       
       // Document creation is handled by the addLease mutation
@@ -458,10 +437,47 @@ function LeasesPageContent() {
     );
   };
 
+  // Status is exported as computed, not as the deprecated stored column, so the
+  // file agrees with what the page shows.
+  const handleExportLeases = () => {
+    if (filtered.length === 0) {
+      toast.error("No leases to export");
+      return;
+    }
+    exportCsv("leases", filtered, [
+      { header: "Tenant", value: (l: any) => l.tenantName },
+      { header: "Email", value: (l: any) => l.tenantEmail ?? "" },
+      { header: "Phone", value: (l: any) => l.tenantPhone ?? "" },
+      {
+        header: "Property",
+        value: (l: any) =>
+          properties.find((p: any) => p._id === l.propertyId)?.name ?? "",
+      },
+      { header: "Status", value: (l: any) => l.computedStatus ?? l.status ?? "" },
+      { header: "Start Date", value: (l: any) => l.startDate?.slice(0, 10) ?? "" },
+      { header: "End Date", value: (l: any) => l.endDate?.slice(0, 10) ?? "" },
+      { header: "Monthly Rent", value: (l: any) => (l.rent ?? 0).toFixed(2) },
+      { header: "Security Deposit", value: (l: any) => (l.securityDeposit ?? 0).toFixed(2) },
+      { header: "Notes", value: (l: any) => l.notes ?? "" },
+    ]);
+    toast.success(`Exported ${filtered.length} lease${filtered.length === 1 ? "" : "s"}`);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8 transition-colors duration-300">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold">Leases</h1>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={handleExportLeases}
+          disabled={filtered.length === 0}
+          data-testid="export-leases-btn"
+        >
+          <Download className="w-4 h-4" />
+          Export CSV
+        </Button>
         <Button 
           onClick={() => {
             setEditLease(null);
@@ -472,6 +488,7 @@ function LeasesPageContent() {
         >
           Add Lease
         </Button>
+        </div>
       </div>
       
       <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 items-start sm:items-end">

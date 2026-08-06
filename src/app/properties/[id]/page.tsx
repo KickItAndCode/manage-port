@@ -49,6 +49,7 @@ import { PropertyUtilityAllocation } from "@/components/PropertyUtilityAllocatio
 import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
 import { UtilityResponsibilitySnapshot } from "@/components/UtilityResponsibilitySnapshot";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
+import { getLeaseStatus } from "@/lib/lease-status";
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -79,28 +80,33 @@ export default function PropertyDetailsPage() {
 
   const property = useQuery(
     api.properties.getProperty,
-    user && isValidPropertyId ? { id: propertyId as any, userId: user.id } : "skip"
+    user && isValidPropertyId ? { id: propertyId as any } : "skip"
   );
   const leasesResult = useQuery(
     api.leases.getLeases,
-    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any, limit: 1000 } : "skip" // Get all leases for property
+    user && isValidPropertyId ? {  propertyId: propertyId as any, limit: 1000 } : "skip" // Get all leases for property
   );
   // Extract leases array from paginated result
   const leases = leasesResult?.leases || (Array.isArray(leasesResult) ? leasesResult : []);
   const documentsResult = useQuery(
     api.documents.getDocuments,
-    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any, limit: 1000 } : "skip"
+    user && isValidPropertyId ? {  propertyId: propertyId as any, limit: 1000 } : "skip"
   );
   // Extract documents array from paginated result
   const documents = documentsResult?.documents || (Array.isArray(documentsResult) ? documentsResult : []);
   const propertyImages = useQuery(
     api.propertyImages.getPropertyImages,
-    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
+    user && isValidPropertyId ? {  propertyId: propertyId as any } : "skip"
   );
   const propertyWithUnits = useQuery(
     api.properties.getPropertyWithUnits,
-    user && isValidPropertyId ? { userId: user.id, propertyId: propertyId as any } : "skip"
+    user && isValidPropertyId ? { propertyId: propertyId as any } : "skip"
   );
+
+  // Lease status is derived from dates, never read from the stored column,
+  // which is deprecated and drifts. See convex/lib/leaseStatus.ts.
+  const leaseStatus = (lease: { startDate: string; endDate: string }) =>
+    getLeaseStatus(lease.startDate, lease.endDate);
 
   // Helper functions
   const formatDate = (dateString: string) => {
@@ -128,7 +134,7 @@ export default function PropertyDetailsPage() {
 
   const getActiveLeases = () => {
     if (!leases) return [];
-    return leases.filter((lease: any) => lease.status === "active");
+    return leases.filter((lease: any) => leaseStatus(lease) === "active");
   };
 
   const getCurrentTenant = () => {
@@ -138,7 +144,7 @@ export default function PropertyDetailsPage() {
   
   const getExpiredLeases = () => {
     if (!leases) return [];
-    return leases.filter((lease: any) => lease.status === "expired");
+    return leases.filter((lease: any) => leaseStatus(lease) === "expired");
   };
   
   const getDisplayedLeases = () => {
@@ -146,7 +152,7 @@ export default function PropertyDetailsPage() {
     if (showExpiredLeases) {
       return leases;
     }
-    return leases.filter((lease: any) => lease.status !== "expired");
+    return leases.filter((lease: any) => leaseStatus(lease) !== "expired");
   };
 
   // Comprehensive property detail loading skeleton
@@ -646,7 +652,6 @@ export default function PropertyDetailsPage() {
                 <CardContent>
                   <UnitList 
                     propertyId={propertyId as any}
-                    userId={user.id}
                     onEditUnit={(unit) => {
                       setEditingUnit(unit);
                       setUnitDialogOpen(true);
@@ -809,7 +814,7 @@ export default function PropertyDetailsPage() {
                               )}
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                              {getLeaseStatusBadge(lease.status, lease.endDate)}
+                              {getLeaseStatusBadge(leaseStatus(lease), lease.endDate)}
                               <Badge variant="default" className="bg-green-600 text-xs">
                                 Current Tenant
                               </Badge>
@@ -877,7 +882,7 @@ export default function PropertyDetailsPage() {
                     ))}
 
                     {/* Non-Active Leases (pending, etc.) */}
-                    {leases?.filter((lease: any) => lease.status !== "active" && lease.status !== "expired").map((lease: any) => (
+                    {leases?.filter((lease: any) => leaseStatus(lease) === "pending").map((lease: any) => (
                       <div 
                         key={lease._id} 
                         className="border rounded-lg p-4"
@@ -893,7 +898,7 @@ export default function PropertyDetailsPage() {
                               )}
                             </div>
                             <div className="flex items-center gap-2 mt-1">
-                              {getLeaseStatusBadge(lease.status, lease.endDate)}
+                              {getLeaseStatusBadge(leaseStatus(lease), lease.endDate)}
                             </div>
                           </div>
                           <div className="text-left sm:text-right">
@@ -965,7 +970,7 @@ export default function PropertyDetailsPage() {
                                     )}
                                   </div>
                                   <div className="flex items-center gap-2 mt-1">
-                                    {getLeaseStatusBadge(lease.status, lease.endDate)}
+                                    {getLeaseStatusBadge(leaseStatus(lease), lease.endDate)}
                                   </div>
                                 </div>
                                 <div className="text-left sm:text-right">
@@ -1170,7 +1175,6 @@ export default function PropertyDetailsPage() {
             {property && getActiveLeases().length > 0 && (
               <TenantStatementGenerator
                 propertyId={property._id as any}
-                userId={user!.id}
               />
             )}
           </div>
@@ -1209,9 +1213,7 @@ export default function PropertyDetailsPage() {
                   setError(null);
                   await updateProperty({ 
                     ...data, 
-                    id: property._id, 
-                    userId: user.id 
-                  });
+                    id: property._id });
                   setEditDialogOpen(false);
                 } catch (err: any) {
                   setError(err.data?.message || err.message || "An error occurred");
@@ -1258,9 +1260,9 @@ export default function PropertyDetailsPage() {
               setLoading(true);
               try {
                 if (editingUnit) {
-                  await updateUnit({ ...data, userId: user.id });
+                  await updateUnit({ ...data });
                 } else {
-                  await addUnit({ ...data, userId: user.id });
+                  await addUnit({ ...data });
                 }
                 setUnitDialogOpen(false);
                 setEditingUnit(null);
@@ -1287,15 +1289,12 @@ export default function PropertyDetailsPage() {
             <DialogTitle>Add Multiple Units</DialogTitle>
           </DialogHeader>
           <BulkUnitCreator
-            propertyId={propertyId as any}
             onSubmit={async (units) => {
               setLoading(true);
               try {
                 await bulkCreateUnits({ 
                   propertyId: propertyId as any, 
-                  units, 
-                  userId: user.id 
-                });
+                  units });
                 setBulkUnitDialogOpen(false);
               } catch (err: any) {
                 console.error("Bulk unit creation error:", err);

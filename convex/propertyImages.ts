@@ -1,18 +1,19 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { ConvexError } from "convex/values";
+import { requireUser } from "./lib/auth";
 
 // Get all images for a property
 export const getPropertyImages = query({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const images = await ctx.db
       .query("propertyImages")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     // Sort by order, then by upload date
@@ -31,15 +32,15 @@ export const getPropertyImages = query({
 export const getCoverImage = query({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const coverImage = await ctx.db
       .query("propertyImages")
       .withIndex("by_cover", (q) => 
         q.eq("propertyId", args.propertyId).eq("isCover", true)
       )
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .first();
 
     return coverImage;
@@ -49,7 +50,6 @@ export const getCoverImage = query({
 // Add property image
 export const addPropertyImage = mutation({
   args: {
-    userId: v.string(),
     propertyId: v.id("properties"),
     storageId: v.string(),
     name: v.string(),
@@ -59,9 +59,10 @@ export const addPropertyImage = mutation({
     isCover: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify the property belongs to the user
     const property = await ctx.db.get(args.propertyId);
-    if (!property || property.userId !== args.userId) {
+    if (!property || property.userId !== userId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "You don't have permission to add images to this property"
@@ -83,7 +84,7 @@ export const addPropertyImage = mutation({
         .withIndex("by_cover", (q) => 
           q.eq("propertyId", args.propertyId).eq("isCover", true)
         )
-        .filter((q) => q.eq(q.field("userId"), args.userId))
+        .filter((q) => q.eq(q.field("userId"), userId))
         .first();
 
       if (existingCover) {
@@ -95,13 +96,13 @@ export const addPropertyImage = mutation({
     const existingImages = await ctx.db
       .query("propertyImages")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     const maxOrder = Math.max(...existingImages.map(img => img.order || 0), 0);
 
     return await ctx.db.insert("propertyImages", {
-      userId: args.userId,
+      userId,
       propertyId: args.propertyId,
       storageId: args.storageId,
       name: args.name,
@@ -118,12 +119,12 @@ export const addPropertyImage = mutation({
 // Set cover image
 export const setCoverImage = mutation({
   args: {
-    userId: v.string(),
     imageId: v.id("propertyImages"),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const image = await ctx.db.get(args.imageId);
-    if (!image || image.userId !== args.userId) {
+    if (!image || image.userId !== userId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "You don't have permission to modify this image"
@@ -136,7 +137,7 @@ export const setCoverImage = mutation({
       .withIndex("by_cover", (q) => 
         q.eq("propertyId", image.propertyId).eq("isCover", true)
       )
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .first();
 
     if (existingCover && existingCover._id !== args.imageId) {
@@ -154,15 +155,15 @@ export const setCoverImage = mutation({
 // Update image details
 export const updatePropertyImage = mutation({
   args: {
-    userId: v.string(),
     imageId: v.id("propertyImages"),
     name: v.optional(v.string()),
     description: v.optional(v.string()),
     order: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const image = await ctx.db.get(args.imageId);
-    if (!image || image.userId !== args.userId) {
+    if (!image || image.userId !== userId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "You don't have permission to modify this image"
@@ -184,10 +185,10 @@ export const updatePropertyImage = mutation({
 // Delete property image
 export const deletePropertyImage = mutation({
   args: {
-    userId: v.string(),
     imageId: v.id("propertyImages"),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     try {
       console.log("Delete mutation called with:", args);
       
@@ -199,10 +200,10 @@ export const deletePropertyImage = mutation({
         throw new Error("Image not found");
       }
       
-      if (image.userId !== args.userId) {
+      if (image.userId !== userId) {
         console.log("Authorization failed - user mismatch:", { 
           imageUserId: image.userId, 
-          requestUserId: args.userId 
+          requestUserId: userId 
         });
         throw new Error("You don't have permission to delete this image");
       }
@@ -228,7 +229,6 @@ export const deletePropertyImage = mutation({
 // Reorder images
 export const reorderImages = mutation({
   args: {
-    userId: v.string(),
     propertyId: v.id("properties"),
     imageOrders: v.array(v.object({
       imageId: v.id("propertyImages"),
@@ -236,9 +236,10 @@ export const reorderImages = mutation({
     })),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify the property belongs to the user
     const property = await ctx.db.get(args.propertyId);
-    if (!property || property.userId !== args.userId) {
+    if (!property || property.userId !== userId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "You don't have permission to reorder images for this property"
@@ -248,7 +249,7 @@ export const reorderImages = mutation({
     // Update all image orders
     for (const { imageId, order } of args.imageOrders) {
       const image = await ctx.db.get(imageId);
-      if (image && image.userId === args.userId && image.propertyId === args.propertyId) {
+      if (image && image.userId === userId && image.propertyId === args.propertyId) {
         await ctx.db.patch(imageId, { 
           order,
           updatedAt: new Date().toISOString(),
@@ -261,12 +262,12 @@ export const reorderImages = mutation({
 // Get property image statistics
 export const getImageStats = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     let query = ctx.db.query("propertyImages")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId));
+      .withIndex("by_user", (q) => q.eq("userId", userId));
 
     if (args.propertyId) {
       query = query.filter((q) => q.eq(q.field("propertyId"), args.propertyId));

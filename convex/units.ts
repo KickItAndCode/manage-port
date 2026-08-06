@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
+import { requireUser } from "./lib/auth";
+import { filterActiveLeases } from "./lib/leaseStatus";
 
 // Helper to check property ownership
 async function verifyPropertyOwnership(
@@ -41,11 +43,11 @@ export const addUnit = mutation({
     bathrooms: v.optional(v.number()),
     squareFeet: v.optional(v.number()),
     notes: v.optional(v.string()),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, userId);
     if (!isOwner) {
       throw new Error("You do not have permission to add units to this property");
     }
@@ -88,16 +90,16 @@ export const updateUnit = mutation({
     bathrooms: v.optional(v.number()),
     squareFeet: v.optional(v.number()),
     notes: v.optional(v.string()),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const unit = await ctx.db.get(args.id);
     if (!unit) {
       throw new Error("Unit not found");
     }
 
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, userId);
     if (!isOwner) {
       throw new Error("You do not have permission to update this unit");
     }
@@ -135,26 +137,25 @@ export const updateUnit = mutation({
 export const deleteUnit = mutation({
   args: {
     id: v.id("units"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const unit = await ctx.db.get(args.id);
     if (!unit) {
       throw new Error("Unit not found");
     }
 
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, userId);
     if (!isOwner) {
       throw new Error("You do not have permission to delete this unit");
     }
 
     // Check if unit has active leases
-    const activeLeases = await ctx.db
+    const activeLeases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_unit", (q) => q.eq("unitId", args.id))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     if (activeLeases.length > 0) {
       throw new Error("Cannot delete unit with active leases");
@@ -181,14 +182,14 @@ export const deleteUnit = mutation({
 export const getUnit = query({
   args: {
     id: v.id("units"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const unit = await ctx.db.get(args.id);
     if (!unit) return null;
 
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, userId);
     if (!isOwner) return null;
 
     return unit;
@@ -199,11 +200,11 @@ export const getUnit = query({
 export const getUnitsByProperty = query({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, userId);
     if (!isOwner) return [];
 
     const units = await ctx.db
@@ -211,8 +212,31 @@ export const getUnitsByProperty = query({
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
       .collect();
 
-    // Sort by unit identifier
-    return units.sort((a, b) => a.unitIdentifier.localeCompare(b.unitIdentifier));
+    // Report occupancy derived from active leases rather than the stored
+    // unit.status, which only changes when a lease is written and therefore
+    // still reads "occupied" for units whose leases have ended. "maintenance"
+    // is a real manual state and is preserved.
+    const propertyLeases = await ctx.db
+      .query("leases")
+      .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .collect();
+    const occupiedUnitIds = new Set(
+      filterActiveLeases(propertyLeases)
+        .map((lease) => lease.unitId)
+        .filter(Boolean)
+    );
+
+    return units
+      .map((unit) => ({
+        ...unit,
+        status:
+          unit.status === "maintenance"
+            ? ("maintenance" as const)
+            : occupiedUnitIds.has(unit._id)
+              ? ("occupied" as const)
+              : ("available" as const),
+      }))
+      .sort((a, b) => a.unitIdentifier.localeCompare(b.unitIdentifier));
   },
 });
 
@@ -220,22 +244,21 @@ export const getUnitsByProperty = query({
 export const getUnitWithLease = query({
   args: {
     unitId: v.id("units"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const unit = await ctx.db.get(args.unitId);
     if (!unit) return null;
 
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, unit.propertyId, userId);
     if (!isOwner) return null;
 
     // Get active lease for this unit
-    const activeLease = await ctx.db
+    const activeLease = (filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_unit", (q) => q.eq("unitId", args.unitId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .first();
+      .collect()))[0] ?? null;
 
     return {
       ...unit,
@@ -248,11 +271,11 @@ export const getUnitWithLease = query({
 export const getAvailableUnits = query({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, userId);
     if (!isOwner) return [];
 
     const units = await ctx.db
@@ -275,11 +298,11 @@ export const bulkCreateUnits = mutation({
       bathrooms: v.optional(v.number()),
       squareFeet: v.optional(v.number()),
     })),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, userId);
     if (!isOwner) {
       throw new Error("You do not have permission to add units to this property");
     }
@@ -330,11 +353,11 @@ export const bulkCreateUnits = mutation({
 export const getUnitStats = query({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
-    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, args.userId);
+    const isOwner = await verifyPropertyOwnership(ctx, args.propertyId, userId);
     if (!isOwner) return null;
 
     const units = await ctx.db
@@ -350,17 +373,28 @@ export const getUnitStats = query({
       occupancyRate: 0,
     };
 
+    // Occupancy is derived from whether a unit has a lease that is active
+    // today, not from the stored unit.status. That column is only updated when
+    // a lease is created or edited, so it kept reporting "occupied" for units
+    // whose leases had long since ended. "maintenance" stays a real manual
+    // state — it is a decision about the unit, not a consequence of a lease.
+    const propertyLeases = await ctx.db
+      .query("leases")
+      .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
+      .collect();
+    const occupiedUnitIds = new Set(
+      filterActiveLeases(propertyLeases)
+        .map((lease) => lease.unitId)
+        .filter(Boolean)
+    );
+
     for (const unit of units) {
-      switch (unit.status) {
-        case "available":
-          stats.availableUnits++;
-          break;
-        case "occupied":
-          stats.occupiedUnits++;
-          break;
-        case "maintenance":
-          stats.maintenanceUnits++;
-          break;
+      if (unit.status === "maintenance") {
+        stats.maintenanceUnits++;
+      } else if (occupiedUnitIds.has(unit._id)) {
+        stats.occupiedUnits++;
+      } else {
+        stats.availableUnits++;
       }
     }
 

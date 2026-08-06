@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { UTILITY_TYPES } from "../src/lib/constants";
+import { requireUser } from "./lib/auth";
+import { filterActiveLeases } from "./lib/leaseStatus";
 
 // Helper to verify lease ownership
 async function verifyLeaseOwnership(
@@ -22,11 +24,11 @@ export const setLeaseUtilities = mutation({
       responsibilityPercentage: v.number(),
       notes: v.optional(v.string()),
     })),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify lease ownership
-    const isOwner = await verifyLeaseOwnership(ctx, args.leaseId, args.userId);
+    const isOwner = await verifyLeaseOwnership(ctx, args.leaseId, userId);
     if (!isOwner) {
       throw new Error("You do not have permission to modify this lease");
     }
@@ -45,11 +47,10 @@ export const setLeaseUtilities = mutation({
     }
 
     // Get all active leases for this property
-    const activeLeases = await ctx.db
+    const activeLeases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_property", (q) => q.eq("propertyId", lease.propertyId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     // For each utility type, validate that total percentages across all leases don't exceed 100%
     for (const utility of args.utilities) {
@@ -106,11 +107,11 @@ export const setLeaseUtilities = mutation({
 export const getLeaseUtilities = query({
   args: {
     leaseId: v.id("leases"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify lease ownership
-    const isOwner = await verifyLeaseOwnership(ctx, args.leaseId, args.userId);
+    const isOwner = await verifyLeaseOwnership(ctx, args.leaseId, userId);
     if (!isOwner) return [];
 
     const settings = await ctx.db
@@ -127,13 +128,13 @@ export const copyLeaseUtilities = mutation({
   args: {
     fromLeaseId: v.id("leases"),
     toLeaseId: v.id("leases"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify ownership of both leases
     const [fromOwner, toOwner] = await Promise.all([
-      verifyLeaseOwnership(ctx, args.fromLeaseId, args.userId),
-      verifyLeaseOwnership(ctx, args.toLeaseId, args.userId),
+      verifyLeaseOwnership(ctx, args.fromLeaseId, userId),
+      verifyLeaseOwnership(ctx, args.toLeaseId, userId),
     ]);
 
     if (!fromOwner || !toOwner) {
@@ -182,21 +183,20 @@ export const validatePropertyUtilityPercentages = query({
   args: {
     propertyId: v.id("properties"),
     utilityType: v.string(),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Get property to verify ownership
     const property = await ctx.db.get(args.propertyId);
-    if (!property || property.userId !== args.userId) {
+    if (!property || property.userId !== userId) {
       return { valid: false, message: "Property not found" };
     }
 
     // Get all active leases for the property
-    const activeLeases = await ctx.db
+    const activeLeases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     if (activeLeases.length === 0) {
       return { valid: true, totalPercentage: 0, message: "No active leases" };
@@ -239,13 +239,13 @@ export const validatePropertyUtilityPercentages = query({
 // Get all properties with incomplete utility settings
 export const getPropertiesWithIncompleteUtilities = query({
   args: {
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Get all user's properties
     const properties = await ctx.db
       .query("properties")
-      .filter((q) => q.eq(q.field("userId"), args.userId))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     const incompleteProperties = [];
@@ -257,11 +257,10 @@ export const getPropertiesWithIncompleteUtilities = query({
       }
 
       // Get active leases
-      const activeLeases = await ctx.db
+      const activeLeases = filterActiveLeases(await ctx.db
         .query("leases")
         .withIndex("by_property", (q) => q.eq("propertyId", property._id))
-        .filter((q) => q.eq(q.field("status"), "active"))
-        .collect();
+        .collect());
 
       if (activeLeases.length === 0) continue;
 
@@ -311,11 +310,11 @@ export const updateLeaseUtilitySetting = mutation({
     utilityType: v.string(),
     responsibilityPercentage: v.number(),
     notes: v.optional(v.string()),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify lease ownership
-    const isOwner = await verifyLeaseOwnership(ctx, args.leaseId, args.userId);
+    const isOwner = await verifyLeaseOwnership(ctx, args.leaseId, userId);
     if (!isOwner) {
       throw new Error("You do not have permission to modify this lease");
     }
@@ -357,12 +356,12 @@ export const updateLeaseUtilitySetting = mutation({
 export const getUtilitySettingsByProperty = query({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
     const property = await ctx.db.get(args.propertyId);
-    if (!property || property.userId !== args.userId) return [];
+    if (!property || property.userId !== userId) return [];
 
     // Get all leases for the property
     const leases = await ctx.db
@@ -404,12 +403,12 @@ export const setUtilityResponsibilities = mutation({
     leaseId: v.id("leases"),
     utilityType: v.string(),
     responsibilityPercentage: v.number(),
-    userId: v.string(),
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify lease ownership
-    const isOwner = await verifyLeaseOwnership(ctx, args.leaseId, args.userId);
+    const isOwner = await verifyLeaseOwnership(ctx, args.leaseId, userId);
     if (!isOwner) {
       throw new Error("You do not have permission to modify this lease");
     }
@@ -457,12 +456,12 @@ export const setPropertyUtilityAllocations = mutation({
       leaseId: v.id("leases"),
       percentage: v.number(),
     })),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
     const property = await ctx.db.get(args.propertyId);
-    if (!property || property.userId !== args.userId) {
+    if (!property || property.userId !== userId) {
       throw new Error("You do not have permission to modify this property");
     }
 
@@ -475,7 +474,7 @@ export const setPropertyUtilityAllocations = mutation({
       
       // Verify lease ownership and that it belongs to this property
       const lease = await ctx.db.get(allocation.leaseId);
-      if (!lease || lease.userId !== args.userId || lease.propertyId !== args.propertyId) {
+      if (!lease || lease.userId !== userId || lease.propertyId !== args.propertyId) {
         throw new Error("Invalid lease for this property");
       }
       
@@ -488,11 +487,10 @@ export const setPropertyUtilityAllocations = mutation({
     }
 
     // Get active leases for the property to verify all are accounted for
-    const activeLeases = await ctx.db
+    const activeLeases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     // Verify all active leases are included in allocations
     const allocationLeaseIds = new Set(args.allocations.map(a => a.leaseId));
@@ -541,12 +539,12 @@ export const setPropertyUtilityAllocations = mutation({
 export const applyPropertyUtilityDefaults = mutation({
   args: {
     propertyId: v.id("properties"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify property ownership
     const property = await ctx.db.get(args.propertyId);
-    if (!property || property.userId !== args.userId) {
+    if (!property || property.userId !== userId) {
       throw new Error("Property not found or access denied");
     }
 
@@ -556,11 +554,10 @@ export const applyPropertyUtilityDefaults = mutation({
     }
 
     // Get all active leases for this property
-    const leases = await ctx.db
+    const leases = filterActiveLeases(await ctx.db
       .query("leases")
       .withIndex("by_property", (q: any) => q.eq("propertyId", args.propertyId))
-      .filter((q: any) => q.eq(q.field("status"), "active"))
-      .collect();
+      .collect());
 
     if (leases.length === 0) {
       return {

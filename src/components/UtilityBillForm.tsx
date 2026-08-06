@@ -12,7 +12,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { useDropzone } from "react-dropzone";
 import { useUser } from "@clerk/nextjs";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { DOCUMENT_TYPES } from "@/../convex/documents";
 import { toast } from "sonner";
@@ -90,8 +90,9 @@ export function UtilityBillForm({
   const { user } = useUser();
   
   // Fetch properties directly
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(api.properties.getProperties, 
-    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dropdown
+    isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for dropdown
   );
   // Extract properties array from paginated result
   const properties = propertiesResult && "properties" in propertiesResult ? propertiesResult.properties : [];
@@ -215,16 +216,14 @@ export function UtilityBillForm({
       
       const { storageId } = await result.json();
       
-      await addDocument({
-        userId: user.id,
+      await addDocument({ 
         url: storageId,
         name: file.name,
         type: DOCUMENT_TYPES.UTILITY_BILL,
         propertyId: propertyId ? propertyId as any : undefined,
         fileSize: file.size,
         mimeType: file.type,
-        notes: "Utility bill document uploaded during bill creation",
-      });
+        notes: "Utility bill document uploaded during bill creation" });
       
       setUploadedFile({ name: file.name, storageId });
     } catch (error) {
@@ -260,10 +259,8 @@ export function UtilityBillForm({
 
     setSeeding(true);
     try {
-      const result = await seedUtilityBills({
-        userId: user.id,
-        propertyId: propertyId as Id<"properties">,
-      });
+      const result = await seedUtilityBills({ 
+        propertyId: propertyId as Id<"properties"> });
       
       toast.success(result.message);
       
@@ -563,8 +560,6 @@ export function UtilityBillForm({
             propertyId={propertyId as Id<"properties">}
             utilityType={utilityType}
             totalAmount={Number(totalAmount)}
-            userId={user.id}
-            mode="preview"
           />
         </div>
       )}

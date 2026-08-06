@@ -1,6 +1,7 @@
 import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { logActivity, ACTIVITY_TYPES, ACTIVITY_ACTIONS } from "./activityLog";
+import { requireUser, getUserOrNull } from "./lib/auth";
 
 // Document type definitions
 export const DOCUMENT_TYPES = {
@@ -16,7 +17,6 @@ export const DOCUMENT_TYPES = {
 // Get documents with advanced filtering and pagination
 export const getDocuments = query({
   args: {
-    userId: v.string(),
     type: v.optional(v.string()),
     category: v.optional(v.string()),
     propertyId: v.optional(v.id("properties")),
@@ -27,9 +27,10 @@ export const getDocuments = query({
     offset: v.optional(v.number()), // Number of documents to skip
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     let documents = await ctx.db
       .query("documents")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     // Apply filters
@@ -83,13 +84,13 @@ export const getDocuments = query({
 // Get image documents for a property (for quick image access from documents page)
 export const getImageDocuments = query({
   args: {
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     let query = ctx.db
       .query("documents")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId));
+      .withIndex("by_user", (q) => q.eq("userId", userId));
 
     if (args.propertyId) {
       query = query.filter((q) => q.eq(q.field("propertyId"), args.propertyId));
@@ -115,10 +116,10 @@ export const getImageDocuments = query({
 // Note: Document expiry feature has been simplified - this returns empty for now
 export const getExpiringDocuments = query({
   args: {
-    userId: v.string(),
     daysAhead: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Document expiry tracking feature has been removed for simplification
     // Could be re-implemented in the future if needed
     return [];
@@ -128,7 +129,6 @@ export const getExpiringDocuments = query({
 // Add document with enhanced metadata
 export const addDocument = mutation({
   args: {
-    userId: v.string(),
     url: v.string(), // Keep url for backward compatibility, will map to storageId
     name: v.string(),
     type: v.string(),
@@ -143,6 +143,7 @@ export const addDocument = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Validate document type
     if (!Object.values(DOCUMENT_TYPES).includes(args.type as any)) {
       throw new ConvexError({
@@ -166,7 +167,7 @@ export const addDocument = mutation({
 
     // Map url to storageId for new schema compatibility
     const documentData = {
-      userId: args.userId,
+      userId,
       storageId: args.url, // Map url to storageId
       name: args.name,
       type: args.type,
@@ -185,7 +186,7 @@ export const addDocument = mutation({
 
     // Log activity
     await logActivity(ctx, {
-      userId: args.userId,
+      userId,
       entityType: ACTIVITY_TYPES.DOCUMENT,
       entityId: documentId,
       action: ACTIVITY_ACTIONS.UPLOADED,
@@ -207,7 +208,6 @@ export const addDocument = mutation({
 export const updateDocument = mutation({
   args: {
     id: v.id("documents"),
-    userId: v.string(),
     name: v.optional(v.string()),
     type: v.optional(v.string()),
     category: v.optional(v.string()),
@@ -221,8 +221,9 @@ export const updateDocument = mutation({
     mimeType: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const doc = await ctx.db.get(args.id);
-    if (!doc || doc.userId !== args.userId) {
+    if (!doc || doc.userId !== userId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "You don't have permission to update this document"
@@ -254,12 +255,12 @@ export const updateDocument = mutation({
 export const getDocumentsByLease = query({
   args: {
     leaseId: v.id("leases"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     return await ctx.db
       .query("documents")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) => q.eq(q.field("leaseId"), args.leaseId))
       .collect();
   },
@@ -270,13 +271,13 @@ export const linkDocumentToLease = mutation({
   args: {
     storageId: v.string(),
     leaseId: v.id("leases"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Find document by storage ID (now stored in storageId field)
     const documents = await ctx.db
       .query("documents")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
     
     const document = documents.find(doc => doc.storageId === args.storageId);
@@ -302,11 +303,11 @@ export const linkDocumentToLease = mutation({
 export const deleteDocument = mutation({
   args: {
     id: v.id("documents"),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const doc = await ctx.db.get(args.id);
-    if (!doc || doc.userId !== args.userId) {
+    if (!doc || doc.userId !== userId) {
       throw new ConvexError({
         code: "UNAUTHORIZED",
         message: "You don't have permission to delete this document"
@@ -319,12 +320,12 @@ export const deleteDocument = mutation({
 // Get document statistics
 export const getDocumentStats = query({
   args: {
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const documents = await ctx.db
       .query("documents")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     const stats = {
@@ -374,44 +375,38 @@ export const createDocument = mutation({
     notes: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new ConvexError({
-        code: "UNAUTHORIZED",
-        message: "User must be authenticated to upload documents"
-      });
-    }
+    const userId = await requireUser(ctx);
 
     // Verify folder exists and belongs to user if folderId is provided
     if (args.folderId) {
       const folder = await ctx.db.get(args.folderId);
       if (!folder) throw new Error("Folder not found");
-      if (folder.userId !== identity.subject) throw new Error("Unauthorized");
+      if (folder.userId !== userId) throw new Error("Unauthorized");
     }
 
     // Verify property exists and belongs to user if propertyId is provided
     if (args.propertyId) {
       const property = await ctx.db.get(args.propertyId);
       if (!property) throw new Error("Property not found");
-      if (property.userId !== identity.subject) throw new Error("Unauthorized");
+      if (property.userId !== userId) throw new Error("Unauthorized");
     }
 
     // Verify lease exists and belongs to user if leaseId is provided
     if (args.leaseId) {
       const lease = await ctx.db.get(args.leaseId);
       if (!lease) throw new Error("Lease not found");
-      if (lease.userId !== identity.subject) throw new Error("Unauthorized");
+      if (lease.userId !== userId) throw new Error("Unauthorized");
     }
 
     // Verify utility bill exists and belongs to user if utilityBillId is provided
     if (args.utilityBillId) {
       const utilityBill = await ctx.db.get(args.utilityBillId);
       if (!utilityBill) throw new Error("Utility bill not found");
-      if (utilityBill.userId !== identity.subject) throw new Error("Unauthorized");
+      if (utilityBill.userId !== userId) throw new Error("Unauthorized");
     }
 
     return await ctx.db.insert("documents", {
-      userId: identity.subject,
+      userId: userId,
       storageId: args.storageId,
       name: args.name,
       folderId: args.folderId,
@@ -434,13 +429,13 @@ export const getDocumentsByFolder = query({
     folderId: v.optional(v.id("documentFolders")),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getUserOrNull(ctx);
+    if (!userId) return [];
 
     const documents = await ctx.db
       .query("documents")
       .withIndex("by_folder", (q) => q.eq("folderId", args.folderId ?? undefined))
-      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
 
     return documents.sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
@@ -453,13 +448,13 @@ export const getDocumentsByUtilityBill = query({
     utilityBillId: v.id("utilityBills"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getUserOrNull(ctx);
+    if (!userId) return [];
 
     return await ctx.db
       .query("documents")
       .withIndex("by_utility_bill", (q) => q.eq("utilityBillId", args.utilityBillId))
-      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
   },
 });
@@ -470,13 +465,13 @@ export const getDocumentsByProperty = query({
     propertyId: v.id("properties"),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getUserOrNull(ctx);
+    if (!userId) return [];
 
     return await ctx.db
       .query("documents")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-      .filter((q) => q.eq(q.field("userId"), identity.subject))
+      .filter((q) => q.eq(q.field("userId"), userId))
       .collect();
   },
 });
@@ -488,18 +483,17 @@ export const moveDocument = mutation({
     folderId: v.optional(v.id("documentFolders")),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const userId = await requireUser(ctx);
 
     const document = await ctx.db.get(args.id);
     if (!document) throw new Error("Document not found");
-    if (document.userId !== identity.subject) throw new Error("Unauthorized");
+    if (document.userId !== userId) throw new Error("Unauthorized");
 
     // Verify folder exists and belongs to user if folderId is provided
     if (args.folderId) {
       const folder = await ctx.db.get(args.folderId);
       if (!folder) throw new Error("Folder not found");
-      if (folder.userId !== identity.subject) throw new Error("Unauthorized");
+      if (folder.userId !== userId) throw new Error("Unauthorized");
     }
 
     await ctx.db.patch(args.id, {
@@ -517,12 +511,12 @@ export const searchDocuments = query({
     folderId: v.optional(v.id("documentFolders")),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getUserOrNull(ctx);
+    if (!userId) return [];
 
     let query = ctx.db
       .query("documents")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject));
+      .withIndex("by_user", (q) => q.eq("userId", userId));
 
     // Filter by type if provided
     if (args.type) {
@@ -554,15 +548,15 @@ export const searchDocuments = query({
 export const bulkDeleteDocuments = mutation({
   args: {
     documentIds: v.array(v.id("documents")),
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const deletedCount = { success: 0, failed: 0 };
     
     for (const docId of args.documentIds) {
       try {
         const doc = await ctx.db.get(docId);
-        if (!doc || doc.userId !== args.userId) {
+        if (!doc || doc.userId !== userId) {
           deletedCount.failed++;
           continue;
         }
@@ -582,18 +576,18 @@ export const bulkDeleteDocuments = mutation({
 export const bulkUpdateTags = mutation({
   args: {
     documentIds: v.array(v.id("documents")),
-    userId: v.string(),
     tagsToAdd: v.optional(v.array(v.string())),
     tagsToRemove: v.optional(v.array(v.string())),
     tagsToSet: v.optional(v.array(v.string())), // If provided, replaces all tags
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const result = { success: 0, failed: 0 };
     
     for (const docId of args.documentIds) {
       try {
         const doc = await ctx.db.get(docId);
-        if (!doc || doc.userId !== args.userId) {
+        if (!doc || doc.userId !== userId) {
           result.failed++;
           continue;
         }
@@ -642,12 +636,12 @@ export const bulkUpdateTags = mutation({
 // Get all unique tags for a user (for autocomplete)
 export const getAllTags = query({
   args: {
-    userId: v.string(),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const documents = await ctx.db
       .query("documents")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     // Extract all tags and create a unique set

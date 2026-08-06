@@ -1,7 +1,10 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { UTILITY_TYPES } from "../src/lib/constants";
 import { createNotification, NOTIFICATION_TYPES } from "./notifications";
+import { requireUser } from "./lib/auth";
+import { filterActiveLeases, getLeaseStatus } from "./lib/leaseStatus";
 
 // Helper function to compute days until expiration
 function getDaysUntilExpiry(endDate: string): number {
@@ -12,31 +15,16 @@ function getDaysUntilExpiry(endDate: string): number {
   return Math.floor((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
 
-// Helper function to compute lease status based on dates
-function computeLeaseStatus(startDate: string, endDate: string): "active" | "expired" | "pending" {
-  const now = new Date();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  
-  // Clear time components for date-only comparison
-  now.setHours(0, 0, 0, 0);
-  start.setHours(0, 0, 0, 0);
-  end.setHours(0, 0, 0, 0);
-  
-  if (start > now) return "pending";
-  if (end < now) return "expired";
-  return "active";
-}
 
 // Get a single lease by ID
 export const getLease = query({
   args: { 
     id: v.id("leases"), 
-    userId: v.string() 
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const lease = await ctx.db.get(args.id);
-    if (!lease || lease.userId !== args.userId) {
+    if (!lease || lease.userId !== userId) {
       return null;
     }
     
@@ -53,15 +41,15 @@ export const getLease = query({
 // Get all leases for a user (optionally filtered by property)
 export const getLeases = query({
   args: { 
-    userId: v.string(), 
     propertyId: v.optional(v.id("properties")),
     limit: v.optional(v.number()), // Number of leases to return
     offset: v.optional(v.number()), // Number of leases to skip
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     let q = ctx.db
       .query("leases")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId));
+      .withIndex("by_user", (q) => q.eq("userId", userId));
     
     const leases = await q.collect();
     
@@ -105,16 +93,16 @@ export const getLeases = query({
 export const getLeasesByProperty = query({
   args: { 
     propertyId: v.id("properties"),
-    userId: v.string() 
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const leases = await ctx.db
       .query("leases")
       .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
       .collect();
     
     // Filter by userId for security
-    return leases.filter(l => l.userId === args.userId);
+    return leases.filter(l => l.userId === userId);
   },
 });
 
@@ -122,15 +110,15 @@ export const getLeasesByProperty = query({
 export const getLeasesByUnit = query({
   args: { 
     unitId: v.id("units"),
-    userId: v.string() 
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify unit ownership
     const unit = await ctx.db.get(args.unitId);
     if (!unit) return [];
     
     const property = await ctx.db.get(unit.propertyId);
-    if (!property || property.userId !== args.userId) return [];
+    if (!property || property.userId !== userId) return [];
     
     const leases = await ctx.db
       .query("leases")
@@ -144,14 +132,18 @@ export const getLeasesByUnit = query({
 
 // Get active leases
 export const getActiveLeases = query({
-  args: { userId: v.string() },
+  args: {},
   handler: async (ctx, args) => {
-    const leases = await ctx.db
-      .query("leases")
-      .withIndex("by_status", (q) => q.eq("status", "active"))
-      .collect();
-    
-    const userLeases = leases.filter(l => l.userId === args.userId);
+    const userId = await requireUser(ctx);
+    // Was indexed on the deprecated stored status column, which is written once
+    // and never recomputed — so this returned leases that ended months ago as
+    // "active". Scoped by user and filtered on the date-derived status instead.
+    const userLeases = filterActiveLeases(
+      await ctx.db
+        .query("leases")
+        .withIndex("by_user", (q) => q.eq("userId", userId))
+        .collect()
+    );
     
     // Add unit information to each lease
     const leasesWithUnits = await Promise.all(
@@ -183,7 +175,7 @@ async function applyUtilityDefaults(ctx: any, leaseId: string, property: any, un
   
   // Filter to only active leases based on computed status
   const activeLeases = allLeases.filter((lease: any) => {
-    const status = computeLeaseStatus(lease.startDate, lease.endDate);
+    const status = getLeaseStatus(lease.startDate, lease.endDate);
     return status === "active";
   });
 
@@ -246,7 +238,6 @@ async function applyUtilityDefaults(ctx: any, leaseId: string, property: any, un
 // Add a lease for a property (enforce only one active lease per property/unit)
 export const addLease = mutation({
   args: {
-    userId: v.string(),
     propertyId: v.id("properties"),
     unitId: v.optional(v.id("units")), // Optional for backward compatibility
     tenantName: v.string(),
@@ -262,9 +253,10 @@ export const addLease = mutation({
     leaseDocumentUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Verify the property belongs to the user
     const property = await ctx.db.get(args.propertyId);
-    if (!property || property.userId !== args.userId) {
+    if (!property || property.userId !== userId) {
       throw new Error("Unauthorized: Property not found or doesn't belong to user");
     }
     
@@ -282,29 +274,27 @@ export const addLease = mutation({
     }
     
     // Compute status from dates if not provided
-    const computedStatus = args.status || computeLeaseStatus(args.startDate, args.endDate);
+    const computedStatus = args.status || getLeaseStatus(args.startDate, args.endDate);
     
     // Check for existing active lease if trying to add an active lease
     if (computedStatus === "active") {
       if (args.unitId) {
         // Check for active lease on the specific unit
-        const activeLeases = await ctx.db
+        const activeLeases = filterActiveLeases(await ctx.db
           .query("leases")
           .withIndex("by_unit", (q) => q.eq("unitId", args.unitId))
-          .filter(q => q.eq(q.field("status"), "active"))
-          .collect();
+          .collect());
         
         if (activeLeases.length > 0) {
           throw new Error("There is already an active lease for this unit.");
         }
       } else {
         // Check for active lease on the property (backward compatibility)
-        const activeLeases = await ctx.db
+        const activeLeases = filterActiveLeases(await ctx.db
           .query("leases")
           .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-          .filter(q => q.eq(q.field("status"), "active"))
           .filter(q => q.eq(q.field("unitId"), undefined))
-          .collect();
+          .collect());
         
         if (activeLeases.length > 0) {
           throw new Error("There is already an active lease for this property.");
@@ -321,6 +311,7 @@ export const addLease = mutation({
     
     const lease = await ctx.db.insert("leases", {
       ...args,
+      userId,
       status: computedStatus, // Use computed status
       createdAt: new Date().toISOString(),
     });
@@ -333,7 +324,7 @@ export const addLease = mutation({
     // Create document record if lease document is provided
     if (args.leaseDocumentUrl) {
       await ctx.db.insert("documents", {
-        userId: args.userId,
+        userId,
         storageId: args.leaseDocumentUrl,
         name: `${args.tenantName} - Lease Agreement`,
         type: "lease",
@@ -361,7 +352,6 @@ export const addLease = mutation({
 export const updateLease = mutation({
   args: {
     id: v.id("leases"),
-    userId: v.string(),
     propertyId: v.id("properties"),
     unitId: v.optional(v.id("units")), // Optional for backward compatibility
     tenantName: v.string(),
@@ -377,14 +367,15 @@ export const updateLease = mutation({
     leaseDocumentUrl: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const lease = await ctx.db.get(args.id);
-    if (!lease || lease.userId !== args.userId) {
+    if (!lease || lease.userId !== userId) {
       throw new Error("Unauthorized");
     }
     
     // Verify the property belongs to the user
     const property = await ctx.db.get(args.propertyId);
-    if (!property || property.userId !== args.userId) {
+    if (!property || property.userId !== userId) {
       throw new Error("Unauthorized: Property not found or doesn't belong to user");
     }
     
@@ -402,31 +393,29 @@ export const updateLease = mutation({
     }
     
     // Compute status from dates if not provided
-    const computedStatus = args.status || computeLeaseStatus(args.startDate, args.endDate);
+    const computedStatus = args.status || getLeaseStatus(args.startDate, args.endDate);
     
     // Check for existing active lease if changing to active
-    if (computedStatus === "active" && lease.status !== "active") {
+    if (computedStatus === "active" && getLeaseStatus(lease.startDate, lease.endDate) !== "active") {
       if (args.unitId) {
         // Check for active lease on the specific unit
-        const activeLeases = await ctx.db
+        const activeLeases = filterActiveLeases(await ctx.db
           .query("leases")
           .withIndex("by_unit", (q) => q.eq("unitId", args.unitId))
-          .filter(q => q.eq(q.field("status"), "active"))
           .filter(q => q.neq(q.field("_id"), args.id))
-          .collect();
+          .collect());
         
         if (activeLeases.length > 0) {
           throw new Error("There is already an active lease for this unit.");
         }
       } else {
         // Check for active lease on the property (backward compatibility)
-        const activeLeases = await ctx.db
+        const activeLeases = filterActiveLeases(await ctx.db
           .query("leases")
           .withIndex("by_property", (q) => q.eq("propertyId", args.propertyId))
-          .filter(q => q.eq(q.field("status"), "active"))
           .filter(q => q.eq(q.field("unitId"), undefined))
           .filter(q => q.neq(q.field("_id"), args.id))
-          .collect();
+          .collect());
         
         if (activeLeases.length > 0) {
           throw new Error("There is already an active lease for this property.");
@@ -441,8 +430,8 @@ export const updateLease = mutation({
       throw new Error("End date must be after start date");
     }
     
-    const { id, userId, ...updateData } = args;
-    
+    const { id, ...updateData } = args;
+
     await ctx.db.patch(args.id, {
       ...updateData,
       status: computedStatus, // Use computed status
@@ -451,15 +440,15 @@ export const updateLease = mutation({
     
     // Update unit status based on lease status changes
     if (args.unitId) {
-      if (computedStatus === "active" && lease.status !== "active") {
+      if (computedStatus === "active" && getLeaseStatus(lease.startDate, lease.endDate) !== "active") {
         await ctx.db.patch(args.unitId, { status: "occupied" });
-      } else if (computedStatus !== "active" && lease.status === "active") {
+      } else if (computedStatus !== "active" && getLeaseStatus(lease.startDate, lease.endDate) === "active") {
         await ctx.db.patch(args.unitId, { status: "available" });
       }
     }
     
     // Auto-apply property utility defaults when lease becomes active
-    if (computedStatus === "active" && lease.status !== "active") {
+    if (computedStatus === "active" && getLeaseStatus(lease.startDate, lease.endDate) !== "active") {
       await applyUtilityDefaults(ctx, args.id, property, args.unitId);
     }
     
@@ -478,7 +467,7 @@ export const updateLease = mutation({
         });
       } else {
         await ctx.db.insert("documents", {
-          userId: args.userId,
+          userId,
           storageId: args.leaseDocumentUrl,
           name: `Lease - ${args.tenantName}`,
           type: "lease",
@@ -497,16 +486,16 @@ export const updateLease = mutation({
 export const deleteLease = mutation({
   args: { 
     id: v.id("leases"), 
-    userId: v.string() 
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const lease = await ctx.db.get(args.id);
-    if (!lease || lease.userId !== args.userId) {
+    if (!lease || lease.userId !== userId) {
       throw new Error("Unauthorized");
     }
     
     // Update unit status if this was an active lease
-    if (lease.unitId && lease.status === "active") {
+    if (lease.unitId && getLeaseStatus(lease.startDate, lease.endDate) === "active") {
       await ctx.db.patch(lease.unitId, { status: "available" });
     }
     
@@ -526,17 +515,20 @@ export const deleteLease = mutation({
 
 // Get lease statistics for a user
 export const getLeaseStats = query({
-  args: { userId: v.string() },
+  args: {},
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     const leases = await ctx.db
       .query("leases")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
     
     const now = new Date();
-    const activeLeases = leases.filter(l => l.status === "active");
-    const expiredLeases = leases.filter(l => l.status === "expired");
-    const pendingLeases = leases.filter(l => l.status === "pending");
+    const byStatus = (want: string) =>
+      leases.filter((l) => getLeaseStatus(l.startDate, l.endDate) === want);
+    const activeLeases = byStatus("active");
+    const expiredLeases = byStatus("expired");
+    const pendingLeases = byStatus("pending");
     
     // Calculate total monthly income from active leases
     const monthlyIncome = activeLeases.reduce((sum, l) => sum + l.rent, 0);
@@ -564,84 +556,32 @@ export const getLeaseStats = query({
   },
 });
 
-// Automatically update lease status based on dates
-export const updateLeaseStatuses = mutation({
-  args: { userId: v.string() },
-  handler: async (ctx, args) => {
-    const leases = await ctx.db
-      .query("leases")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .collect();
-    
-    const now = new Date();
-    let updated = 0;
-    
-    for (const lease of leases) {
-      const startDate = new Date(lease.startDate);
-      const endDate = new Date(lease.endDate);
-      let newStatus = lease.status;
-      
-      // Update pending to active if start date has passed
-      if (lease.status === "pending" && startDate <= now) {
-        // Check if there's already an active lease for this property
-        const activeLeases = await ctx.db
-          .query("leases")
-          .withIndex("by_property", (q) => q.eq("propertyId", lease.propertyId))
-          .filter(q => q.eq(q.field("status"), "active"))
-          .filter(q => q.neq(q.field("_id"), lease._id))
-          .collect();
-        
-        if (activeLeases.length === 0) {
-          newStatus = "active";
-        }
-      }
-      
-      // Update active to expired if end date has passed
-      if (lease.status === "active" && endDate < now) {
-        newStatus = "expired";
-      }
-      
-      // Update if status changed
-      if (newStatus !== lease.status) {
-        await ctx.db.patch(lease._id, {
-          status: newStatus,
-          updatedAt: new Date().toISOString(),
-        });
-        
-        // Auto-apply utility defaults when lease becomes active
-        if (newStatus === "active") {
-          const property = await ctx.db.get(lease.propertyId);
-          if (property) {
-            await applyUtilityDefaults(ctx, lease._id, property, lease.unitId);
-          }
-        }
-        
-        updated++;
-      }
-    }
-    
-    return { updated };
-  },
-});
 
 // Generate notifications for expiring leases
 // This mutation creates notifications for leases expiring within 60 days
-export const generateLeaseExpirationNotifications = mutation({
-  args: {
-    userId: v.string(),
-  },
-  handler: async (ctx, args) => {
+/**
+ * Creates expiry notifications for one user's leases.
+ *
+ * Split out from the mutation so a scheduled job can run it for everybody.
+ * createNotification already suppresses duplicates, so running this daily
+ * re-notifies nobody — it only fills in leases that have newly entered the
+ * warning window.
+ */
+async function notifyExpiringLeasesForUser(
+  ctx: MutationCtx,
+  userId: string
+): Promise<number> {
+  {
     let createdCount = 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const warningDays = 60; // Notify if expiring within 60 days
 
     // Get all active leases for the user
-    const activeLeases = await ctx.db
+    const activeLeases = filterActiveLeases(await ctx.db
       .query("leases")
-      .withIndex("by_user", (q) => q.eq("userId", args.userId))
-      .filter((q) => q.eq(q.field("status"), "active"))
-      .collect();
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect());
 
     for (const lease of activeLeases) {
       const daysUntilExpiry = getDaysUntilExpiry(lease.endDate);
@@ -673,8 +613,8 @@ export const generateLeaseExpirationNotifications = mutation({
           : propertyName;
 
         try {
-          await createNotification(ctx, {
-            userId: args.userId,
+          const result = await createNotification(ctx, {
+            userId,
             type: NOTIFICATION_TYPES.LEASE_EXPIRATION,
             title,
             message: `${lease.tenantName}'s lease at ${location} expires ${daysUntilExpiry === 0 ? "today" : daysUntilExpiry === 1 ? "tomorrow" : `in ${daysUntilExpiry} days`}`,
@@ -693,36 +633,65 @@ export const generateLeaseExpirationNotifications = mutation({
               daysUntilExpiry,
             },
           });
-          createdCount++;
+          if (result.created) createdCount++;
         } catch (error) {
           console.error("Error creating lease expiration notification:", error);
         }
       }
     }
 
-    return { created: createdCount };
+    return createdCount;
+  }
+}
+
+export const generateLeaseExpirationNotifications = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireUser(ctx);
+    return { created: await notifyExpiringLeasesForUser(ctx, userId) };
+  },
+});
+
+/**
+ * Scheduled counterpart, run daily by convex/crons.ts.
+ *
+ * A cron has no signed-in user, so it fans out over every user that owns a
+ * lease. Until this was wired the generator above had no callers at all and no
+ * expiry notification was ever produced.
+ */
+export const notifyExpiringLeasesForAllUsers = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const userIds = new Set(
+      (await ctx.db.query("leases").collect()).map((lease) => lease.userId)
+    );
+    let created = 0;
+    for (const userId of userIds) {
+      created += await notifyExpiringLeasesForUser(ctx, userId);
+    }
+    return { users: userIds.size, created };
   },
 });
 
 // Migration: Apply utility defaults to existing active leases without utility settings
 export const applyDefaultsToExistingLeases = mutation({
   args: { 
-    userId: v.string(),
     propertyId: v.optional(v.id("properties")) // Optional - if provided, only process this property
   },
   handler: async (ctx, args) => {
+    const userId = await requireUser(ctx);
     // Get properties to process
     let properties;
     if (args.propertyId) {
       const property = await ctx.db.get(args.propertyId);
-      if (!property || property.userId !== args.userId) {
+      if (!property || property.userId !== userId) {
         throw new Error("Property not found or access denied");
       }
       properties = [property];
     } else {
       properties = await ctx.db
         .query("properties")
-        .filter((q) => q.eq(q.field("userId"), args.userId))
+        .filter((q) => q.eq(q.field("userId"), userId))
         .collect();
     }
 
@@ -743,7 +712,7 @@ export const applyDefaultsToExistingLeases = mutation({
       
       // Filter to only active leases based on computed status
       const activeLeases = allLeases.filter((lease: any) => {
-        const status = computeLeaseStatus(lease.startDate, lease.endDate);
+        const status = getLeaseStatus(lease.startDate, lease.endDate);
         return status === "active";
       });
 

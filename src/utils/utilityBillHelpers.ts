@@ -10,12 +10,29 @@ export const formatCurrency = (amount: number): string => {
 
 // Helper function to format dates
 export const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
+  return toLocalDate(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
+};
+
+/**
+ * Parses a stored date as a calendar day in the viewer's timezone.
+ *
+ * Dates here are days, not instants — a bill is due on the 15th, not at a
+ * particular moment. `new Date("2025-12-15")` reads the string as UTC
+ * midnight, which renders as the 14th anywhere west of Greenwich; a bill due
+ * 2025-12-15 was being shown as "Due: 12/14/2025". Splitting the date part and
+ * constructing from its components keeps the day intact. Values that also
+ * carry a time (…T00:00:00.000Z) are truncated to their date first.
+ */
+export const toLocalDate = (dateString: string): Date => {
+  const [year, month, day] = dateString.slice(0, 10).split('-').map(Number);
+  if ([year, month, day].every((n) => Number.isFinite(n))) {
+    return new Date(year, month - 1, day);
+  }
+  return new Date(dateString);
 };
 
 // Helper function to format bill month (YYYY-MM) to readable format
@@ -46,14 +63,24 @@ export const getUtilityTypeInfo = (utilityType: string): {
   return typeMap[utilityType] || { color: 'gray', bgColor: 'bg-gray-100', textColor: 'text-gray-800' };
 };
 
-// Helper function to calculate days until due
-export const getDaysUntilDue = (dueDate: string): number => {
-  const today = new Date();
-  const due = new Date(dueDate);
-  const diffTime = due.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+/**
+ * Whole days from today to `dateString`: 0 today, negative once past.
+ *
+ * Both sides are reduced to a calendar day in the viewer's timezone before
+ * subtracting. Comparing a UTC-parsed date against a local `new Date()` is off
+ * by one for most of the day in any negative-offset zone, and mixing that with
+ * setHours(0,0,0,0) — which sets *local* midnight on a UTC-parsed value — moves
+ * the date back a day outright.
+ */
+export const daysUntil = (dateString: string): number => {
+  const target = toLocalDate(dateString);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
 };
+
+// Helper function to calculate days until due
+export const getDaysUntilDue = (dueDate: string): number => daysUntil(dueDate);
 
 // Helper function to determine payment status
 export const getPaymentStatus = (bill: Doc<"utilityBills">): {

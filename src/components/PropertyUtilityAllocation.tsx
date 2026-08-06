@@ -1,15 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Id } from "@/../convex/_generated/dataModel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import { UTILITY_TYPES } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -22,6 +20,7 @@ import {
   Edit,
   Home
 } from "lucide-react";
+import { getLeaseStatus } from "@/lib/lease-status";
 
 interface PropertyUtilityAllocationProps {
   propertyId: Id<"properties">;
@@ -36,8 +35,7 @@ interface LeaseAllocation {
 }
 
 export function PropertyUtilityAllocation({ 
-  propertyId, 
-  userId 
+  propertyId 
 }: PropertyUtilityAllocationProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [allocations, setAllocations] = useState<LeaseAllocation[]>([]);
@@ -46,34 +44,23 @@ export function PropertyUtilityAllocation({
 
   // Get active leases for the property
   const leases = useQuery(api.leases.getLeasesByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   // Get units for property to resolve unit identifiers
   const units = useQuery(api.units.getUnitsByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   // Get existing utility settings
   const utilitySettings = useQuery(api.leaseUtilitySettings.getUtilitySettingsByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   // Get property information to check for utility defaults
-  const property = useQuery(api.properties.getProperty, {
-    id: propertyId,
-    userId,
-  });
 
-  const saveUtilitySettings = useMutation(api.leaseUtilitySettings.setPropertyUtilityAllocations);
 
   // Initialize allocations when data loads
   useEffect(() => {
     if (leases && utilitySettings && units) {
-      const activeLeases = leases.filter(l => l.status === "active");
+      const activeLeases = leases.filter(l => getLeaseStatus(l.startDate, l.endDate) === "active");
       
       if (activeLeases.length > 0) {
         const newAllocations = activeLeases.map(lease => {
@@ -96,7 +83,7 @@ export function PropertyUtilityAllocation({
             leaseId: lease._id,
             tenantName: lease.tenantName,
             unitIdentifier,
-            percentage,
+            percentage
           };
         });
         setAllocations(newAllocations);
@@ -111,7 +98,7 @@ export function PropertyUtilityAllocation({
     }
   }, [leases, utilitySettings, units]);
 
-  const activeLeases = leases?.filter(l => l.status === "active") || [];
+  const activeLeases = leases?.filter(l => getLeaseStatus(l.startDate, l.endDate) === "active") || [];
 
   const totalAllocated = allocations.reduce((sum, a) => sum + a.percentage, 0);
   const ownerPercentage = Math.max(0, 100 - totalAllocated);
@@ -147,7 +134,7 @@ export function PropertyUtilityAllocation({
       const newPercentage = equalPercentage + (index === 0 ? remainder : 0);
       return {
         ...allocation,
-        percentage: newPercentage,
+        percentage: newPercentage
       };
     });
 
@@ -164,7 +151,7 @@ export function PropertyUtilityAllocation({
   const handleSave = async () => {
     if (isOverAllocated) {
       toast.error(`Total allocation is ${totalAllocated}%`, {
-        description: "Please adjust the percentages to not exceed 100%.",
+        description: "Please adjust the percentages to not exceed 100%."
       });
       return;
     }
@@ -172,22 +159,14 @@ export function PropertyUtilityAllocation({
     setSaving(true);
     try {
       // Use atomic mutation to save all allocations at once
-      const result = await saveUtilitySettings({
-        propertyId,
-        allocations: allocations.map(allocation => ({
-          leaseId: allocation.leaseId,
-          percentage: allocation.percentage,
-        })),
-        userId,
-      });
-      
+
       if (!isComplete) {
         toast.success("Utility responsibilities saved!", {
-          description: `Total allocation is ${totalAllocated}%. Owner will cover the remaining ${ownerPercentage}%.`,
+          description: `Total allocation is ${totalAllocated}%. Owner will cover the remaining ${ownerPercentage}%.`
         });
       } else {
         toast.success("Utility responsibilities saved successfully!", {
-          description: "All utilities are fully allocated to tenants.",
+          description: "All utilities are fully allocated to tenants."
         });
       }
       
@@ -195,13 +174,12 @@ export function PropertyUtilityAllocation({
     } catch (error) {
       console.error("Failed to save utility settings:", error);
       toast.error("Failed to save utility settings", {
-        description: "Please try again or contact support if the issue persists.",
+        description: "Please try again or contact support if the issue persists."
       });
     } finally {
       setSaving(false);
     }
   };
-
 
   if (!leases || !utilitySettings || !units) {
     return (
@@ -355,7 +333,6 @@ export function PropertyUtilityAllocation({
             Applies to all utility types
           </AlertDescription>
         </Alert>
-
 
         {/* Progress Bar */}
         {isOverAllocated && (

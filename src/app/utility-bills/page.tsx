@@ -9,7 +9,7 @@ import { Doc, Id } from "@/../convex/_generated/dataModel";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { SelectNative } from "@/components/ui/select-native";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -20,14 +20,12 @@ import { TenantStatementGenerator } from "@/components/TenantStatementGenerator"
 import { UtilityLedger } from "@/components/UtilityLedger";
 import { QuickAddBill } from "@/components/QuickAddBill";
 import { UtilityAnalytics } from "@/components/UtilityAnalytics";
-import { LoadingContent } from "@/components/LoadingContent";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import { ResponsiveTable, BulkActionsToolbar } from "@/components/ui/responsive-table";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   createUtilityBillTableConfig,
   UtilityBillMobileCard,
-  type UtilityBill,
   type Property
 } from "@/lib/table-configs";
 import { cn } from "@/lib/utils";
@@ -43,18 +41,19 @@ import {
   BarChart3,
   FileText,
   Download,
-  Trash2,
+  Trash2
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuTrigger,
+  DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 
 // Import our new hooks and types
 import { useUtilityBillsData, useUtilityBillFilterOptions } from "@/hooks/useUtilityBillsData";
-import { UtilityBillFilters } from "@/types/utilityBills";
+import { formatCurrency } from "@/utils/utilityBillHelpers";
+import { exportCsv } from "@/lib/csv";
 
 // Comprehensive utility bills page loading skeleton
 const UtilityBillsLoadingSkeleton = () => (
@@ -308,13 +307,13 @@ function UtilityBillsContent() {
 
   // Use the new unified data hook
   const {
-    data,
+    
     filteredData,
     filters,
     loading,
     error,
     updateFilters,
-    resetFilters,
+    resetFilters
   } = useUtilityBillsData();
   
   // Handle URL parameters on mount
@@ -389,7 +388,7 @@ function UtilityBillsContent() {
         try {
           await Promise.all(
             billsToDelete.map(bill => 
-              deleteBill({ id: bill._id as any, userId: user.id })
+              deleteBill({ id: bill._id as any })
             )
           );
           setSelectedUtilityBills([]);
@@ -407,11 +406,9 @@ function UtilityBillsContent() {
       await Promise.all(
         billsToUpdate.map(bill => 
           updateBill({
-            id: bill._id as any,
-            userId: user.id,
+            id: bill._id as any, 
             landlordPaidUtilityCompany: true,
-            landlordPaidDate: new Date().toISOString().split('T')[0],
-          })
+            landlordPaidDate: new Date().toISOString().split('T')[0] })
         )
       );
       setSelectedUtilityBills([]);
@@ -427,11 +424,9 @@ function UtilityBillsContent() {
       await Promise.all(
         billsToUpdate.map(bill => 
           updateBill({
-            id: bill._id as any,
-            userId: user.id,
+            id: bill._id as any, 
             landlordPaidUtilityCompany: false,
-            landlordPaidDate: undefined,
-          })
+            landlordPaidDate: undefined })
         )
       );
       setSelectedUtilityBills([]);
@@ -450,10 +445,8 @@ function UtilityBillsContent() {
       onConfirm: async () => {
         try {
           const result = await bulkMarkNoTenantCharges({
-            billIds: billsToUpdate.map(bill => bill._id as any),
-            userId: user.id,
-            noTenantCharges: true,
-          });
+            billIds: billsToUpdate.map(bill => bill._id as any), 
+            noTenantCharges: true });
           setSelectedUtilityBills([]);
           toast.success(`${result.updatedBills} bills marked as historical`);
         } catch (error: any) {
@@ -472,10 +465,8 @@ function UtilityBillsContent() {
       onConfirm: async () => {
         try {
           const result = await bulkMarkNoTenantCharges({
-            billIds: billsToUpdate.map(bill => bill._id as any),
-            userId: user.id,
-            noTenantCharges: false,
-          });
+            billIds: billsToUpdate.map(bill => bill._id as any), 
+            noTenantCharges: false });
           setSelectedUtilityBills([]);
           toast.success(`${result.updatedBills} bills updated to generate tenant charges`);
         } catch (error: any) {
@@ -485,6 +476,35 @@ function UtilityBillsContent() {
     });
   };
 
+  // Exports exactly what the filters are showing, so a filtered view can be
+  // handed to an accountant without further editing.
+  const handleExportBills = () => {
+    const rows = displayBills ?? [];
+    if (rows.length === 0) {
+      toast.error("No bills to export");
+      return;
+    }
+    exportCsv("bills", rows, [
+      { header: "Month", value: (b: any) => b.billMonth },
+      { header: "Utility", value: (b: any) => b.utilityType },
+      { header: "Provider", value: (b: any) => b.provider },
+      {
+        header: "Property",
+        value: (b: any) =>
+          properties.find((p: any) => p._id === b.propertyId)?.name ?? "",
+      },
+      { header: "Amount", value: (b: any) => b.totalAmount.toFixed(2) },
+      { header: "Bill Date", value: (b: any) => b.billDate?.slice(0, 10) ?? "" },
+      { header: "Due Date", value: (b: any) => b.dueDate?.slice(0, 10) ?? "" },
+      {
+        header: "Landlord Paid",
+        value: (b: any) => (b.landlordPaidUtilityCompany ? "Yes" : "No"),
+      },
+      { header: "Notes", value: (b: any) => b.notes ?? "" },
+    ]);
+    toast.success(`Exported ${rows.length} bill${rows.length === 1 ? "" : "s"}`);
+  };
+
   const handleDeleteBill = async (bill: any) => {
     confirm({
       title: "Delete Utility Bill",
@@ -492,7 +512,7 @@ function UtilityBillsContent() {
       variant: "destructive",
       onConfirm: async () => {
         try {
-          await deleteBill({ id: bill._id, userId: user!.id });
+          await deleteBill({ id: bill._id });
           toast.success("Bill deleted successfully");
         } catch (error: any) {
           toast.error(formatErrorForToast(error));
@@ -505,10 +525,8 @@ function UtilityBillsContent() {
     try {
       await updateBill({
         id: bill._id,
-        userId: user!.id,
         landlordPaidUtilityCompany: !bill.landlordPaidUtilityCompany,
-        landlordPaidDate: !bill.landlordPaidUtilityCompany ? new Date().toISOString().split('T')[0] : undefined,
-      });
+        landlordPaidDate: !bill.landlordPaidUtilityCompany ? new Date().toISOString().split('T')[0] : undefined });
       toast.success(`Bill marked as ${!bill.landlordPaidUtilityCompany ? 'paid' : 'unpaid'}`);
     } catch (error: any) {
       toast.error(formatErrorForToast(error));
@@ -614,11 +632,6 @@ function UtilityBillsContent() {
     updateFilters({ tenantId: (tenantId || undefined) as Id<"leases"> | undefined });
   }, [updateFilters]);
 
-  const handleDateRangeChange = useCallback((startMonth: string, endMonth: string) => {
-    updateFilters({ 
-      dateRange: startMonth && endMonth ? [startMonth, endMonth] : undefined 
-    });
-  }, [updateFilters]);
 
   const handleUtilityTypesChange = useCallback((types: string[]) => {
     updateFilters({ utilityTypes: types });
@@ -650,7 +663,7 @@ function UtilityBillsContent() {
     totalBills: 0,
     unpaidBills: 0,
     totalAmount: 0,
-    unpaidAmount: 0,
+    unpaidAmount: 0
   };
 
   const selectedPropertyData = properties.find(p => p._id === filters.propertyId);
@@ -686,6 +699,14 @@ function UtilityBillsContent() {
                 <DropdownMenuItem onClick={() => setBulkDialogOpen(true)} data-testid="bulk-entry-btn">
                   <FileText className="w-4 h-4 mr-2" />
                   Bulk Entry
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleExportBills}
+                  disabled={displayBills.length === 0}
+                  data-testid="export-bills-btn"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export to CSV
                 </DropdownMenuItem>
                 {filters.tenantId && filters.propertyId && (
                   <DropdownMenuItem onClick={() => setStatementDialogOpen(true)} data-testid="generate-statement-btn">
@@ -746,7 +767,7 @@ function UtilityBillsContent() {
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {filters.tenantId ? "Tenant Charges" : "Total Amount"}
                   </p>
-                  <p className="text-lg sm:text-2xl font-bold" data-testid="total-amount">${stats.totalAmount.toFixed(2)}</p>
+                  <p className="text-lg sm:text-2xl font-bold" data-testid="total-amount">{formatCurrency(stats.totalAmount)}</p>
                 </div>
                 <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0" />
               </div>
@@ -759,7 +780,7 @@ function UtilityBillsContent() {
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {filters.tenantId ? "Outstanding Balance" : "Unpaid Amount"}
                   </p>
-                  <p className="text-lg sm:text-2xl font-bold text-red-600" data-testid="unpaid-amount">${stats.unpaidAmount.toFixed(2)}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-red-600" data-testid="unpaid-amount">{formatCurrency(stats.unpaidAmount)}</p>
                 </div>
                 <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 flex-shrink-0" />
               </div>
@@ -877,7 +898,7 @@ function UtilityBillsContent() {
                     ? {
                         label: "Add First Bill",
                         onClick: () => setBillDialogOpen(true),
-                        icon: Plus,
+                        icon: Plus
                       }
                     : undefined
                 }
@@ -939,18 +960,14 @@ function UtilityBillsContent() {
               try {
                 if (selectedBill) {
                   await updateBill({
-                    id: selectedBill._id,
-                    userId: user.id,
+                    id: selectedBill._id, 
                     ...data,
-                    propertyId: data.propertyId as any,
-                  });
+                    propertyId: data.propertyId as any });
                   toast.success("Bill updated successfully");
                 } else {
-                  await addBill({
-                    userId: user.id,
+                  await addBill({ 
                     ...data,
-                    propertyId: data.propertyId as any,
-                  });
+                    propertyId: data.propertyId as any });
                   toast.success("Bill added successfully");
                 }
                 setBillDialogOpen(false);
@@ -978,12 +995,10 @@ function UtilityBillsContent() {
               propertyId={selectedPropertyData._id as any}
               propertyName={selectedPropertyData.name}
               onSubmit={async (billMonth, billsData) => {
-                const result = await bulkAddBills({
-                  userId: user.id,
+                const result = await bulkAddBills({ 
                   propertyId: selectedPropertyData._id as any,
                   billMonth: billMonth,
-                  bills: billsData,
-                });
+                  bills: billsData });
                 if (result.createdBillIds.length > 0) {
                   setBulkDialogOpen(false);
                   toast.success(`Successfully added ${result.createdBillIds.length} bills`);
@@ -1014,7 +1029,7 @@ function UtilityBillsContent() {
               <div className="bg-muted/50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">{viewingBill.utilityType} - {viewingBill.billMonth}</h3>
-                  <span className="text-lg font-semibold">${viewingBill.totalAmount.toFixed(2)}</span>
+                  <span className="text-lg font-semibold">{formatCurrency(viewingBill.totalAmount)}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">{viewingBill.provider}</p>
               </div>
@@ -1022,7 +1037,6 @@ function UtilityBillsContent() {
               {/* Utility Ledger - Inspectable calculation breakdown */}
               <UtilityLedger
                 billId={viewingBill._id}
-                userId={user.id}
                 showEdit={true}
               />
               
@@ -1032,7 +1046,6 @@ function UtilityBillsContent() {
                 utilityType={viewingBill.utilityType}
                 totalAmount={viewingBill.totalAmount}
                 billId={viewingBill._id}
-                userId={user.id}
               />
               
               <div className="flex justify-end">
@@ -1052,7 +1065,6 @@ function UtilityBillsContent() {
           {filters.propertyId && (
             <TenantStatementGenerator
               propertyId={filters.propertyId as any}
-              userId={user.id}
             />
           )}
         </DialogContent>

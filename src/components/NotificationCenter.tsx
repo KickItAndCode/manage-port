@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { api } from "../../convex/_generated/api";
@@ -10,22 +10,19 @@ import { ScrollArea } from "./ui/scroll-area";
 import {
   Popover,
   PopoverContent,
-  PopoverTrigger,
+  PopoverTrigger
 } from "./ui/popover";
 import {
   Bell,
-  Check,
   CheckCheck,
-  AlertCircle,
   AlertTriangle,
   Info,
   X,
-  Clock,
   FileText,
   Zap,
-  Calendar,
+  Calendar
 } from "lucide-react";
-import { format, formatDistanceToNow } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 import { cn } from "../lib/utils";
 import { Skeleton } from "./ui/skeleton";
 
@@ -37,19 +34,19 @@ const NOTIFICATION_ICONS: Record<string, any> = {
   lease_expiration: Calendar,
   payment_reminder: FileText,
   utility_bill_reminder: Zap,
-  utility_anomaly: AlertTriangle,
+  utility_anomaly: AlertTriangle
 };
 
 const SEVERITY_COLORS: Record<string, string> = {
   info: "text-blue-600 dark:text-blue-400",
   warning: "text-orange-600 dark:text-orange-400",
-  error: "text-red-600 dark:text-red-400",
+  error: "text-red-600 dark:text-red-400"
 };
 
 const SEVERITY_BG_COLORS: Record<string, string> = {
   info: "bg-blue-100 dark:bg-blue-900/20",
   warning: "bg-orange-100 dark:bg-orange-900/20",
-  error: "bg-red-100 dark:bg-red-900/20",
+  error: "bg-red-100 dark:bg-red-900/20"
 };
 
 export function NotificationCenter({ className }: NotificationCenterProps) {
@@ -57,14 +54,15 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
 
+  const { isAuthenticated } = useConvexAuth();
   const notifications = useQuery(
     api.notifications.getUserNotifications,
-    user ? { userId: user.id, limit: 50 } : "skip"
+    isAuthenticated ? {  limit: 50 } : "skip"
   );
 
   const unreadCount = useQuery(
     api.notifications.getUnreadNotificationCount,
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   const markAsRead = useMutation(api.notifications.markNotificationAsRead);
@@ -81,9 +79,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
     if (!notification.read) {
       try {
         await markAsRead({
-          notificationId: notification._id,
-          userId: user!.id,
-        });
+          notificationId: notification._id });
       } catch (error) {
         console.error("Error marking notification as read:", error);
       }
@@ -101,7 +97,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
     if (!user) return;
 
     try {
-      await markAllAsRead({ userId: user.id });
+      await markAllAsRead({});
     } catch (error) {
       console.error("Error marking all as read:", error);
     }
@@ -116,9 +112,7 @@ export function NotificationCenter({ className }: NotificationCenterProps) {
 
     try {
       await deleteNotification({
-        notificationId,
-        userId: user.id,
-      });
+        notificationId });
     } catch (error) {
       console.error("Error deleting notification:", error);
     }

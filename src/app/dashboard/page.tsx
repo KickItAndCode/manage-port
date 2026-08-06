@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback, useMemo } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "../../../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
@@ -53,7 +53,6 @@ import {
   DollarSign,
   Percent,
   TrendingUp,
-  Building2,
   Receipt,
   Calendar,
   Users,
@@ -248,17 +247,18 @@ const DashboardLoadingSkeleton = () => (
 );
 
 export default function DashboardPage() {
+  const { isAuthenticated } = useConvexAuth();
   const { user, isLoaded: isUserLoaded } = useUser();
   const router = useRouter();
   const metrics = useQuery(
     api.dashboard.getDashboardMetrics,
-    user?.id ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   // Get user settings for component visibility
   const userSettings = useQuery(
     api.userSettings.getUserSettings,
-    user?.id ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   // Modal states
@@ -282,7 +282,7 @@ export default function DashboardPage() {
   // Get additional data for forms
   const propertiesResult = useQuery(
     api.properties.getProperties,
-    user?.id ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dashboard
+    isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for dashboard
   );
   const properties =
     propertiesResult && "properties" in propertiesResult
@@ -305,65 +305,6 @@ export default function DashboardPage() {
   );
 
   // Memoize stat cards to prevent recalculation on every render (safe with optional chaining)
-  const statCards = useMemo(
-    () =>
-      metrics
-        ? [
-            {
-              title: "Total Properties",
-              value: metrics.totalProperties,
-              icon: Building2,
-              color: "text-blue-600 dark:text-blue-400",
-              bgColor: "bg-blue-50 dark:bg-blue-950/20",
-              borderColor: "border-blue-200 dark:border-blue-800",
-              trend: "+2 this month",
-              trendPositive: true,
-            },
-            {
-              title: "Monthly Revenue",
-              value: `$${metrics.totalMonthlyRent.toLocaleString()}`,
-              icon: DollarSign,
-              color: "text-green-600 dark:text-green-400",
-              bgColor: "bg-green-50 dark:bg-green-950/20",
-              borderColor: "border-green-200 dark:border-green-800",
-              trend: `+${((metrics.totalMonthlyRent / 10000) * 100).toFixed(1)}%`,
-              trendPositive: true,
-            },
-            {
-              title: "Occupancy Rate",
-              value: `${metrics.occupancyRate.toFixed(1)}%`,
-              icon: Percent,
-              color: "text-purple-600 dark:text-purple-400",
-              bgColor: "bg-purple-50 dark:bg-purple-950/20",
-              borderColor: "border-purple-200 dark:border-purple-800",
-              trend:
-                metrics.occupancyRate >= 90
-                  ? "Excellent"
-                  : metrics.occupancyRate >= 75
-                    ? "Good"
-                    : "Needs attention",
-              trendPositive: metrics.occupancyRate >= 75,
-            },
-            {
-              title: "Security Deposits",
-              value: `$${metrics.totalSecurityDeposits.toLocaleString()}`,
-              icon: Users,
-              color: "text-orange-600 dark:text-orange-400",
-              bgColor: "bg-orange-50 dark:bg-orange-950/20",
-              borderColor: "border-orange-200 dark:border-orange-800",
-              trend: `${metrics.activeLeases} active`,
-              trendPositive: true,
-            },
-          ]
-        : [],
-    [
-      metrics?.totalProperties,
-      metrics?.totalMonthlyRent,
-      metrics?.occupancyRate,
-      metrics?.totalSecurityDeposits,
-      metrics?.activeLeases,
-    ]
-  );
 
   // Memoize chart data (safe with optional chaining)
   const typeData = useMemo(
@@ -525,7 +466,7 @@ export default function DashboardPage() {
             <div className="flex justify-end items-center sm:flex-col sm:items-end gap-2">
               <div className="text-right">
                 <p className="text-xs sm:text-sm text-muted-foreground">
-                  Portfolio Value
+                  Annualised Rent
                 </p>
                 <p className="text-sm sm:text-xl font-semibold text-green-600 dark:text-green-400">
                   ${(metrics.totalMonthlyRent * 12).toLocaleString()}/yr
@@ -992,7 +933,6 @@ export default function DashboardPage() {
                 try {
                   const result = await createPropertyWithUnits({
                     // Basic property info
-                    userId: user.id,
                     name: data.name,
                     address: data.address,
                     type: data.type,
@@ -1010,8 +950,7 @@ export default function DashboardPage() {
 
                     // Utility setup
                     utilityPreset: data.utilityPreset,
-                    customSplit: data.customSplit,
-                  });
+                    customSplit: data.customSplit });
 
                   toast.success(result.message);
                   setWizardModalOpen(false);
@@ -1057,12 +996,10 @@ export default function DashboardPage() {
                 setLoading(true);
                 try {
                   await addLease({
-                    ...data,
-                    userId: user.id,
+                    ...data, 
                     propertyId: data.propertyId as any,
                     unitId: data.unitId ? (data.unitId as any) : undefined,
-                    status: data.status as "active" | "expired" | "pending",
-                  });
+                    status: data.status as "active" | "expired" | "pending" });
                   toast.success("Lease created successfully!");
                   setLeaseModalOpen(false);
                 } catch (err: any) {
@@ -1103,11 +1040,9 @@ export default function DashboardPage() {
               onSubmit={async (data) => {
                 setLoading(true);
                 try {
-                  await addUtilityBill({
-                    userId: user.id,
+                  await addUtilityBill({ 
                     ...data,
-                    propertyId: data.propertyId as any,
-                  });
+                    propertyId: data.propertyId as any });
                   setUtilityBillModalOpen(false);
                 } catch (err: any) {
                   console.error("Add utility bill error:", err);

@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { requireUser, getUserOrNull } from "./lib/auth";
 
 // Create a new folder
 export const createFolder = mutation({
@@ -10,22 +11,21 @@ export const createFolder = mutation({
     icon: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const userId = await requireUser(ctx);
 
     // Build the path based on parent folder
     let path = args.name;
     if (args.parentId) {
       const parent = await ctx.db.get(args.parentId);
       if (!parent) throw new Error("Parent folder not found");
-      if (parent.userId !== identity.subject) throw new Error("Unauthorized");
+      if (parent.userId !== userId) throw new Error("Unauthorized");
       path = `${parent.path}/${args.name}`;
     }
 
     // Check for duplicate folder names at the same level
     const existing = await ctx.db
       .query("documentFolders")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) => 
         q.and(
           q.eq(q.field("name"), args.name),
@@ -49,7 +49,7 @@ export const createFolder = mutation({
     );
 
     return await ctx.db.insert("documentFolders", {
-      userId: identity.subject,
+      userId: userId,
       name: args.name,
       parentId: args.parentId,
       path,
@@ -64,12 +64,12 @@ export const createFolder = mutation({
 // Get all folders for the current user
 export const getFolders = query({
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getUserOrNull(ctx);
+    if (!userId) return [];
 
     const folders = await ctx.db
       .query("documentFolders")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .collect();
 
     return folders;
@@ -82,12 +82,12 @@ export const getFoldersByParent = query({
     parentId: v.optional(v.id("documentFolders")),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    const userId = await getUserOrNull(ctx);
+    if (!userId) return [];
 
     const folders = await ctx.db
       .query("documentFolders")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", userId))
       .filter((q) => q.eq(q.field("parentId"), args.parentId ?? null))
       .collect();
 
@@ -105,12 +105,11 @@ export const updateFolder = mutation({
     order: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const userId = await requireUser(ctx);
 
     const folder = await ctx.db.get(args.id);
     if (!folder) throw new Error("Folder not found");
-    if (folder.userId !== identity.subject) throw new Error("Unauthorized");
+    if (folder.userId !== userId) throw new Error("Unauthorized");
 
     const updates: any = {
       updatedAt: new Date().toISOString(),
@@ -143,12 +142,11 @@ export const deleteFolder = mutation({
     deleteContents: v.boolean(), // If true, delete all documents in folder
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Not authenticated");
+    const userId = await requireUser(ctx);
 
     const folder = await ctx.db.get(args.id);
     if (!folder) throw new Error("Folder not found");
-    if (folder.userId !== identity.subject) throw new Error("Unauthorized");
+    if (folder.userId !== userId) throw new Error("Unauthorized");
 
     // Check if folder has subfolders
     const subfolders = await ctx.db

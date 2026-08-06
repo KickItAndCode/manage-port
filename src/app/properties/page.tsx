@@ -2,14 +2,14 @@
 import { useState, useMemo, useEffect, Suspense } from "react";
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
 import { PropertyForm } from "@/components/PropertyForm";
 import {
   PropertyCreationWizard,
-  type PropertyWizardData,
+  type PropertyWizardData
 } from "@/components/PropertyCreationWizard";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -18,21 +18,23 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from "@/components/ui/dialog";
-import { ImageIcon, Wand2, Trash2, Building } from "lucide-react";
+import { Wand2, Trash2, Building, Download
+} from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
 import {
   ResponsiveTable,
-  BulkActionsToolbar,
+  BulkActionsToolbar
 } from "@/components/ui/responsive-table";
 import {
   createPropertyTableConfig,
   PropertyMobileCard,
-  type Property,
+  type Property
 } from "@/lib/table-configs";
+import { exportCsv } from "@/lib/csv";
 
 function PropertiesContent() {
   const { user } = useUser();
@@ -43,15 +45,12 @@ function PropertiesContent() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 25;
 
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
-    user
-      ? {
-          userId: user.id,
+    isAuthenticated ? { 
           limit: itemsPerPage,
-          offset: (currentPage - 1) * itemsPerPage,
-        }
-      : "skip"
+          offset: (currentPage - 1) * itemsPerPage } : "skip"
   );
 
   // Extract properties and pagination info
@@ -162,7 +161,7 @@ function PropertiesContent() {
         try {
           const results = await Promise.all(
             propertiesToDelete.map((property) =>
-              deleteProperty({ id: property._id as any, userId: user.id })
+              deleteProperty({ id: property._id as any })
             )
           );
           setSelectedProperties([]);
@@ -183,7 +182,7 @@ function PropertiesContent() {
         } finally {
           setLoading(false);
         }
-      },
+      }
     });
   };
 
@@ -198,9 +197,7 @@ function PropertiesContent() {
         setLoading(true);
         try {
           const result = await deleteProperty({
-            id: property._id as any,
-            userId: user.id,
-          });
+            id: property._id as any });
           toast.success(result.message);
         } catch (err: any) {
           console.error("Delete property error:", err);
@@ -208,8 +205,30 @@ function PropertiesContent() {
         } finally {
           setLoading(false);
         }
-      },
+      }
     });
+  };
+
+  // Exports the filtered view, so a search or status filter carries through.
+  const handleExportProperties = () => {
+    if (filtered.length === 0) {
+      toast.error("No properties to export");
+      return;
+    }
+    exportCsv("properties", filtered, [
+      { header: "Name", value: (p: any) => p.name },
+      { header: "Address", value: (p: any) => p.address },
+      { header: "Type", value: (p: any) => p.type },
+      { header: "Status", value: (p: any) => p.status },
+      { header: "Bedrooms", value: (p: any) => p.bedrooms },
+      { header: "Bathrooms", value: (p: any) => p.bathrooms },
+      { header: "Square Feet", value: (p: any) => p.squareFeet },
+      { header: "Monthly Rent", value: (p: any) => (p.monthlyRent ?? 0).toFixed(2) },
+      { header: "Monthly Mortgage", value: (p: any) => (p.monthlyMortgage ?? 0).toFixed(2) },
+      { header: "Monthly CapEx", value: (p: any) => (p.monthlyCapEx ?? 0).toFixed(2) },
+      { header: "Purchase Date", value: (p: any) => p.purchaseDate?.slice(0, 10) ?? "" },
+    ]);
+    toast.success(`Exported ${filtered.length} propert${filtered.length === 1 ? "y" : "ies"}`);
   };
 
   const handleWizardSubmit = async (data: PropertyWizardData) => {
@@ -222,7 +241,6 @@ function PropertiesContent() {
     try {
       const result = await createPropertyWithUnits({
         // Basic property info
-        userId: user.id,
         name: data.name,
         address: data.address,
         type: data.type,
@@ -240,8 +258,7 @@ function PropertiesContent() {
 
         // Utility setup
         utilityPreset: data.utilityPreset,
-        customSplit: data.customSplit,
-      });
+        customSplit: data.customSplit });
 
       toast.success(result.message);
       setWizardOpen(false);
@@ -502,6 +519,16 @@ function PropertiesContent() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold">Properties</h1>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={handleExportProperties}
+            disabled={filtered.length === 0}
+            data-testid="export-properties-btn"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </Button>
           <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2" data-testid="add-property-button">
@@ -612,7 +639,7 @@ function PropertiesContent() {
                   ? {
                       label: "Add Property",
                       onClick: () => setWizardOpen(true),
-                      icon: Wand2,
+                      icon: Wand2
                     }
                   : undefined
               }
@@ -687,7 +714,7 @@ function PropertiesContent() {
             label: "Delete",
             icon: Trash2,
             variant: "destructive",
-            action: handleBulkDelete,
+            action: handleBulkDelete
           },
         ]}
         onClearSelection={() => setSelectedProperties([])}
@@ -714,9 +741,7 @@ function PropertiesContent() {
                 setError(null);
                 await updateProperty({
                   ...data,
-                  id: edit._id,
-                  userId: user.id,
-                });
+                  id: edit._id });
                 setEdit(null);
               } catch (err: any) {
                 setError(

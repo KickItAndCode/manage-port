@@ -22,6 +22,7 @@ import {
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
+import { getLeaseStatus } from "@/lib/lease-status";
 
 interface UtilityResponsibilitySnapshotProps {
   propertyId?: Id<"properties">;
@@ -76,12 +77,12 @@ export function UtilityResponsibilitySnapshot({
   // Get leases - either by property or all leases
   const leasesByProperty = useQuery(
     api.leases.getLeasesByProperty,
-    propertyId ? { propertyId, userId } : "skip"
+    propertyId ? { propertyId } : "skip"
   );
   
   const allLeasesResult = useQuery(
     api.leases.getLeases,
-    (!propertyId && userId) ? { userId, limit: 1000 } : "skip" // Get all leases
+    (!propertyId && userId) ? { limit: 1000 } : "skip" // Get all leases
   );
   // Extract leases array from paginated result
   const allLeases = allLeasesResult?.leases || (Array.isArray(allLeasesResult) ? allLeasesResult : []);
@@ -97,12 +98,12 @@ export function UtilityResponsibilitySnapshot({
   // Get utility settings
   const utilitySettingsByProperty = useQuery(
     api.leaseUtilitySettings.getUtilitySettingsByProperty,
-    propertyId ? { propertyId, userId } : "skip"
+    propertyId ? { propertyId } : "skip"
   );
   
   const utilitySettingsByLease = useQuery(
     api.leaseUtilitySettings.getLeaseUtilities,
-    leaseId ? { leaseId, userId } : "skip"
+    leaseId ? { leaseId } : "skip"
   );
   
   // Use property settings if propertyId provided, otherwise use lease settings
@@ -111,7 +112,7 @@ export function UtilityResponsibilitySnapshot({
   // Get units for property to resolve unit identifiers
   const units = useQuery(
     api.units.getUnitsByProperty,
-    propertyId ? { propertyId, userId } : "skip"
+    propertyId ? { propertyId } : "skip"
   );
 
   const getUtilityIcon = (type: string) => {
@@ -132,7 +133,7 @@ export function UtilityResponsibilitySnapshot({
   const calculateUtilityBreakdowns = (): UtilityBreakdown[] => {
     if (!filteredLeases || !utilitySettings || (propertyId && !units)) return [];
 
-    const activeLeases = filteredLeases.filter(l => l.status === "active");
+    const activeLeases = filteredLeases.filter(l => getLeaseStatus(l.startDate, l.endDate) === "active");
     if (activeLeases.length === 0) return [];
 
     const breakdowns: UtilityBreakdown[] = [];

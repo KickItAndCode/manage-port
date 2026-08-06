@@ -6,12 +6,10 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { 
   Sun, 
-  Snowflake, 
   TrendingUp, 
   TrendingDown,
   Info
 } from "lucide-react";
-import { formatCurrency } from "@/utils/chartUtils";
 
 interface SeasonalPattern {
   indices: Array<{ month: number; index: number; average: number }>;

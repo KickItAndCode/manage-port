@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { useQuery } from "convex/react";
+import { useQuery, useConvexAuth } from "convex/react";
 import { api } from "@/../convex/_generated/api";
 import { Id } from "@/../convex/_generated/dataModel";
 import {
@@ -9,19 +9,15 @@ import {
   CardContent,
   CardHeader,
   CardTitle,
-  CardDescription,
+  CardDescription
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import {
   AlertTriangle,
-  TrendingUp,
-  TrendingDown,
   ArrowRight,
-  Receipt,
-  Building,
-  CheckCircle,
+  CheckCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
@@ -42,16 +38,17 @@ interface UtilityAnomaliesProps {
  * Displays detected utility bill spikes and anomalies
  */
 export const UtilityAnomalies = memo(function UtilityAnomalies({
-  userId,
+  
   propertyId,
   compact = false,
-  maxItems = 5,
+  maxItems = 5
 }: UtilityAnomaliesProps) {
   const router = useRouter();
 
+  const { isAuthenticated } = useConvexAuth();
   const insights = useQuery(
     api.utilityInsights.getUtilityInsights,
-    userId ? { userId, propertyId } : "skip"
+    isAuthenticated ? { propertyId } : "skip"
   );
 
   if (!insights) {
@@ -68,6 +65,9 @@ export const UtilityAnomalies = memo(function UtilityAnomalies({
 
   const anomalies = insights.anomalies.slice(0, maxItems);
   const hasAnomalies = anomalies.length > 0;
+  // A green "all normal" on an account with no bills is a false reassurance.
+  const billsAnalyzed = insights.billsAnalyzed ?? 0;
+  const hasEnoughData = billsAnalyzed >= 3;
 
   if (!hasAnomalies) {
     return (
@@ -81,14 +81,32 @@ export const UtilityAnomalies = memo(function UtilityAnomalies({
           </CardTitle>
           {!compact && (
             <CardDescription>
-              No unusual spikes detected in utility bills
+              {hasEnoughData
+                ? "No unusual spikes detected in utility bills"
+                : "Not enough history to detect anomalies yet"}
             </CardDescription>
           )}
         </CardHeader>
         <CardContent>
           <div className="text-center py-4 text-muted-foreground text-sm">
-            <CheckCircle className="h-8 w-8 mx-auto mb-2 text-success opacity-50" />
-            <p>All utility bills are within normal ranges</p>
+            {hasEnoughData ? (
+              <>
+                <CheckCircle className="h-8 w-8 mx-auto mb-2 text-success opacity-50" />
+                <p>All utility bills are within normal ranges</p>
+              </>
+            ) : (
+              <>
+                <AlertTriangle className="h-8 w-8 mx-auto mb-2 opacity-40" />
+                <p>
+                  {billsAnalyzed === 0
+                    ? "No utility bills recorded yet."
+                    : `Only ${billsAnalyzed} bill${billsAnalyzed === 1 ? "" : "s"} recorded.`}{" "}
+                  Spike detection compares each bill against the same utility in
+                  earlier months, so it needs a few months of history before it
+                  can say anything.
+                </p>
+              </>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -130,13 +148,13 @@ export const UtilityAnomalies = memo(function UtilityAnomalies({
           const severityColors = {
             high: "border-destructive bg-destructive/5",
             medium: "border-orange-500 bg-orange-50 dark:bg-orange-950/20",
-            low: "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20",
+            low: "border-yellow-500 bg-yellow-50 dark:bg-yellow-950/20"
           };
 
           const severityBadges = {
             high: "destructive",
             medium: "default",
-            low: "secondary",
+            low: "secondary"
           };
 
           return (

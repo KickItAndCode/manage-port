@@ -68,13 +68,11 @@ export function DocumentFileReplace({
       
       // Update document with new file
       await updateDocument({
-        id: documentId as any,
-        userId: user.id,
+        id: documentId as any, 
         url: storageId, // Replace the old storage ID
         name: file.name, // Update the name to the new file name
         fileSize: file.size,
-        mimeType: file.type,
-      });
+        mimeType: file.type });
 
       setNewFile({ name: file.name, storageId });
       onFileReplaced?.(storageId);

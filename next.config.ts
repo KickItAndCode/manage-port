@@ -5,12 +5,6 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   
-  // ESLint configuration for production builds
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
   
   // Image optimization
   images: {
@@ -38,12 +32,14 @@ const nextConfig: NextConfig = {
   experimental: {
     optimizeCss: true,
     optimizePackageImports: ['@/components/ui', 'lucide-react'],
-    turbo: {
-      rules: {
-        '*.svg': {
-          loaders: ['@svgr/webpack'],
-          as: '*.js',
-        },
+  },
+
+  // `experimental.turbo` is deprecated; Turbopack is stable and configured here.
+  turbopack: {
+    rules: {
+      '*.svg': {
+        loaders: ['@svgr/webpack'],
+        as: '*.js',
       },
     },
   },
@@ -80,33 +76,10 @@ const nextConfig: NextConfig = {
     ];
   },
 
-  // Webpack optimizations
-  webpack: (config, { dev, isServer }) => {
-    // Production optimizations
-    if (!dev && !isServer) {
-      config.optimization = {
-        ...config.optimization,
-        splitChunks: {
-          chunks: 'all',
-          cacheGroups: {
-            vendor: {
-              test: /[\\/]node_modules[\\/]/,
-              name: 'vendors',
-              chunks: 'all',
-            },
-            common: {
-              name: 'common',
-              minChunks: 2,
-              chunks: 'all',
-              enforce: true,
-            },
-          },
-        },
-      };
-    }
-
-    return config;
-  },
+  // No custom splitChunks. The previous config used a single `common` group
+  // with minChunks: 2 and enforce: true, which collapsed every module shared by
+  // two or more routes into one chunk loaded on every page — 375 kB of the
+  // 599 kB First Load JS. Next's own chunking is per-route and granular.
 };
 
 export default nextConfig;

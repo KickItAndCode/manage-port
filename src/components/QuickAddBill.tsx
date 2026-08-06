@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery, useConvexAuth } from "convex/react";
 import { useUser } from "@clerk/nextjs";
 import { api } from "@/../convex/_generated/api";
 import { Id } from "@/../convex/_generated/dataModel";
@@ -25,9 +25,10 @@ interface QuickAddBillProps {
 export function QuickAddBill({ defaultPropertyId, onSuccess }: QuickAddBillProps) {
   const { user } = useUser();
   const addBill = useMutation(api.utilityBills.addUtilityBill);
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
   const properties = propertiesResult && "properties" in propertiesResult
     ? propertiesResult.properties
@@ -54,16 +55,14 @@ export function QuickAddBill({ defaultPropertyId, onSuccess }: QuickAddBillProps
       monthDate.setMonth(monthDate.getMonth() + 1);
       const dueDate = `${monthDate.toISOString().slice(0, 7)}-15`;
 
-      await addBill({
-        userId: user.id,
+      await addBill({ 
         propertyId: propertyId as Id<"properties">,
         utilityType,
         provider: utilityType, // Default provider to utility type for quick add
         totalAmount: parseFloat(amount),
         billMonth,
         billDate,
-        dueDate,
-      });
+        dueDate });
 
       toast.success(`${utilityType} bill added — $${parseFloat(amount).toFixed(2)}`);
 

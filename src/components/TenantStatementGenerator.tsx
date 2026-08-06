@@ -24,10 +24,9 @@ import {
 
 interface TenantStatementGeneratorProps {
   propertyId: Id<"properties">;
-  userId: string;
 }
 
-export function TenantStatementGenerator({ propertyId, userId }: TenantStatementGeneratorProps) {
+export function TenantStatementGenerator({ propertyId }: TenantStatementGeneratorProps) {
   const [selectedLeaseId, setSelectedLeaseId] = useState<string>("");
   const [startDate, setStartDate] = useState(() => {
     const date = new Date();
@@ -42,25 +41,19 @@ export function TenantStatementGenerator({ propertyId, userId }: TenantStatement
 
   // Get property data
   const property = useQuery(api.properties.getProperty, {
-    id: propertyId,
-    userId,
-  });
+    id: propertyId });
 
   // Get leases for the property
   const leases = useQuery(api.leases.getLeasesByProperty, {
-    propertyId,
-    userId,
-  });
+    propertyId });
 
   // Get stored charges and payments for the selected lease + date range
   const statementCharges = useQuery(
     api.utilityCharges.getChargesForStatement,
     selectedLeaseId ? {
       leaseId: selectedLeaseId as Id<"leases">,
-      userId,
       startMonth: startDate,
-      endMonth: endDate,
-    } : "skip"
+      endMonth: endDate } : "skip"
   );
 
   const getUtilityIcon = (type: string) => {

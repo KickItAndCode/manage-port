@@ -1,32 +1,21 @@
 /**
  * Lease Status Computation Utilities
- * 
+ *
  * These utilities provide computed lease status based on dates,
  * eliminating the need for manual status management.
+ *
+ * getLeaseStatus itself lives in convex/lib/leaseStatus.ts and is re-exported
+ * here. The backend derives status with the same function, so what the UI shows
+ * and what billing acts on cannot drift apart. Everything below is
+ * presentation-only and stays client-side.
  */
 
-export type LeaseStatus = "active" | "expired" | "pending";
+export { getLeaseStatus } from "@/../convex/lib/leaseStatus";
+export type { LeaseStatus } from "@/../convex/lib/leaseStatus";
 
-/**
- * Compute lease status based on start and end dates
- * @param startDate - ISO date string for lease start
- * @param endDate - ISO date string for lease end
- * @returns Computed lease status
- */
-export function getLeaseStatus(startDate: string, endDate: string): LeaseStatus {
-  const now = new Date();
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  
-  // Clear time components for date-only comparison
-  now.setHours(0, 0, 0, 0);
-  start.setHours(0, 0, 0, 0);
-  end.setHours(0, 0, 0, 0);
-  
-  if (start > now) return "pending";
-  if (end < now) return "expired";
-  return "active";
-}
+import { getLeaseStatus } from "@/../convex/lib/leaseStatus";
+import type { LeaseStatus } from "@/../convex/lib/leaseStatus";
+import { daysUntil } from "@/utils/utilityBillHelpers";
 
 /**
  * Check if a lease has conflicts with other leases
@@ -87,15 +76,12 @@ export function getLeaseStatusWithConflicts(
  * @returns Number of days until expiry (negative if already expired)
  */
 export function getDaysUntilExpiry(endDate: string): number {
-  const end = new Date(endDate);
-  const today = new Date();
-  
-  // Clear time components for date-only comparison
-  end.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-  
-  const diff = Math.floor((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  return diff;
+  // Was: new Date(endDate) followed by setHours(0,0,0,0). The constructor reads
+  // a YYYY-MM-DD string as UTC midnight and setHours then moves it to *local*
+  // midnight, landing on the previous day anywhere west of Greenwich. The
+  // result was off by one for most of the day, and the error only showed up
+  // once the local clock crossed into a different UTC date.
+  return daysUntil(endDate);
 }
 
 /**
@@ -152,14 +138,20 @@ export function sortLeasesByStatus<T extends { startDate: string; endDate: strin
     const priorityDiff = statusPriority[statusA] - statusPriority[statusB];
     
     if (priorityDiff !== 0) return priorityDiff;
-    
-    // Within same status, sort by relevant date
-    if (statusA === "active" || statusA === "expired") {
-      // Sort by end date (soonest first for active, most recent first for expired)
-      return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
-    } else {
-      // Sort pending by start date (soonest first)
-      return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+
+    // Within the same status, sort by the date that matters for that status.
+    // Dates are YYYY-MM-DD, so string comparison orders them correctly and
+    // avoids the timezone shifts that Date parsing introduces.
+    if (statusA === "active") {
+      // Soonest expiry first — those are the ones needing attention.
+      return a.endDate.localeCompare(b.endDate);
     }
+    if (statusA === "expired") {
+      // Most recently expired first; a lease that lapsed years ago is the
+      // least interesting thing on the list.
+      return b.endDate.localeCompare(a.endDate);
+    }
+    // Pending: soonest to start first.
+    return a.startDate.localeCompare(b.startDate);
   });
 }

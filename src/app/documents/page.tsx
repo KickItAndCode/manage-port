@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useDebounce } from "@/utils/clientSideFilters";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
@@ -366,7 +366,6 @@ export default function DocumentsPage() {
     if (!user) return "skip";
 
     return {
-      userId: user.id,
       search:
         debouncedSearch && debouncedSearch.trim()
           ? debouncedSearch.trim()
@@ -460,9 +459,10 @@ export default function DocumentsPage() {
     };
   }, []);
 
+  const { isAuthenticated } = useConvexAuth();
   const propertiesResult = useQuery(
     api.properties.getProperties,
-    user ? { userId: user.id, limit: 1000 } : "skip" // Get all properties for dropdown
+    isAuthenticated ? { limit: 1000 } : "skip" // Get all properties for dropdown
   );
   // Extract properties array from paginated result
   const properties =
@@ -472,12 +472,12 @@ export default function DocumentsPage() {
 
   const expiringDocs = useQuery(
     api.documents.getExpiringDocuments,
-    user ? { userId: user.id, daysAhead: 30 } : "skip"
+    isAuthenticated ? {  daysAhead: 30 } : "skip"
   );
 
   const docStats = useQuery(
     api.documents.getDocumentStats,
-    user ? { userId: user.id } : "skip"
+    isAuthenticated ? {} : "skip"
   );
 
   // Mutations
@@ -522,9 +522,7 @@ export default function DocumentsPage() {
       onConfirm: async () => {
         try {
           const result = await bulkDeleteDocuments({
-            documentIds: Array.from(selectedDocuments) as any,
-            userId: user.id,
-          });
+            documentIds: Array.from(selectedDocuments) as any });
 
           toast.success(
             `Successfully deleted ${result.success} document${result.success !== 1 ? "s" : ""}`,
@@ -555,12 +553,10 @@ export default function DocumentsPage() {
 
     try {
       const result = await bulkUpdateTags({
-        documentIds: Array.from(selectedDocuments) as any,
-        userId: user.id,
+        documentIds: Array.from(selectedDocuments) as any, 
         tagsToAdd: bulkTagsToAdd.length > 0 ? bulkTagsToAdd : undefined,
         tagsToRemove:
-          bulkTagsToRemove.length > 0 ? bulkTagsToRemove : undefined,
-      });
+          bulkTagsToRemove.length > 0 ? bulkTagsToRemove : undefined });
 
       toast.success(
         `Successfully updated tags for ${result.success} document${result.success !== 1 ? "s" : ""}`,
@@ -583,7 +579,10 @@ export default function DocumentsPage() {
   };
 
   const formatFileSize = (bytes?: number) => {
-    if (!bytes) return "Unknown size";
+    // 0 is a real size. Treating it as falsy reported "Unknown size" for every
+    // document whose byte count was genuinely recorded as zero.
+    if (bytes == null) return "Unknown size";
+    if (bytes === 0) return "0 B";
     const units = ["B", "KB", "MB", "GB"];
     let size = bytes;
     let unitIndex = 0;
@@ -1086,9 +1085,7 @@ export default function DocumentsPage() {
                                     onConfirm: async () => {
                                       try {
                                         await deleteDocument({
-                                          id: doc._id,
-                                          userId: user.id,
-                                        });
+                                          id: doc._id });
                                       } catch (err: any) {
                                         console.error(
                                           "Delete document error:",

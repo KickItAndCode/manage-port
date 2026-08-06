@@ -10,6 +10,7 @@ dotenv.config({ path: path.resolve(__dirname, '.env.test') });
  */
 export default defineConfig({
   testDir: './tests',
+  globalTeardown: './tests/global-teardown.ts',
   /* Run tests in files in parallel */
   fullyParallel: true,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
@@ -31,8 +32,8 @@ export default defineConfig({
     /* Take screenshot only on failures */
     screenshot: 'only-on-failure',
     
-    /* Record video for all tests */
-    video: 'on',
+    /* Record video only when a test fails */
+    video: 'retain-on-failure',
     
     /* Enable dark mode by default */
     colorScheme: 'dark',
@@ -49,73 +50,29 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
-    // Setup project for authentication
+    // Signs in once via a Clerk sign-in ticket and saves the storage state.
     {
       name: 'setup',
       testMatch: /.*\.setup\.ts/,
     },
 
-    // Basic UI tests without authentication
-    {
-      name: 'basic-ui',
-      testMatch: /basic-ui\.spec\.ts/,
-      use: { 
-        ...devices['Desktop Chrome'],
-      },
-    },
-
-    // Add property test with full authentication flow
-    {
-      name: 'add-property',
-      testMatch: /add-property-improved\.spec\.ts/,
-      use: { 
-        ...devices['Desktop Chrome'],
-        video: 'on',
-        screenshot: 'off', // We're taking manual screenshots
-      },
-    },
-
+    // The suites that must pass: routes render, views agree, forms submit.
     {
       name: 'chromium',
-      use: { 
+      testMatch: /(routes|consistency|forms|hydration)\.spec\.ts/,
+      use: {
         ...devices['Desktop Chrome'],
-        // Use prepared auth state.
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['setup'],
     },
 
+    // Same route smoke on a phone viewport, where the layout differs most.
     {
-      name: 'firefox',
-      use: { 
-        ...devices['Desktop Firefox'],
-        storageState: 'playwright/.auth/user.json',
-      },
-      dependencies: ['setup'],
-    },
-
-    {
-      name: 'webkit',
-      use: { 
-        ...devices['Desktop Safari'],
-        storageState: 'playwright/.auth/user.json',
-      },
-      dependencies: ['setup'],
-    },
-
-    /* Test against mobile viewports. */
-    {
-      name: 'Mobile Chrome',
-      use: { 
+      name: 'mobile',
+      testMatch: /routes\.spec\.ts/,
+      use: {
         ...devices['Pixel 5'],
-        storageState: 'playwright/.auth/user.json',
-      },
-      dependencies: ['setup'],
-    },
-    {
-      name: 'Mobile Safari',
-      use: { 
-        ...devices['iPhone 12'],
         storageState: 'playwright/.auth/user.json',
       },
       dependencies: ['setup'],

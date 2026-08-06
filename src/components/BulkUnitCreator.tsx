@@ -4,9 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Plus, Trash2, Copy } from "lucide-react";
-import { Id } from "@/../convex/_generated/dataModel";
 
 interface BulkUnit {
   id: string;
@@ -17,7 +15,6 @@ interface BulkUnit {
 }
 
 interface BulkUnitCreatorProps {
-  propertyId: Id<"properties">;
   onSubmit: (units: Omit<BulkUnit, "id">[]) => Promise<void>;
   onCancel?: () => void;
   loading?: boolean;
@@ -44,10 +41,10 @@ const TEMPLATES = {
     { unitIdentifier: "Apt 102", bedrooms: 1, bathrooms: 1, squareFeet: 650 },
     { unitIdentifier: "Apt 201", bedrooms: 2, bathrooms: 1, squareFeet: 850 },
     { unitIdentifier: "Apt 202", bedrooms: 2, bathrooms: 1, squareFeet: 850 },
-  ],
+  ]
 };
 
-export function BulkUnitCreator({ propertyId, onSubmit, onCancel, loading }: BulkUnitCreatorProps) {
+export function BulkUnitCreator({ onSubmit, onCancel, loading }: BulkUnitCreatorProps) {
   const [units, setUnits] = useState<BulkUnit[]>([
     { id: "1", unitIdentifier: "", bedrooms: undefined, bathrooms: undefined, squareFeet: undefined }
   ]);
@@ -56,7 +53,7 @@ export function BulkUnitCreator({ propertyId, onSubmit, onCancel, loading }: Bul
   const handleTemplateSelect = (template: keyof typeof TEMPLATES) => {
     const templateUnits = TEMPLATES[template].map((unit, index) => ({
       ...unit,
-      id: String(index + 1),
+      id: String(index + 1)
     }));
     setUnits(templateUnits);
     setErrors({});
@@ -119,7 +116,7 @@ export function BulkUnitCreator({ propertyId, onSubmit, onCancel, loading }: Bul
       unitIdentifier: unit.unitIdentifier.trim(),
       bedrooms: unit.bedrooms,
       bathrooms: unit.bathrooms,
-      squareFeet: unit.squareFeet,
+      squareFeet: unit.squareFeet
     }));
 
     await onSubmit(unitsData);
