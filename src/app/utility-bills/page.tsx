@@ -353,9 +353,16 @@ function UtilityBillsContent() {
   const { properties, leases, utilityTypes } = useUtilityBillFilterOptions(filters.propertyId);
   
   // Dialog states
-  const [billDialogOpen, setBillDialogOpen] = useState(false);
+  // Seeded from ?action= so another page can link straight to an action.
+  // Outstanding Balances used to tell the landlord to "navigate to Bills &
+  // Payments > History tab" — a tab that does not exist.
+  const [billDialogOpen, setBillDialogOpen] = useState(
+    () => searchParams?.get("action") === "add"
+  );
   const [bulkDialogOpen, setBulkDialogOpen] = useState(false);
-  const [statementDialogOpen, setStatementDialogOpen] = useState(false);
+  const [statementDialogOpen, setStatementDialogOpen] = useState(
+    () => searchParams?.get("action") === "statement"
+  );
   const [selectedBill, setSelectedBill] = useState<any>(null);
   const [viewingBill, setViewingBill] = useState<any>(null);
   const [selectedUtilityBills, setSelectedUtilityBills] = useState<Doc<"utilityBills">[]>([]);
@@ -365,29 +372,29 @@ function UtilityBillsContent() {
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
   /**
-   * Opens a dialog named in the URL, so other pages can link straight to an
-   * action instead of describing where to find it. Outstanding Balances used
-   * to tell the landlord to "navigate to Bills & Payments > History tab" — a
-   * tab that does not exist.
+   * Removes `action` from the URL once its dialog has been dismissed.
    *
-   * The parameter is cleared once consumed, otherwise reopening the dialog by
-   * hand would be impossible after closing it and back/refresh would reopen it.
+   * Deliberately not done when the dialog opens. This component reads
+   * useSearchParams behind a Suspense boundary and remounts when that
+   * boundary resolves, so state set from an effect on the first mount is
+   * discarded — the dialog opened and then vanished. Leaving the parameter in
+   * place lets the reopened mount derive the same state, and clearing it on
+   * close stops a refresh or a back navigation reopening the dialog.
+   *
+   * Uses history rather than router.replace so cleanup does not itself force
+   * the remount this works around. Only `action` is dropped; ?tab= survives.
    */
-  useEffect(() => {
-    const action = searchParams?.get("action");
-    if (!action) return;
-
-    if (action === "statement") setStatementDialogOpen(true);
-    if (action === "add") setBillDialogOpen(true);
-
-    // Drop only `action`; ?tab= and anything else on the URL must survive.
-    const remaining = new URLSearchParams(searchParams?.toString() ?? "");
+  const clearActionParam = useCallback(() => {
+    if (!searchParams?.get("action")) return;
+    const remaining = new URLSearchParams(searchParams.toString());
     remaining.delete("action");
     const query = remaining.toString();
-    router.replace(query ? `/utility-bills?${query}` : "/utility-bills", {
-      scroll: false,
-    });
-  }, [searchParams, router]);
+    window.history.replaceState(
+      null,
+      "",
+      query ? `/utility-bills?${query}` : "/utility-bills"
+    );
+  }, [searchParams]);
 
   // Mutations
   const addBill = useMutation(api.utilityBills.addUtilityBill);
@@ -996,7 +1003,10 @@ function UtilityBillsContent() {
       {/* Add/Edit Bill Dialog */}
       <Dialog open={billDialogOpen} onOpenChange={(open) => {
         setBillDialogOpen(open);
-        if (!open) setSelectedBill(null);
+        if (!open) {
+          setSelectedBill(null);
+          clearActionParam();
+        }
       }}>
         <DialogContent className="w-[95vw] max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -1106,7 +1116,13 @@ function UtilityBillsContent() {
       </Dialog>
 
       {/* Tenant Statement Generator Dialog */}
-      <Dialog open={statementDialogOpen} onOpenChange={setStatementDialogOpen}>
+      <Dialog
+        open={statementDialogOpen}
+        onOpenChange={(open) => {
+          setStatementDialogOpen(open);
+          if (!open) clearActionParam();
+        }}
+      >
         <DialogContent className="w-[95vw] max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-lg md:text-xl">Generate Tenant Statement</DialogTitle>

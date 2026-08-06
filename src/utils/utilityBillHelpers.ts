@@ -35,6 +35,19 @@ export const toLocalDate = (dateString: string): Date => {
   return new Date(dateString);
 };
 
+/**
+ * Formats a Date as the YYYY-MM-DD calendar day it represents locally.
+ *
+ * The inverse of `toLocalDate`, and the reason it exists: `toISOString()`
+ * converts to UTC first, so local midnight on the 1st serialises as the
+ * previous month's last day anywhere east of Greenwich.
+ */
+export const formatLocalDate = (date: Date): string => {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+};
+
 // Helper function to format bill month (YYYY-MM) to readable format
 export const formatBillMonth = (billMonth: string): string => {
   const [year, month] = billMonth.split('-');
@@ -82,7 +95,7 @@ export const daysUntil = (dateString: string): number => {
 // Helper function to calculate days until due
 export const getDaysUntilDue = (dueDate: string): number => daysUntil(dueDate);
 
-export type PaymentStatus = 'paid' | 'overdue' | 'due_soon' | 'current';
+export type PaymentStatus = 'paid' | 'overdue' | 'due_soon' | 'current' | 'unknown';
 
 /** The fields a bill must carry to have a payment status. */
 export interface BillPaymentFields {
@@ -104,9 +117,16 @@ export const getPaymentStatus = (bill: BillPaymentFields): {
   if (bill.landlordPaidUtilityCompany) {
     return { status: 'paid', label: 'Paid', color: 'green' };
   }
-  
+
   const daysUntilDue = getDaysUntilDue(bill.dueDate);
-  
+
+  // A bill can be saved with no due date, and an unparseable one yields NaN,
+  // which fails every comparison below and would fall through to "Current" —
+  // reassuring the landlord about a record that cannot be judged at all.
+  if (!Number.isFinite(daysUntilDue)) {
+    return { status: 'unknown', label: 'No due date', color: 'gray' };
+  }
+
   if (daysUntilDue < 0) {
     return { status: 'overdue', label: 'Overdue', color: 'red' };
   } else if (daysUntilDue <= 7) {
@@ -125,6 +145,9 @@ export const getPaymentStatus = (bill: BillPaymentFields): {
  */
 export const describeDueDate = (dueDate: string): string => {
   const days = daysUntil(dueDate);
+  // An unparseable date makes every branch below produce "NaN", so say nothing
+  // and let the status badge report that the due date is missing.
+  if (!Number.isFinite(days)) return '';
   if (days === 0) return 'due today';
   if (days === 1) return 'due tomorrow';
   if (days === -1) return '1 day overdue';

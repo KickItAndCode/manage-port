@@ -3,6 +3,7 @@ import type { Doc } from "@/../convex/_generated/dataModel";
 import {
   daysUntil,
   describeDueDate,
+  formatLocalDate,
   getPaymentStatus,
   toLocalDate,
 } from "./utilityBillHelpers";
@@ -76,6 +77,29 @@ describe("getPaymentStatus", () => {
   });
 });
 
+describe("getPaymentStatus with an unusable due date", () => {
+  // UtilityBillForm defaults dueDate to "" and never validates it, so bills
+  // with no due date exist. Reporting those as "Current" tells a landlord
+  // everything is fine about a record that cannot be judged at all.
+  it("does not claim a bill with no due date is current", () => {
+    const status = getPaymentStatus(bill({ dueDate: "" }));
+    expect(status.status).toBe("unknown");
+    expect(status.label).toBe("No due date");
+  });
+
+  it("does not claim a bill with a malformed due date is current", () => {
+    expect(getPaymentStatus(bill({ dueDate: "not-a-date" })).status).toBe("unknown");
+  });
+
+  it("still reports paid when the bill is settled but undated", () => {
+    // Paid is knowable without a due date, so it should still win.
+    const status = getPaymentStatus(
+      bill({ dueDate: "", landlordPaidUtilityCompany: true })
+    );
+    expect(status.status).toBe("paid");
+  });
+});
+
 describe("daysUntil", () => {
   it("counts calendar days, not elapsed hours", () => {
     expect(daysUntil(dayOffset(0))).toBe(0);
@@ -115,6 +139,13 @@ describe("describeDueDate", () => {
   it("switches to years beyond twelve months", () => {
     expect(describeDueDate(dayOffset(-550))).toBe("1.5 years overdue");
   });
+
+  it("says nothing rather than 'NaN years' for an unusable date", () => {
+    // Arithmetic on an unparseable date yields NaN, which formats as
+    // "due in NaN years" — worse than no line at all.
+    expect(describeDueDate("")).toBe("");
+    expect(describeDueDate("not-a-date")).toBe("");
+  });
 });
 
 describe("toLocalDate", () => {
@@ -123,5 +154,23 @@ describe("toLocalDate", () => {
     expect(d.getFullYear()).toBe(2026);
     expect(d.getMonth()).toBe(7);
     expect(d.getDate()).toBe(6);
+  });
+});
+
+describe("formatLocalDate", () => {
+  it("writes the local calendar day, not the UTC one", () => {
+    // toISOString() on local midnight yields the previous day east of
+    // Greenwich, which put the default bill date in the wrong month.
+    expect(formatLocalDate(new Date(2026, 7, 1))).toBe("2026-08-01");
+    expect(formatLocalDate(new Date(2026, 0, 1))).toBe("2026-01-01");
+  });
+
+  it("zero-pads month and day", () => {
+    expect(formatLocalDate(new Date(2026, 8, 5))).toBe("2026-09-05");
+  });
+
+  it("round-trips through toLocalDate", () => {
+    const original = "2026-12-31";
+    expect(formatLocalDate(toLocalDate(original))).toBe(original);
   });
 });

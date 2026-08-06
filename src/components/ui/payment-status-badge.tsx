@@ -1,4 +1,4 @@
-import { AlertCircle, AlertTriangle, CheckCircle, Clock } from "lucide-react";
+import { AlertCircle, AlertTriangle, CheckCircle, Clock, HelpCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import {
@@ -38,6 +38,13 @@ const STYLES: Record<PaymentStatus, { icon: typeof CheckCircle; className: strin
     icon: Clock,
     className:
       "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+  },
+  // Not an error state but not a clean one either: the record is incomplete,
+  // and saying so invites a fix rather than hiding it behind "Current".
+  unknown: {
+    icon: HelpCircle,
+    className:
+      "bg-slate-100 text-slate-600 border-dashed border-slate-300 dark:bg-slate-900 dark:text-slate-400 dark:border-slate-600",
   },
 };
 

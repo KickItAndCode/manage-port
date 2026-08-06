@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -7,6 +7,7 @@ import { SelectNative } from "@/components/ui/select-native";
 import { FormField } from "@/components/ui/form-field";
 import { Textarea } from "@/components/ui/textarea";
 import { Id } from "@/../convex/_generated/dataModel";
+import { formatLocalDate } from "@/utils/utilityBillHelpers";
 import { DollarSign, AlertCircle, Home, Upload, X, CheckCircle, FileText, Sparkles, Calendar, Calculator, HelpCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -122,25 +123,29 @@ export function UtilityBillForm({
   const seedUtilityBills = useMutation(api.utilityBills.seedUtilityBills);
   const [seeding, setSeeding] = useState(false);
 
-  // Set default dates if not editing
-  useState(() => {
-    if (!initial) {
-      const today = new Date();
-      
-      // Use defaultMonth if provided, otherwise current month
-      const targetMonth = defaultMonth || today.toISOString().slice(0, 7);
-      setBillMonth(targetMonth);
-      
-      // Set bill date to beginning of the month (simplified default)
-      const [year, month] = targetMonth.split('-');
-      const firstOfMonth = new Date(parseInt(year), parseInt(month) - 1, 1);
-      setBillDate(firstOfMonth.toISOString().split('T')[0]);
-      
-      // Default due date to 15th of next month
-      const nextMonth = new Date(parseInt(year), parseInt(month), 15);
-      setDueDate(nextMonth.toISOString().split('T')[0]);
-    }
-  });
+  /**
+   * Seeds sensible dates for a new bill, which the user can then correct.
+   *
+   * Two things were wrong here. It ran inside `useState(() => ...)`, which is
+   * an initialiser rather than an effect — setting state from it is a write
+   * during render, and StrictMode invokes it twice. And it formatted local
+   * Date objects with toISOString(), which converts to UTC: local midnight on
+   * the 1st is the previous day in UTC anywhere east of Greenwich, so the
+   * default bill date landed in the wrong month.
+   */
+  useEffect(() => {
+    if (initial) return;
+
+    const today = new Date();
+    const targetMonth = defaultMonth || formatLocalDate(today).slice(0, 7);
+    setBillMonth(targetMonth);
+
+    const [year, month] = targetMonth.split('-').map(Number);
+    setBillDate(formatLocalDate(new Date(year, month - 1, 1)));
+    setDueDate(formatLocalDate(new Date(year, month, 15)));
+    // Seeded once for a new bill; later edits belong to the user.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const validate = () => {
     const newErrors: Record<string, string> = {};
@@ -167,6 +172,19 @@ export function UtilityBillForm({
       newErrors.totalAmount = "Bill amount must be greater than $0.00";
     } else if (Number(totalAmount) > 10000) {
       newErrors.totalAmount = "Bill amount seems unusually high. Please verify the amount.";
+    }
+
+    // The due date drives whether a bill reads as overdue, so a missing one is
+    // not a cosmetic gap — it leaves the bill unjudgeable and it was silently
+    // accepted. Compared as YYYY-MM-DD strings, since these are calendar days.
+    if (!billDate) {
+      newErrors.billDate = "Please enter the date on the bill";
+    }
+
+    if (!dueDate) {
+      newErrors.dueDate = "Please enter the date this bill is due";
+    } else if (billDate && dueDate < billDate) {
+      newErrors.dueDate = "The due date cannot be before the bill date";
     }
 
     setErrors(newErrors);
@@ -450,6 +468,48 @@ export function UtilityBillForm({
           {errors.billMonth && (
             <p className="text-sm text-destructive mt-1">{errors.billMonth}</p>
           )}
+        </div>
+
+        {/*
+          Bill and due dates. Both were previously derived from the bill month
+          and never shown — every bill got a due date of the 15th of the
+          following month whatever the real one was, and that date is what
+          decides whether a bill reads as overdue.
+        */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <FormField
+            label="Bill Date"
+            required
+            error={errors.billDate}
+            description="The date printed on the bill"
+          >
+            <Input
+              id="billDate"
+              type="date"
+              value={billDate}
+              onChange={(e) => setBillDate(e.target.value)}
+              disabled={loading}
+              className={errors.billDate ? "border-destructive" : ""}
+              data-testid="bill-date-input"
+            />
+          </FormField>
+
+          <FormField
+            label="Due Date"
+            required
+            error={errors.dueDate}
+            description="When payment is due to the utility company"
+          >
+            <Input
+              id="dueDate"
+              type="date"
+              value={dueDate}
+              onChange={(e) => setDueDate(e.target.value)}
+              disabled={loading}
+              className={errors.dueDate ? "border-destructive" : ""}
+              data-testid="due-date-input"
+            />
+          </FormField>
         </div>
 
         {/* Billing Period */}
