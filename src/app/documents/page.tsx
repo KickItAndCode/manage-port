@@ -366,7 +366,6 @@ export default function DocumentsPage() {
     if (!user) return "skip";
 
     return {
-      userId: user.id,
       search:
         debouncedSearch && debouncedSearch.trim()
           ? debouncedSearch.trim()

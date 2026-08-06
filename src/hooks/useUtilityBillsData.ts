@@ -1,5 +1,4 @@
 import { useMemo, useReducer, useCallback } from 'react';
-import { useUser } from '@clerk/nextjs';
 import { useQuery, useConvexAuth } from 'convex/react';
 import { api } from '@/../convex/_generated/api';
 import { Id } from '@/../convex/_generated/dataModel';
@@ -22,8 +21,6 @@ import {
 export function useUtilityBillsData(
   initialFilters?: Partial<UtilityBillFilters>
 ): UseUtilityBillsDataReturn {
-  const { user } = useUser();
-  
   // Initialize filter state with any provided initial filters
   const [filterState, dispatch] = useReducer(utilityBillFilterReducer, {
     ...initialFilterState,
@@ -42,13 +39,10 @@ export function useUtilityBillsData(
   // Extract query parameters from filters
   const queryParams = useMemo(() => {
     const params: {
-      userId: string;
       propertyId?: Id<"properties">;
       startMonth?: string;
       endMonth?: string;
-    } = {
-      userId: user?.id || '',
-    };
+    } = {};
 
     if (debouncedFilters.propertyId) {
       params.propertyId = debouncedFilters.propertyId;
@@ -61,7 +55,7 @@ export function useUtilityBillsData(
     }
 
     return params;
-  }, [user?.id, debouncedFilters.propertyId, debouncedFilters.dateRange]);
+  }, [debouncedFilters.propertyId, debouncedFilters.dateRange]);
 
   // Single query to get all page data
   const { isAuthenticated } = useConvexAuth();

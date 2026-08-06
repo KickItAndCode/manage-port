@@ -79,7 +79,6 @@ export function DocumentForm({ document, open, onOpenChange, onSave }: DocumentF
     try {
       const updateData: any = {
         id: document._id,
-        userId: user.id,
         name: formData.name,
         type: formData.type,
         category: formData.category || undefined,
