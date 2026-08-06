@@ -59,7 +59,7 @@ export default defineConfig({
     // The suites that must pass: routes render, views agree, forms submit.
     {
       name: 'chromium',
-      testMatch: /(routes|consistency|forms)\.spec\.ts/,
+      testMatch: /(routes|consistency|forms|hydration)\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
         storageState: 'playwright/.auth/user.json',
@@ -83,7 +83,7 @@ export default defineConfig({
     // `playwright test --project=legacy` to work through them.
     {
       name: 'legacy',
-      testIgnore: /(routes|consistency|forms)\.spec\.ts/,
+      testIgnore: /(routes|consistency|forms|hydration)\.spec\.ts/,
       testMatch: /.*\.spec\.ts/,
       use: {
         ...devices['Desktop Chrome'],
