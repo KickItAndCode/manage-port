@@ -63,14 +63,24 @@ export const getUtilityTypeInfo = (utilityType: string): {
   return typeMap[utilityType] || { color: 'gray', bgColor: 'bg-gray-100', textColor: 'text-gray-800' };
 };
 
-// Helper function to calculate days until due
-export const getDaysUntilDue = (dueDate: string): number => {
-  const today = new Date();
-  const due = new Date(dueDate);
-  const diffTime = due.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+/**
+ * Whole days from today to `dateString`: 0 today, negative once past.
+ *
+ * Both sides are reduced to a calendar day in the viewer's timezone before
+ * subtracting. Comparing a UTC-parsed date against a local `new Date()` is off
+ * by one for most of the day in any negative-offset zone, and mixing that with
+ * setHours(0,0,0,0) — which sets *local* midnight on a UTC-parsed value — moves
+ * the date back a day outright.
+ */
+export const daysUntil = (dateString: string): number => {
+  const target = toLocalDate(dateString);
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((target.getTime() - today.getTime()) / 86_400_000);
 };
+
+// Helper function to calculate days until due
+export const getDaysUntilDue = (dueDate: string): number => daysUntil(dueDate);
 
 // Helper function to determine payment status
 export const getPaymentStatus = (bill: Doc<"utilityBills">): {

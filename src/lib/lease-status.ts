@@ -15,6 +15,7 @@ export type { LeaseStatus } from "@/../convex/lib/leaseStatus";
 
 import { getLeaseStatus } from "@/../convex/lib/leaseStatus";
 import type { LeaseStatus } from "@/../convex/lib/leaseStatus";
+import { daysUntil } from "@/utils/utilityBillHelpers";
 
 /**
  * Check if a lease has conflicts with other leases
@@ -75,15 +76,12 @@ export function getLeaseStatusWithConflicts(
  * @returns Number of days until expiry (negative if already expired)
  */
 export function getDaysUntilExpiry(endDate: string): number {
-  const end = new Date(endDate);
-  const today = new Date();
-  
-  // Clear time components for date-only comparison
-  end.setHours(0, 0, 0, 0);
-  today.setHours(0, 0, 0, 0);
-  
-  const diff = Math.floor((end.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
-  return diff;
+  // Was: new Date(endDate) followed by setHours(0,0,0,0). The constructor reads
+  // a YYYY-MM-DD string as UTC midnight and setHours then moves it to *local*
+  // midnight, landing on the previous day anywhere west of Greenwich. The
+  // result was off by one for most of the day, and the error only showed up
+  // once the local clock crossed into a different UTC date.
+  return daysUntil(endDate);
 }
 
 /**
