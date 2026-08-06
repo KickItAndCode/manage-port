@@ -82,9 +82,22 @@ export const daysUntil = (dateString: string): number => {
 // Helper function to calculate days until due
 export const getDaysUntilDue = (dueDate: string): number => daysUntil(dueDate);
 
-// Helper function to determine payment status
-export const getPaymentStatus = (bill: Doc<"utilityBills">): {
-  status: 'paid' | 'overdue' | 'due_soon' | 'current';
+export type PaymentStatus = 'paid' | 'overdue' | 'due_soon' | 'current';
+
+/** The fields a bill must carry to have a payment status. */
+export interface BillPaymentFields {
+  dueDate: string;
+  landlordPaidUtilityCompany?: boolean;
+}
+
+/**
+ * Turns a due date into the state a landlord acts on.
+ *
+ * Structural rather than `Doc<"utilityBills">` so the table config's own
+ * UtilityBill interface and the Convex document can both use it without a cast.
+ */
+export const getPaymentStatus = (bill: BillPaymentFields): {
+  status: PaymentStatus;
   label: string;
   color: string;
 } => {
@@ -101,6 +114,30 @@ export const getPaymentStatus = (bill: Doc<"utilityBills">): {
   } else {
     return { status: 'current', label: 'Current', color: 'blue' };
   }
+};
+
+/**
+ * "3 days overdue", "due today", "due in 5 days".
+ *
+ * Past a month days stop carrying meaning — "247 days overdue" reads as noise
+ * where "8 months overdue" lands. The exact figure stays available in the due
+ * date itself; this is the at-a-glance version.
+ */
+export const describeDueDate = (dueDate: string): string => {
+  const days = daysUntil(dueDate);
+  if (days === 0) return 'due today';
+  if (days === 1) return 'due tomorrow';
+  if (days === -1) return '1 day overdue';
+
+  const magnitude = Math.abs(days);
+  const amount =
+    magnitude < 31
+      ? `${magnitude} days`
+      : magnitude < 365
+        ? `${Math.round(magnitude / 30)} months`
+        : `${(magnitude / 365).toFixed(1)} years`;
+
+  return days < 0 ? `${amount} overdue` : `due in ${amount}`;
 };
 
 // Helper function to find property by ID

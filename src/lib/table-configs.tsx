@@ -8,7 +8,8 @@ import { TableConfig, ColumnDefinition, BulkAction } from "@/components/ui/respo
 import { DocumentViewer } from "@/components/DocumentViewer";
 import { cn } from "@/lib/utils";
 import { Id } from "@/../convex/_generated/dataModel";
-import { formatDate } from "@/utils/utilityBillHelpers";
+import { describeDueDate, formatDate, getPaymentStatus } from "@/utils/utilityBillHelpers";
+import { PaymentStatusBadge } from "@/components/ui/payment-status-badge";
 
 // Type definitions for our data models
 export interface Property {
@@ -293,17 +294,7 @@ export function createUtilityBillTableConfig(
       sortable: true,
       render: (value, item) => (
         <div className="space-y-1">
-          {value ? (
-            <Badge className="text-xs bg-green-100 text-green-800 border-green-200">
-              <CheckCircle className="w-3 h-3 mr-1" />
-              Paid
-            </Badge>
-          ) : (
-            <Badge variant="destructive" className="text-xs">
-              <AlertCircle className="w-3 h-3 mr-1" />
-              Unpaid
-            </Badge>
-          )}
+          <PaymentStatusBadge bill={item} />
           {value && item.landlordPaidDate && (
             <p className="text-xs text-muted-foreground">
               {item.landlordPaidDate}
@@ -334,12 +325,33 @@ export function createUtilityBillTableConfig(
       label: 'Due Date',
       priority: 'important',
       sortable: true,
-      render: (value) => (
-        <div className="flex items-center gap-1 text-sm">
-          <Calendar className="w-3 h-3 text-muted-foreground" />
-          <span>{value}</span>
-        </div>
-      )
+      render: (value, item) => {
+        // An unpaid bill's urgency lives in how far off the date is, not the
+        // date itself. Once paid the countdown is history, so it goes away.
+        const { status } = getPaymentStatus(item);
+        return (
+          <div className="space-y-0.5">
+            <div className="flex items-center gap-1 text-sm">
+              <Calendar className="w-3 h-3 text-muted-foreground" />
+              <span>{value}</span>
+            </div>
+            {status !== 'paid' && (
+              <p
+                className={cn(
+                  "text-xs",
+                  status === 'overdue'
+                    ? "text-red-600 dark:text-red-400 font-medium"
+                    : status === 'due_soon'
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-muted-foreground"
+                )}
+              >
+                {describeDueDate(value)}
+              </p>
+            )}
+          </div>
+        );
+      }
     },
     {
       key: '_id',
@@ -494,6 +506,20 @@ export function UtilityBillMobileCard({
                     <Calendar className="w-3 h-3 flex-shrink-0" />
                     <span>Due: {formatDate(bill.dueDate)}</span>
                   </div>
+                  {getPaymentStatus(bill).status !== 'paid' && (
+                    <p
+                      className={cn(
+                        "text-xs mt-0.5",
+                        getPaymentStatus(bill).status === 'overdue'
+                          ? "text-red-600 dark:text-red-400 font-medium"
+                          : getPaymentStatus(bill).status === 'due_soon'
+                            ? "text-amber-600 dark:text-amber-400"
+                            : "text-muted-foreground"
+                      )}
+                    >
+                      {describeDueDate(bill.dueDate)}
+                    </p>
+                  )}
                 </div>
               </div>
               
@@ -502,17 +528,7 @@ export function UtilityBillMobileCard({
                   ${bill.totalAmount.toFixed(2)}
                 </p>
                 <div className="flex justify-end sm:justify-end mt-1">
-                  {bill.landlordPaidUtilityCompany ? (
-                    <Badge className="text-xs bg-green-100 text-green-800 border-green-200">
-                      <CheckCircle className="w-3 h-3 mr-1" />
-                      Paid
-                    </Badge>
-                  ) : (
-                    <Badge variant="destructive" className="text-xs">
-                      <AlertCircle className="w-3 h-3 mr-1" />
-                      Unpaid
-                    </Badge>
-                  )}
+                  <PaymentStatusBadge bill={bill} />
                 </div>
                 {bill.landlordPaidUtilityCompany && bill.landlordPaidDate && (
                   <p className="text-xs text-muted-foreground mt-1">

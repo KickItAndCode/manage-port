@@ -1,5 +1,6 @@
 import { Doc, Id } from "@/../convex/_generated/dataModel";
 import { UtilityBillFilters, UtilityBillStats } from "@/types/utilityBills";
+import { getPaymentStatus } from "@/utils/utilityBillHelpers";
 
 // Pure function to filter bills based on current filters
 export function filterBills(
@@ -28,10 +29,17 @@ export function filterBills(
     );
   }
 
-  // Filter by paid status
+  // Filter by paid status. "overdue" is a narrower slice of unpaid rather than
+  // a sibling of it — a paid bill is never overdue however late it was settled.
   if (filters.paidStatus && filters.paidStatus !== 'all') {
-    const isPaid = filters.paidStatus === 'paid';
-    filtered = filtered.filter(bill => bill.landlordPaidUtilityCompany === isPaid);
+    if (filters.paidStatus === 'overdue') {
+      filtered = filtered.filter(
+        bill => getPaymentStatus(bill).status === 'overdue'
+      );
+    } else {
+      const isPaid = filters.paidStatus === 'paid';
+      filtered = filtered.filter(bill => bill.landlordPaidUtilityCompany === isPaid);
+    }
   }
 
   // Filter by search term (search in utility type, provider, notes)

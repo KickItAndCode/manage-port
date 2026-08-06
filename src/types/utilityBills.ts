@@ -6,7 +6,7 @@ export interface UtilityBillFilters {
   tenantId?: Id<"leases">;
   dateRange?: [string, string]; // [startMonth, endMonth] in YYYY-MM format
   utilityTypes?: string[];
-  paidStatus?: 'all' | 'paid' | 'unpaid';
+  paidStatus?: 'all' | 'paid' | 'unpaid' | 'overdue';
   searchTerm?: string;
 }
 

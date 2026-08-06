@@ -1,0 +1,127 @@
+import { describe, expect, it } from "vitest";
+import type { Doc } from "@/../convex/_generated/dataModel";
+import {
+  daysUntil,
+  describeDueDate,
+  getPaymentStatus,
+  toLocalDate,
+} from "./utilityBillHelpers";
+
+/**
+ * getPaymentStatus is what turns a due date into the thing a landlord actually
+ * needs to know: is this overdue, due this week, or fine. It existed unused
+ * while the bills table rendered a binary paid/unpaid badge, so an eight-month
+ * overdue bill looked exactly like one due next week.
+ *
+ * The boundaries matter more than they look. "Due today" must not read as
+ * overdue — a landlord who still has the afternoon to pay should not be told
+ * they missed it — and the day either side of the seven-day window is where an
+ * off-by-one would hide.
+ */
+
+/** A YYYY-MM-DD string N days from today, built in local time. */
+function dayOffset(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+    d.getDate()
+  ).padStart(2, "0")}`;
+}
+
+function bill(overrides: Partial<Doc<"utilityBills">>): Doc<"utilityBills"> {
+  return {
+    dueDate: dayOffset(30),
+    landlordPaidUtilityCompany: false,
+    ...overrides,
+  } as Doc<"utilityBills">;
+}
+
+describe("getPaymentStatus", () => {
+  it("reports paid regardless of how far past due", () => {
+    // Paid wins over every other signal: a bill settled late is not outstanding.
+    const status = getPaymentStatus(
+      bill({ landlordPaidUtilityCompany: true, dueDate: dayOffset(-400) })
+    );
+    expect(status.status).toBe("paid");
+    expect(status.label).toBe("Paid");
+  });
+
+  it("reports overdue the day after the due date", () => {
+    expect(getPaymentStatus(bill({ dueDate: dayOffset(-1) })).status).toBe("overdue");
+    expect(getPaymentStatus(bill({ dueDate: dayOffset(-240) })).label).toBe("Overdue");
+  });
+
+  it("does not call a bill due today overdue", () => {
+    // The boundary that matters: today is still due_soon, not missed.
+    const status = getPaymentStatus(bill({ dueDate: dayOffset(0) }));
+    expect(status.status).toBe("due_soon");
+  });
+
+  it("treats the seventh day as due soon and the eighth as current", () => {
+    expect(getPaymentStatus(bill({ dueDate: dayOffset(7) })).status).toBe("due_soon");
+    expect(getPaymentStatus(bill({ dueDate: dayOffset(8) })).status).toBe("current");
+  });
+
+  it("reports current for bills comfortably in the future", () => {
+    const status = getPaymentStatus(bill({ dueDate: dayOffset(45) }));
+    expect(status.status).toBe("current");
+    expect(status.label).toBe("Current");
+  });
+
+  it("tolerates a stored timestamp rather than a bare date", () => {
+    // Some rows carry the full ISO instant. It must still resolve to its
+    // calendar day rather than shifting a day backwards.
+    const iso = `${dayOffset(-1)}T00:00:00.000Z`;
+    expect(getPaymentStatus(bill({ dueDate: iso })).status).toBe("overdue");
+  });
+});
+
+describe("daysUntil", () => {
+  it("counts calendar days, not elapsed hours", () => {
+    expect(daysUntil(dayOffset(0))).toBe(0);
+    expect(daysUntil(dayOffset(1))).toBe(1);
+    expect(daysUntil(dayOffset(-1))).toBe(-1);
+  });
+
+  it("is unaffected by the time of day the code runs", () => {
+    // A UTC-parsed date compared against a local now() drifts by one for most
+    // of the day in negative-offset zones. Whatever the clock reads, tomorrow
+    // is exactly one day away.
+    expect(daysUntil(dayOffset(10))).toBe(10);
+  });
+});
+
+describe("describeDueDate", () => {
+  it("names today and tomorrow rather than counting them", () => {
+    expect(describeDueDate(dayOffset(0))).toBe("due today");
+    expect(describeDueDate(dayOffset(1))).toBe("due tomorrow");
+  });
+
+  it("singularises one day overdue", () => {
+    expect(describeDueDate(dayOffset(-1))).toBe("1 day overdue");
+  });
+
+  it("counts days inside a month", () => {
+    expect(describeDueDate(dayOffset(-9))).toBe("9 days overdue");
+    expect(describeDueDate(dayOffset(20))).toBe("due in 20 days");
+  });
+
+  it("switches to months once days stop being meaningful", () => {
+    // 247 days overdue is noise; 8 months is a fact you can act on.
+    expect(describeDueDate(dayOffset(-247))).toBe("8 months overdue");
+    expect(describeDueDate(dayOffset(60))).toBe("due in 2 months");
+  });
+
+  it("switches to years beyond twelve months", () => {
+    expect(describeDueDate(dayOffset(-550))).toBe("1.5 years overdue");
+  });
+});
+
+describe("toLocalDate", () => {
+  it("keeps the calendar day intact", () => {
+    const d = toLocalDate("2026-08-06");
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(7);
+    expect(d.getDate()).toBe(6);
+  });
+});

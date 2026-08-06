@@ -52,7 +52,7 @@ import {
 
 // Import our new hooks and types
 import { useUtilityBillsData, useUtilityBillFilterOptions } from "@/hooks/useUtilityBillsData";
-import { formatCurrency } from "@/utils/utilityBillHelpers";
+import { formatCurrency, getPaymentStatus } from "@/utils/utilityBillHelpers";
 import { exportCsv } from "@/lib/csv";
 
 // Comprehensive utility bills page loading skeleton
@@ -637,7 +637,7 @@ function UtilityBillsContent() {
     updateFilters({ utilityTypes: types });
   }, [updateFilters]);
 
-  const handlePaidStatusChange = useCallback((status: 'all' | 'paid' | 'unpaid') => {
+  const handlePaidStatusChange = useCallback((status: 'all' | 'paid' | 'unpaid' | 'overdue') => {
     updateFilters({ paidStatus: status });
   }, [updateFilters]);
 
@@ -665,6 +665,13 @@ function UtilityBillsContent() {
     totalAmount: 0,
     unpaidAmount: 0
   };
+
+  // Overdue is the number a landlord acts on: unpaid says "eventually", overdue
+  // says "already late". Derived here rather than stored, like every other
+  // status in the app.
+  const overdueBills = displayBills.filter(
+    (bill) => getPaymentStatus(bill).status === 'overdue'
+  );
 
   const selectedPropertyData = properties.find(p => p._id === filters.propertyId);
 
@@ -753,10 +760,26 @@ function UtilityBillsContent() {
             <CardContent className="p-3">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                 <div className="flex-1 min-w-0">
-                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Unpaid Bills</p>
-                  <p className="text-lg sm:text-2xl font-bold text-orange-600" data-testid="unpaid-bills-count">{stats.unpaidBills}</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground truncate">Overdue</p>
+                  <p
+                    className={cn(
+                      "text-lg sm:text-2xl font-bold",
+                      overdueBills.length > 0 ? "text-red-600" : "text-muted-foreground"
+                    )}
+                    data-testid="overdue-bills-count"
+                  >
+                    {overdueBills.length}
+                  </p>
+                  <p className="text-xs text-muted-foreground truncate" data-testid="unpaid-bills-count">
+                    {stats.unpaidBills} unpaid
+                  </p>
                 </div>
-                <AlertCircle className="w-6 h-6 sm:w-8 sm:h-8 text-orange-600 flex-shrink-0" />
+                <AlertCircle
+                  className={cn(
+                    "w-6 h-6 sm:w-8 sm:h-8 flex-shrink-0",
+                    overdueBills.length > 0 ? "text-red-600" : "text-muted-foreground"
+                  )}
+                />
               </div>
             </CardContent>
           </Card>
@@ -856,10 +879,11 @@ function UtilityBillsContent() {
               <SelectNative
                 id="paidStatus"
                 value={filters.paidStatus || 'all'}
-                onChange={(e) => handlePaidStatusChange(e.target.value as 'all' | 'paid' | 'unpaid')}
+                onChange={(e) => handlePaidStatusChange(e.target.value as 'all' | 'paid' | 'unpaid' | 'overdue')}
                 className="text-sm"
               >
                 <option value="all">All Bills</option>
+                <option value="overdue">Overdue</option>
                 <option value="paid">Paid Bills</option>
                 <option value="unpaid">Unpaid Bills</option>
               </SelectNative>
