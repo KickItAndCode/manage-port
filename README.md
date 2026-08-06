@@ -1,6 +1,6 @@
 # ManagePort
 
-**Last Updated**: August 4, 2026  
+**Last Updated**: August 6, 2026  
 **Package Manager**: Bun
 
 > 📖 **Quick Start**: See `docs/QUICK_START.md` for immediate next steps  
@@ -23,6 +23,8 @@ A modern property management platform for landlords and property managers to eff
 - **Document Storage**: Securely store and organize property-related documents with easy access
 - **Dashboard Analytics**: Visualize portfolio performance with charts and key metrics
 - **Global Search**: Quickly find properties, leases, and documents across your portfolio
+- **CSV Export**: Export properties, leases, and utility bills for your accountant or as a backup
+- **Daily Alerts**: In-app notifications for expiring leases and overdue utility bills
 - **Mobile Responsive**: Fully responsive design that works seamlessly on all devices
 - **Dark Mode**: Built-in dark mode support for comfortable viewing
 
@@ -35,6 +37,9 @@ A modern property management platform for landlords and property managers to eff
 - **File Storage**: Convex file storage
 - **Package Manager**: Bun
 - **Deployment**: Vercel
+
+The application depends on Convex and Clerk only. There is no third-party
+listing, email or SMS integration, and none is required to run it.
 
 ## Getting Started
 
@@ -57,59 +62,23 @@ A modern property management platform for landlords and property managers to eff
 
 ## Testing
 
-Unit tests run under Vitest; end-to-end tests under Playwright.
+Three layers. See `tests/README.md` for what each one guards against.
 
 ```bash
-# Unit tests
-bun run test
-
-# End-to-end tests (needs Clerk credentials in .env.test)
-bun run test:e2e
+bun run test              # unit — pure functions, offline
+bun run test:integration  # Convex + Clerk contract (needs credentials)
+bun run test:e2e          # Playwright, chromium + mobile
 ```
 
-### Running Playwright
+Integration and end-to-end tests need `CLERK_SECRET_KEY` and
+`NEXT_PUBLIC_CONVEX_URL`. Without them the integration suites skip rather than
+fail. Authentication uses a Clerk sign-in token, so no password is required.
 
 ```bash
-# Run tests with UI (visual test runner)
-bun run test:ui
-
-# Run tests in headed mode (see browser)
-bun run test:headed
-
-# Run basic UI tests (no authentication required)
-bun run test:basic
-
-# Run authentication setup test only
-bun run test:auth-setup
-
-# Run smoke tests for core functionality
-bun run test:smoke
-```
-
-### Browser-Specific Testing
-
-```bash
-# Test on Chrome only
-bun run test -- --project=chromium
-
-# Test on Chrome and Firefox only
-bun run test -- --project="chromium|firefox"
-
-# Test on mobile devices only
-bun run test -- --project="Mobile Chrome|Mobile Safari"
-
-# Test without authentication (faster)
-bun run test:no-auth
-```
-
-### Test Reports
-
-```bash
-# View last test report
-bun run test:report
-
-# Debug failed tests
-bun run test:debug
+bun run test:ui       # Playwright visual runner
+bun run test:headed   # watch the browser
+bun run test:debug    # step through a failing test
+bun run test:report   # open the last report
 ```
 
 ## Project Structure
@@ -120,8 +89,7 @@ src/
 │   ├── dashboard/    # Analytics and overview
 │   ├── properties/   # Property management
 │   ├── leases/       # Lease management
-│   ├── utility-bills/# Advanced utility bill management
-│   ├── payments/     # Payment tracking and history
+│   ├── utility-bills/# Utility bills, splits, and payments
 │   └── documents/    # Document storage
 ├── components/       # Reusable React components
 ├── lib/              # Utility functions and helpers
@@ -189,7 +157,7 @@ This guide walks through setting up a duplex property where utilities are split 
    - Unit B tenant gets 50% of each bill
 
 ### Step 7: Track Payments
-1. **Payments page** → **Outstanding Balances** shows what each tenant owes
+1. **Dashboard** → **Outstanding Balances** shows what each tenant owes
 2. **Record payments** as they come in
 3. **Payment History** tracks all transactions
 

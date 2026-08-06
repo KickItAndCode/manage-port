@@ -82,7 +82,9 @@ export default defineSchema({
   })
     .index("by_property", ["propertyId"])
     .index("by_user", ["userId"])
-    .index("by_status", ["status"])
+    // No by_status index: status is derived from dates, never stored-and-read.
+    // Without the index, reaching for the deprecated column is a compile error
+    // instead of a query that quietly returns leases that ended months ago.
     .index("by_tenant", ["tenantName"])
     .index("by_unit", ["unitId"]),
   utilityBills: defineTable({

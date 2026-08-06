@@ -1,6 +1,6 @@
 # Current Status — ManagePort
 
-**Last Updated**: August 4, 2026
+**Last Updated**: August 6, 2026
 
 This is the single status document. Anything under `docs/archive/` is a
 historical record of a finished phase and is not maintained.
@@ -9,19 +9,19 @@ historical record of a finished phase and is not maintained.
 
 ## Where the project stands
 
-The application builds clean, typechecks clean outside `tests/`, and lints
-clean. Every Convex function derives the caller's identity from a verified
-Clerk JWT. Two data-correctness bugs in the billing path have been fixed.
+Everything runs on Convex and Clerk. No other external service is required.
 
 | Check | State |
 |---|---|
-| Production build | passes, 19 routes |
-| `npx tsc --noEmit` | clean in `src/` and `convex/`; 10 errors remain in `tests/` |
-| `bun run lint` | 0 errors, ~296 `any` warnings |
-| `bun run test` (unit) | 24 passing |
-| Cross-tenant isolation suite | 28 checks passing |
-| Public Convex handlers | 146, all authorization-guarded |
+| Production build | passes, 14 routes |
+| `npx tsc --noEmit` | 0 errors, repo-wide including `tests/` |
+| `bun run lint` | 0 errors |
+| `bun run test` (unit) | 34 passing |
+| `bun run test:integration` | 14 passing |
+| `bun run test:e2e` | 41 passing |
+| Public Convex handlers | 131, all authorization-guarded |
 | First Load JS (shared) | 102 kB |
+| `src` + `convex` | 41,942 lines |
 
 ---
 
@@ -95,6 +95,27 @@ to the whole.
 
 ---
 
+## Scope decision: no external APIs
+
+The listing integration — publishing to Apartments.com, Zillow and a syndication
+service — was removed rather than carried as dead weight. It was 4,865 lines
+that had never executed once, written against an assumed API contract, and two
+of its three platform keys had no adapter behind them at all. It gated a beta on
+a 2–3 week credential approval for a feature nobody could use meanwhile.
+
+Everything the app does now runs on Convex and Clerk alone. What replaced that
+surface costs nothing to operate:
+
+- **Daily notifications.** Two generators for expiring leases and overdue bills
+  already existed with no callers, because `crons.ts` was empty. They are now
+  scheduled, so the notification centre finally produces alerts.
+- **CSV export** for properties, leases and bills. Getting the data out for an
+  accountant or a backup matters as much as getting it in, and there was no
+  export of any kind.
+
+Email and SMS delivery are not built — no provider is wired. Settings says so
+plainly rather than offering toggles that control nothing.
+
 ## Known gaps
 
 **Before public beta**
@@ -102,8 +123,8 @@ to the whole.
 - Clerk is on a development instance (`pk_test`). Production needs its own
   Clerk instance, its own `convex` JWT template, and `CLERK_JWT_ISSUER_DOMAIN`
   set on the production Convex deployment
-- `tests/` has 10 typecheck errors and the Playwright suite has drifted from
-  the app; it needs live Clerk credentials to run
+- The Playwright and integration suites need Clerk credentials; they skip
+  rather than fail without them
 
 **Known debt, not blocking**
 
@@ -114,11 +135,11 @@ to the whole.
   survive across serverless instances
 - `leases.status` is retained as an optional deprecated column. Dropping it
   needs a data migration
-- ~296 `no-explicit-any` warnings
 - `convex/utilityBills.ts` is ~1,380 lines; `properties/[id]/page.tsx` ~1,300
-- The listing integration is built but inert, pending platform API credentials
-- The deployment has five tables absent from `schema.ts` (`jobQueue`,
-  `jobLogs`, `cronJobs`, `tenantUtilityCharges`, `unitUtilityResponsibilities`)
+- ~296 `no-explicit-any` warnings remain (warnings, not errors)
+
+- The deployment has tables absent from `schema.ts` left by earlier iterations
+  (`jobQueue`, `jobLogs`, `tenantUtilityCharges`, `unitUtilityResponsibilities`)
 
 ---
 
