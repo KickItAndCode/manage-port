@@ -10,12 +10,29 @@ export const formatCurrency = (amount: number): string => {
 
 // Helper function to format dates
 export const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toLocaleDateString('en-US', {
+  return toLocalDate(dateString).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
   });
+};
+
+/**
+ * Parses a stored date as a calendar day in the viewer's timezone.
+ *
+ * Dates here are days, not instants — a bill is due on the 15th, not at a
+ * particular moment. `new Date("2025-12-15")` reads the string as UTC
+ * midnight, which renders as the 14th anywhere west of Greenwich; a bill due
+ * 2025-12-15 was being shown as "Due: 12/14/2025". Splitting the date part and
+ * constructing from its components keeps the day intact. Values that also
+ * carry a time (…T00:00:00.000Z) are truncated to their date first.
+ */
+export const toLocalDate = (dateString: string): Date => {
+  const [year, month, day] = dateString.slice(0, 10).split('-').map(Number);
+  if ([year, month, day].every((n) => Number.isFinite(n))) {
+    return new Date(year, month - 1, day);
+  }
+  return new Date(dateString);
 };
 
 // Helper function to format bill month (YYYY-MM) to readable format

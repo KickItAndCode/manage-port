@@ -579,7 +579,10 @@ export default function DocumentsPage() {
   };
 
   const formatFileSize = (bytes?: number) => {
-    if (!bytes) return "Unknown size";
+    // 0 is a real size. Treating it as falsy reported "Unknown size" for every
+    // document whose byte count was genuinely recorded as zero.
+    if (bytes == null) return "Unknown size";
+    if (bytes === 0) return "0 B";
     const units = ["B", "KB", "MB", "GB"];
     let size = bytes;
     let unitIndex = 0;

@@ -52,6 +52,7 @@ import {
 
 // Import our new hooks and types
 import { useUtilityBillsData, useUtilityBillFilterOptions } from "@/hooks/useUtilityBillsData";
+import { formatCurrency } from "@/utils/utilityBillHelpers";
 
 // Comprehensive utility bills page loading skeleton
 const UtilityBillsLoadingSkeleton = () => (
@@ -728,7 +729,7 @@ function UtilityBillsContent() {
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {filters.tenantId ? "Tenant Charges" : "Total Amount"}
                   </p>
-                  <p className="text-lg sm:text-2xl font-bold" data-testid="total-amount">${stats.totalAmount.toFixed(2)}</p>
+                  <p className="text-lg sm:text-2xl font-bold" data-testid="total-amount">{formatCurrency(stats.totalAmount)}</p>
                 </div>
                 <DollarSign className="w-6 h-6 sm:w-8 sm:h-8 text-green-600 flex-shrink-0" />
               </div>
@@ -741,7 +742,7 @@ function UtilityBillsContent() {
                   <p className="text-xs sm:text-sm text-muted-foreground truncate">
                     {filters.tenantId ? "Outstanding Balance" : "Unpaid Amount"}
                   </p>
-                  <p className="text-lg sm:text-2xl font-bold text-red-600" data-testid="unpaid-amount">${stats.unpaidAmount.toFixed(2)}</p>
+                  <p className="text-lg sm:text-2xl font-bold text-red-600" data-testid="unpaid-amount">{formatCurrency(stats.unpaidAmount)}</p>
                 </div>
                 <TrendingUp className="w-6 h-6 sm:w-8 sm:h-8 text-red-600 flex-shrink-0" />
               </div>
@@ -990,7 +991,7 @@ function UtilityBillsContent() {
               <div className="bg-muted/50 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
                   <h3 className="font-medium">{viewingBill.utilityType} - {viewingBill.billMonth}</h3>
-                  <span className="text-lg font-semibold">${viewingBill.totalAmount.toFixed(2)}</span>
+                  <span className="text-lg font-semibold">{formatCurrency(viewingBill.totalAmount)}</span>
                 </div>
                 <p className="text-sm text-muted-foreground">{viewingBill.provider}</p>
               </div>

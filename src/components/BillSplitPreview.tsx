@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { formatDate } from "@/utils/utilityBillHelpers";
 
 interface BillSplitPreviewProps {
   propertyId: Id<"properties">;
@@ -136,7 +137,7 @@ export function BillSplitPreview({
                       <span>{charge.responsibilityPercentage}%</span>
                     </div>
                     <div className="flex items-center gap-1">
-                      <span>Due: {charge.dueDate}</span>
+                      <span>Due: {formatDate(charge.dueDate)}</span>
                     </div>
                   </div>
                 </div>

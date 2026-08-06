@@ -34,6 +34,7 @@ import {
   Percent
 } from "lucide-react";
 import { Id } from "@/../convex/_generated/dataModel";
+import { formatDate } from "@/utils/utilityBillHelpers";
 
 interface OutstandingBalancesProps {
   userId: string;
@@ -542,9 +543,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
                                   {charge.dueDate && (
                                     <p className="text-xs text-muted-foreground">
                                       Due:{" "}
-                                      {new Date(
-                                        charge.dueDate
-                                      ).toLocaleDateString()}
+                                      {formatDate(charge.dueDate)}
                                     </p>
                                   )}
                                 </div>
