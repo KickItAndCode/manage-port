@@ -53,6 +53,7 @@ import {
 // Import our new hooks and types
 import { useUtilityBillsData, useUtilityBillFilterOptions } from "@/hooks/useUtilityBillsData";
 import { formatCurrency } from "@/utils/utilityBillHelpers";
+import { exportCsv } from "@/lib/csv";
 
 // Comprehensive utility bills page loading skeleton
 const UtilityBillsLoadingSkeleton = () => (
@@ -475,6 +476,35 @@ function UtilityBillsContent() {
     });
   };
 
+  // Exports exactly what the filters are showing, so a filtered view can be
+  // handed to an accountant without further editing.
+  const handleExportBills = () => {
+    const rows = displayBills ?? [];
+    if (rows.length === 0) {
+      toast.error("No bills to export");
+      return;
+    }
+    exportCsv("bills", rows, [
+      { header: "Month", value: (b: any) => b.billMonth },
+      { header: "Utility", value: (b: any) => b.utilityType },
+      { header: "Provider", value: (b: any) => b.provider },
+      {
+        header: "Property",
+        value: (b: any) =>
+          properties.find((p: any) => p._id === b.propertyId)?.name ?? "",
+      },
+      { header: "Amount", value: (b: any) => b.totalAmount.toFixed(2) },
+      { header: "Bill Date", value: (b: any) => b.billDate?.slice(0, 10) ?? "" },
+      { header: "Due Date", value: (b: any) => b.dueDate?.slice(0, 10) ?? "" },
+      {
+        header: "Landlord Paid",
+        value: (b: any) => (b.landlordPaidUtilityCompany ? "Yes" : "No"),
+      },
+      { header: "Notes", value: (b: any) => b.notes ?? "" },
+    ]);
+    toast.success(`Exported ${rows.length} bill${rows.length === 1 ? "" : "s"}`);
+  };
+
   const handleDeleteBill = async (bill: any) => {
     confirm({
       title: "Delete Utility Bill",
@@ -669,6 +699,14 @@ function UtilityBillsContent() {
                 <DropdownMenuItem onClick={() => setBulkDialogOpen(true)} data-testid="bulk-entry-btn">
                   <FileText className="w-4 h-4 mr-2" />
                   Bulk Entry
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={handleExportBills}
+                  disabled={displayBills.length === 0}
+                  data-testid="export-bills-btn"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Export to CSV
                 </DropdownMenuItem>
                 {filters.tenantId && filters.propertyId && (
                   <DropdownMenuItem onClick={() => setStatementDialogOpen(true)} data-testid="generate-statement-btn">

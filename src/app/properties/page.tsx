@@ -20,7 +20,8 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Wand2, Trash2, Building } from "lucide-react";
+import { Wand2, Trash2, Building, Download
+} from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -33,6 +34,7 @@ import {
   PropertyMobileCard,
   type Property
 } from "@/lib/table-configs";
+import { exportCsv } from "@/lib/csv";
 
 function PropertiesContent() {
   const { user } = useUser();
@@ -205,6 +207,28 @@ function PropertiesContent() {
         }
       }
     });
+  };
+
+  // Exports the filtered view, so a search or status filter carries through.
+  const handleExportProperties = () => {
+    if (filtered.length === 0) {
+      toast.error("No properties to export");
+      return;
+    }
+    exportCsv("properties", filtered, [
+      { header: "Name", value: (p: any) => p.name },
+      { header: "Address", value: (p: any) => p.address },
+      { header: "Type", value: (p: any) => p.type },
+      { header: "Status", value: (p: any) => p.status },
+      { header: "Bedrooms", value: (p: any) => p.bedrooms },
+      { header: "Bathrooms", value: (p: any) => p.bathrooms },
+      { header: "Square Feet", value: (p: any) => p.squareFeet },
+      { header: "Monthly Rent", value: (p: any) => (p.monthlyRent ?? 0).toFixed(2) },
+      { header: "Monthly Mortgage", value: (p: any) => (p.monthlyMortgage ?? 0).toFixed(2) },
+      { header: "Monthly CapEx", value: (p: any) => (p.monthlyCapEx ?? 0).toFixed(2) },
+      { header: "Purchase Date", value: (p: any) => p.purchaseDate?.slice(0, 10) ?? "" },
+    ]);
+    toast.success(`Exported ${filtered.length} propert${filtered.length === 1 ? "y" : "ies"}`);
   };
 
   const handleWizardSubmit = async (data: PropertyWizardData) => {
@@ -495,6 +519,16 @@ function PropertiesContent() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold">Properties</h1>
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={handleExportProperties}
+            disabled={filtered.length === 0}
+            data-testid="export-properties-btn"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </Button>
           <Dialog open={wizardOpen} onOpenChange={setWizardOpen}>
             <DialogTrigger asChild>
               <Button className="gap-2" data-testid="add-property-button">

@@ -12,7 +12,8 @@ import { useQuery, useMutation, useConvexAuth } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
 import { formatErrorForToast } from "@/lib/error-handling";
-import { Archive, Eye, EyeOff, Layers, Plus } from "lucide-react";
+import { Archive, Eye, EyeOff, Layers, Plus, Download
+} from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Badge } from "@/components/ui/badge";
 import { useConfirmationDialog } from "@/components/ui/confirmation-dialog";
@@ -21,6 +22,7 @@ import { createLeaseTableConfig, LeaseMobileCard, type Lease, type Property } fr
 import { UtilityResponsibilitySnapshot } from "@/components/UtilityResponsibilitySnapshot";
 import { useLeaseStatuses } from "@/hooks/use-lease-status";
 import { sortLeasesByStatus } from "@/lib/lease-status";
+import { exportCsv } from "@/lib/csv";
 
 function LeasesPageContent() {
   const { user } = useUser();
@@ -435,10 +437,47 @@ function LeasesPageContent() {
     );
   };
 
+  // Status is exported as computed, not as the deprecated stored column, so the
+  // file agrees with what the page shows.
+  const handleExportLeases = () => {
+    if (filtered.length === 0) {
+      toast.error("No leases to export");
+      return;
+    }
+    exportCsv("leases", filtered, [
+      { header: "Tenant", value: (l: any) => l.tenantName },
+      { header: "Email", value: (l: any) => l.tenantEmail ?? "" },
+      { header: "Phone", value: (l: any) => l.tenantPhone ?? "" },
+      {
+        header: "Property",
+        value: (l: any) =>
+          properties.find((p: any) => p._id === l.propertyId)?.name ?? "",
+      },
+      { header: "Status", value: (l: any) => l.computedStatus ?? l.status ?? "" },
+      { header: "Start Date", value: (l: any) => l.startDate?.slice(0, 10) ?? "" },
+      { header: "End Date", value: (l: any) => l.endDate?.slice(0, 10) ?? "" },
+      { header: "Monthly Rent", value: (l: any) => (l.rent ?? 0).toFixed(2) },
+      { header: "Security Deposit", value: (l: any) => (l.securityDeposit ?? 0).toFixed(2) },
+      { header: "Notes", value: (l: any) => l.notes ?? "" },
+    ]);
+    toast.success(`Exported ${filtered.length} lease${filtered.length === 1 ? "" : "s"}`);
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground p-4 sm:p-6 lg:p-8 transition-colors duration-300">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 sm:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold">Leases</h1>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3">
+        <Button
+          variant="outline"
+          className="gap-2"
+          onClick={handleExportLeases}
+          disabled={filtered.length === 0}
+          data-testid="export-leases-btn"
+        >
+          <Download className="w-4 h-4" />
+          Export CSV
+        </Button>
         <Button 
           onClick={() => {
             setEditLease(null);
@@ -449,6 +488,7 @@ function LeasesPageContent() {
         >
           Add Lease
         </Button>
+        </div>
       </div>
       
       <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4 mb-6 items-start sm:items-end">

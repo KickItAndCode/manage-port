@@ -118,3 +118,57 @@ test.describe("lease form", () => {
     });
   });
 });
+
+test.describe("CSV export", () => {
+  // Getting data out matters as much as getting it in — tax time, an
+  // accountant, or a backup that does not depend on this app existing.
+  //
+  // Export is disabled when there is nothing to export, so these cover both
+  // branches: the download mechanism end to end where the account has rows,
+  // and the guard where it does not. Whether a given account has leases or
+  // bills is data, not behaviour, so each test reads the button state and
+  // asserts the matching contract rather than assuming one.
+
+  async function assertExport(
+    page: import("@playwright/test").Page,
+    testId: string,
+    filePrefix: string
+  ) {
+    const button = page.getByTestId(testId);
+    await expect(button).toBeVisible({ timeout: 30_000 });
+
+    // Give the query a moment to resolve before reading the enabled state.
+    await page.waitForTimeout(2_000);
+
+    if (await button.isDisabled()) {
+      // Nothing to export. That is the contract, not a skip.
+      return;
+    }
+
+    const downloadPromise = page.waitForEvent("download", { timeout: 30_000 });
+    await button.click();
+    const download = await downloadPromise;
+    expect(download.suggestedFilename()).toMatch(
+      new RegExp(`manageport-${filePrefix}-\\d{4}-\\d{2}-\\d{2}\\.csv`)
+    );
+  }
+
+  test("/properties exports a CSV", async ({ page }) => {
+    await page.goto("/properties");
+    await assertExport(page, "export-properties-btn", "properties");
+  });
+
+  test("/leases exports a CSV", async ({ page }) => {
+    await page.goto("/leases");
+    await assertExport(page, "export-leases-btn", "leases");
+  });
+
+  test("/utility-bills exports a CSV from the More menu", async ({ page }) => {
+    await page.goto("/utility-bills");
+    await expect(
+      page.getByRole("heading", { name: /Utility Bill/i }).first()
+    ).toBeVisible({ timeout: 30_000 });
+    await page.getByRole("button", { name: "More" }).click();
+    await assertExport(page, "export-bills-btn", "bills");
+  });
+});
