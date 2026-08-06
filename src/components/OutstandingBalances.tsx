@@ -1,5 +1,6 @@
 "use client";
 import { useState, memo, useMemo} from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { toast } from "sonner";
 import { api } from "@/../convex/_generated/api";
@@ -35,6 +36,7 @@ import {
 } from "lucide-react";
 import { Id } from "@/../convex/_generated/dataModel";
 import { formatDate } from "@/utils/utilityBillHelpers";
+import { buildPaymentReminder, reminderMailtoUrl } from "@/lib/reminders";
 
 interface OutstandingBalancesProps {
   userId: string;
@@ -52,6 +54,7 @@ interface ChargeByUtility {
 interface TenantGroup {
   leaseId: Id<"leases">;
   tenantName: string;
+  tenantEmail?: string;
   propertyName: string;
   unitIdentifier?: string;
   utilitiesByType: ChargeByUtility[];
@@ -64,6 +67,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
   propertyId,
   tenantId
 }: OutstandingBalancesProps) {
+  const router = useRouter();
   const [selectedTenant, setSelectedTenant] = useState<string>(
     tenantId || "all"
   );
@@ -149,6 +153,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
         groups[key] = {
           leaseId: charge.leaseId,
           tenantName: charge.tenantName || "Unknown Tenant",
+          tenantEmail: charge.tenantEmail,
           propertyName: charge.propertyName || "Unknown Property",
           unitIdentifier: charge.unitIdentifier,
           utilitiesByType: [],
@@ -246,6 +251,58 @@ export const OutstandingBalances = memo(function OutstandingBalances({
   const handlePaymentSuccess = (chargeId: string) => {
     setPaidCharges((prev) => new Set(prev).add(chargeId));
     toast.success("Payment recorded successfully!");
+  };
+
+  /**
+   * Composes a reminder for everything this tenant still owes and hands it to
+   * the landlord to send.
+   *
+   * No email or SMS provider is wired into this app, and this deliberately does
+   * not pretend otherwise — it opens the user's own mail client, or falls back
+   * to the clipboard when the lease carries no email address. Sending stays
+   * the landlord's action, so nothing reaches a tenant unreviewed.
+   */
+  const handleSendReminder = async (group: TenantGroup) => {
+    const lines = group.utilitiesByType.flatMap((utility) =>
+      utility.charges
+        .filter((charge) => charge.remainingAmount > 0)
+        .map((charge) => ({
+          utilityType: utility.utilityType,
+          billMonth: charge.billMonth,
+          amountOwed: charge.remainingAmount,
+        }))
+    );
+
+    if (lines.length === 0) {
+      toast.info(`${group.tenantName} has nothing outstanding.`);
+      return;
+    }
+
+    const reminder = buildPaymentReminder({
+      tenantName: group.tenantName,
+      propertyName: group.propertyName,
+      unitIdentifier: group.unitIdentifier,
+      lines,
+      totalOwed: group.totalOwed,
+    });
+
+    if (group.tenantEmail) {
+      window.location.href = reminderMailtoUrl(group.tenantEmail, reminder);
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(`${reminder.subject}\n\n${reminder.body}`);
+      toast.success("Reminder copied", {
+        description: `No email on file for ${group.tenantName}. Paste it wherever you contact them.`,
+      });
+    } catch {
+      // Clipboard access can be refused outright, and a reminder the landlord
+      // cannot see is worse than none — say so rather than failing silently.
+      toast.error("Could not copy the reminder", {
+        description: "Add an email address to the lease to send it directly.",
+      });
+    }
   };
 
   if (!charges || !leases) {
@@ -594,11 +651,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      toast.info(
-                        "Navigate to Bills & Payments > History tab to generate statements"
-                      );
-                    }}
+                    onClick={() => router.push("/utility-bills?action=statement")}
                   >
                     <FileText className="w-3 h-3 mr-1" />
                     View Statement
@@ -606,9 +659,7 @@ export const OutstandingBalances = memo(function OutstandingBalances({
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      toast.info("Reminder feature coming soon!");
-                    }}
+                    onClick={() => handleSendReminder(group)}
                   >
                     <AlertTriangle className="w-3 h-3 mr-1" />
                     Send Reminder

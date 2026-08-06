@@ -364,6 +364,31 @@ function UtilityBillsContent() {
   
   const { dialog: confirmDialog, confirm } = useConfirmationDialog();
 
+  /**
+   * Opens a dialog named in the URL, so other pages can link straight to an
+   * action instead of describing where to find it. Outstanding Balances used
+   * to tell the landlord to "navigate to Bills & Payments > History tab" — a
+   * tab that does not exist.
+   *
+   * The parameter is cleared once consumed, otherwise reopening the dialog by
+   * hand would be impossible after closing it and back/refresh would reopen it.
+   */
+  useEffect(() => {
+    const action = searchParams?.get("action");
+    if (!action) return;
+
+    if (action === "statement") setStatementDialogOpen(true);
+    if (action === "add") setBillDialogOpen(true);
+
+    // Drop only `action`; ?tab= and anything else on the URL must survive.
+    const remaining = new URLSearchParams(searchParams?.toString() ?? "");
+    remaining.delete("action");
+    const query = remaining.toString();
+    router.replace(query ? `/utility-bills?${query}` : "/utility-bills", {
+      scroll: false,
+    });
+  }, [searchParams, router]);
+
   // Mutations
   const addBill = useMutation(api.utilityBills.addUtilityBill);
   const updateBill = useMutation(api.utilityBills.updateUtilityBill);

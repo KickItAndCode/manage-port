@@ -17,6 +17,8 @@ export interface CalculatedTenantCharge {
   leaseId: Id<"leases">;
   utilityBillId: Id<"utilityBills">;
   tenantName: string;
+  /** Optional on the lease, so a reminder falls back to the clipboard. */
+  tenantEmail?: string;
   propertyName: string;
   unitIdentifier?: string;
   utilityType: string;
@@ -432,6 +434,7 @@ export const calculateAllTenantCharges = query({
           leaseId: charge.leaseId,
           utilityBillId: charge.utilityBillId,
           tenantName: charge.tenantName,
+          tenantEmail: lease.tenantEmail,
           propertyName: property?.name || "Unknown Property",
           unitIdentifier: unit?.unitIdentifier,
           utilityType: bill.utilityType,
