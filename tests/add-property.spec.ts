@@ -16,7 +16,7 @@ async function cleanupTestArtifacts() {
           try {
             fs.unlinkSync(path.join(screenshotsDir, file));
           } catch (e) {
-            console.log(`Could not delete ${file}:`, e.message);
+            console.log(`Could not delete ${file}:`, (e instanceof Error ? e.message : String(e)));
           }
         }
       }
@@ -33,13 +33,13 @@ async function cleanupTestArtifacts() {
               fs.rmSync(dirPath, { recursive: true, force: true });
             }
           } catch (e) {
-            console.log(`Could not delete ${dir}:`, e.message);
+            console.log(`Could not delete ${dir}:`, (e instanceof Error ? e.message : String(e)));
           }
         }
       }
     }
   } catch (error) {
-    console.log('Cleanup error:', error.message);
+    console.log('Cleanup error:', (error instanceof Error ? error.message : String(error)));
   }
 }
 

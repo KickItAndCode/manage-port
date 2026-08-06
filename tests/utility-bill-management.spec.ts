@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { testData } from './helpers/test-data';
+import { TestData as testData } from './helpers/test-data';
 
 test.describe('Utility Bill Management - Unified Payment System', () => {
   test.beforeEach(async ({ page }) => {
@@ -353,7 +353,9 @@ test.describe('Utility Bill Management - Unified Payment System', () => {
       
       if (billDates.length > 1) {
         for (let i = 1; i < billDates.length; i++) {
-          expect(billDates[i]).toBeLessThanOrEqual(billDates[i - 1]);
+          expect(new Date(billDates[i]).getTime()).toBeLessThanOrEqual(
+            new Date(billDates[i - 1]).getTime()
+          );
         }
       }
     });
@@ -470,7 +472,7 @@ test.describe('Utility Bill Management - Unified Payment System', () => {
       // (This assumes test data is set up with this scenario)
       
       // Filter to first tenant (60% responsibility)
-      await page.selectOption('#tenant', { label: /.*60%.*/ }); // Assuming tenant names indicate responsibility
+      await page.selectOption('#tenant', { label: '60%' }); // Assuming tenant names indicate responsibility
       
       // Wait for filtering
       await page.waitForTimeout(1000);
@@ -480,7 +482,7 @@ test.describe('Utility Bill Management - Unified Payment System', () => {
       const firstTenantBalance = await page.locator('[data-testid="outstanding-balance-amount"]').textContent();
       
       // Filter to second tenant (40% responsibility)
-      await page.selectOption('#tenant', { label: /.*40%.*/ });
+      await page.selectOption('#tenant', { label: '40%' });
       
       // Wait for filtering
       await page.waitForTimeout(1000);

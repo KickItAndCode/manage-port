@@ -18,7 +18,8 @@
     "test:smoke": "playwright test tests/smoke.spec.ts --project=chromium",
     "test:no-auth": "playwright test --project=chromium --grep-invert @auth",
     "test:basic": "playwright test --project=basic-ui",
-    "test:auth-setup": "playwright test tests/auth.setup.ts"
+    "test:auth-setup": "playwright test tests/auth.setup.ts",
+    "test:integration": "vitest run --config vitest.integration.config.mts"
   },
   "dependencies": {
     "@clerk/clerk-react": "^5.31.8",

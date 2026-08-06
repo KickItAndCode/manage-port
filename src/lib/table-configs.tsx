@@ -109,12 +109,18 @@ export function createPropertyTableConfig(
       sortable: true,
       render: (value, item) => (
         <div>
-          <p 
-            className="font-medium cursor-pointer hover:text-primary transition-colors"
+          {/* A button rather than a click-handled <p>: this is the primary way
+              into a property, and as a paragraph it could not be reached by
+              keyboard, was not announced as interactive, and had no role for
+              tests to target. */}
+          <button
+            type="button"
+            data-testid="property-name-link"
+            className="font-medium cursor-pointer hover:text-primary transition-colors text-left"
             onClick={() => onView(item)}
           >
             {value}
-          </p>
+          </button>
           <p className="text-sm text-muted-foreground">{item.address}</p>
         </div>
       )

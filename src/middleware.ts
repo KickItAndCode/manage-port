@@ -39,6 +39,11 @@ function addSecurityHeaders(response: NextResponse) {
       "img-src 'self' data: blob: https: http:",
       "connect-src 'self' https://*.convex.cloud https://clerk.com https://*.clerk.accounts.dev wss://*.convex.cloud",
       "frame-src 'self' https://clerk.com https://*.clerk.accounts.dev",
+      // Clerk starts a web worker from a blob URL. Without an explicit
+      // worker-src the browser falls back to script-src, which does not allow
+      // blob:, and the worker is refused. This went unnoticed while the
+      // middleware sat outside src/ and the policy was never actually applied.
+      "worker-src 'self' blob:",
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
