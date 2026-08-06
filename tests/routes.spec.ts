@@ -67,8 +67,10 @@ test.describe("routes render for a signed-in user", () => {
       page.locator("main").getByRole("heading", { name: "Properties" }).first()
     ).toBeVisible({ timeout: 30_000 });
 
-    const openProperty = page.getByTestId("property-name-link").first();
-    test.skip(!(await openProperty.count()), "no properties to open");
+    // count() resolves immediately, so checking it before the table has
+    // rendered skipped the test on a slow load rather than running it.
+    const openProperty = page.getByTestId("property-name-link").locator("visible=true").first();
+    await expect(openProperty).toBeVisible({ timeout: 30_000 });
     await openProperty.click();
 
     await expect(page).toHaveURL(/\/properties\/[a-z0-9]+/i, { timeout: 30_000 });

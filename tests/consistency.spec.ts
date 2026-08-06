@@ -47,7 +47,7 @@ test("occupancy agrees between the dashboard and the property pages", async ({ p
       .not.toBe("Occupied");
   }
 
-  await page.getByTestId("property-name-link").first().click();
+  await page.getByTestId("property-name-link").locator("visible=true").first().click();
   await expect(page).toHaveURL(/\/properties\/[a-z0-9]+/i, { timeout: 30_000 });
 
   const detailBadge = page

@@ -603,12 +603,17 @@ export function PropertyMobileCard({
             <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 mb-3">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1 flex-wrap">
-                  <h3 
-                    className="font-semibold text-base cursor-pointer hover:text-primary transition-colors truncate"
+                  {/* Same reasoning as the desktop table: a click-handled
+                      heading is not keyboard reachable and is not announced as
+                      interactive. The button carries the heading styling. */}
+                  <button
+                    type="button"
+                    data-testid="property-name-link"
+                    className="font-semibold text-base cursor-pointer hover:text-primary transition-colors truncate text-left"
                     onClick={() => onView(property)}
                   >
                     {property.name}
-                  </h3>
+                  </button>
                   <Badge variant="outline" className="text-xs shrink-0">{property.type}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mb-2 leading-relaxed">{property.address}</p>
