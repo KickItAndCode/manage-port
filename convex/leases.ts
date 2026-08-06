@@ -1,4 +1,5 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, internalMutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { UTILITY_TYPES } from "../src/lib/constants";
 import { createNotification, NOTIFICATION_TYPES } from "./notifications";
@@ -555,11 +556,19 @@ export const getLeaseStats = query({
 
 // Generate notifications for expiring leases
 // This mutation creates notifications for leases expiring within 60 days
-export const generateLeaseExpirationNotifications = mutation({
-  args: {
-  },
-  handler: async (ctx, args) => {
-    const userId = await requireUser(ctx);
+/**
+ * Creates expiry notifications for one user's leases.
+ *
+ * Split out from the mutation so a scheduled job can run it for everybody.
+ * createNotification already suppresses duplicates, so running this daily
+ * re-notifies nobody — it only fills in leases that have newly entered the
+ * warning window.
+ */
+async function notifyExpiringLeasesForUser(
+  ctx: MutationCtx,
+  userId: string
+): Promise<number> {
+  {
     let createdCount = 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -601,7 +610,7 @@ export const generateLeaseExpirationNotifications = mutation({
           : propertyName;
 
         try {
-          await createNotification(ctx, {
+          const result = await createNotification(ctx, {
             userId,
             type: NOTIFICATION_TYPES.LEASE_EXPIRATION,
             title,
@@ -621,14 +630,43 @@ export const generateLeaseExpirationNotifications = mutation({
               daysUntilExpiry,
             },
           });
-          createdCount++;
+          if (result.created) createdCount++;
         } catch (error) {
           console.error("Error creating lease expiration notification:", error);
         }
       }
     }
 
-    return { created: createdCount };
+    return createdCount;
+  }
+}
+
+export const generateLeaseExpirationNotifications = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireUser(ctx);
+    return { created: await notifyExpiringLeasesForUser(ctx, userId) };
+  },
+});
+
+/**
+ * Scheduled counterpart, run daily by convex/crons.ts.
+ *
+ * A cron has no signed-in user, so it fans out over every user that owns a
+ * lease. Until this was wired the generator above had no callers at all and no
+ * expiry notification was ever produced.
+ */
+export const notifyExpiringLeasesForAllUsers = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const userIds = new Set(
+      (await ctx.db.query("leases").collect()).map((lease) => lease.userId)
+    );
+    let created = 0;
+    for (const userId of userIds) {
+      created += await notifyExpiringLeasesForUser(ctx, userId);
+    }
+    return { users: userIds.size, created };
   },
 });
 

@@ -429,6 +429,30 @@ export default function SettingsPage() {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
+                      Delivery
+                    </h3>
+                    <Separator className="flex-1" />
+                  </div>
+                  <div className="grid gap-3">
+                    <div className="flex items-start gap-3 p-3 border rounded-lg">
+                      <Bell className="h-5 w-5 text-muted-foreground mt-0.5 flex-shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <Label className="font-medium">In-app notifications</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Alerts appear in the bell menu in the sidebar. They are
+                          generated once a day, and whenever you open the app.
+                        </p>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground px-1">
+                      Email and SMS delivery are not available yet. Until they
+                      are, alerts live in the app only — the toggles that used to
+                      appear here controlled nothing.
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide">
                       Channels
                     </h3>
                     <Separator className="flex-1" />

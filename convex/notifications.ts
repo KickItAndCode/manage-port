@@ -53,12 +53,14 @@ export async function createNotification(
 
   const existing = await existingQuery.first();
 
-  // If similar unread notification exists, don't create duplicate
+  // If similar unread notification exists, don't create duplicate.
+  // `created` lets callers count real alerts rather than attempts — the daily
+  // cron would otherwise report the same figure every run forever.
   if (existing) {
-    return existing._id;
+    return { id: existing._id, created: false };
   }
 
-  return await ctx.db.insert("notifications", {
+  const id = await ctx.db.insert("notifications", {
     userId: args.userId,
     type: args.type,
     title: args.title,
@@ -71,6 +73,7 @@ export async function createNotification(
     metadata: args.metadata,
     createdAt: new Date().toISOString(),
   });
+  return { id, created: true };
 }
 
 // Public mutation — callable from the client API
@@ -87,7 +90,7 @@ export const createNotificationMutation = mutation({
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
-    return await createNotification(ctx, { ...args, userId });
+    return (await createNotification(ctx, { ...args, userId })).id;
   },
 });
 

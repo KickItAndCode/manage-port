@@ -1,5 +1,6 @@
 import { v } from "convex/values";
-import { query, mutation } from "./_generated/server";
+import { query, mutation, internalMutation } from "./_generated/server";
+import type { MutationCtx } from "./_generated/server";
 import { Doc, Id } from "./_generated/dataModel";
 import { createNotification, NOTIFICATION_TYPES } from "./notifications";
 import { requireUser } from "./lib/auth";
@@ -735,11 +736,18 @@ export const getUtilityReminders = query({
 // Generate notifications from utility reminders
 // This mutation creates notifications for overdue bills and missing readings
 // Note: Inlines reminder detection logic since we can't call queries from mutations
-export const generateNotificationsFromReminders = mutation({
-  args: {
-  },
-  handler: async (ctx, args) => {
-    const userId = await requireUser(ctx);
+/**
+ * Creates overdue-bill and missing-reading notifications for one user.
+ *
+ * Split out from the mutation so a scheduled job can run it for everybody.
+ * createNotification suppresses duplicates, so a daily run only surfaces bills
+ * that have newly gone overdue.
+ */
+async function notifyUtilityRemindersForUser(
+  ctx: MutationCtx,
+  userId: string
+): Promise<number> {
+  {
     let createdCount = 0;
 
     // Detect overdue bills (inline logic from getUtilityReminders)
@@ -764,7 +772,7 @@ export const generateNotificationsFromReminders = mutation({
           const propertyName = property?.name || "Unknown Property";
 
           try {
-            await createNotification(ctx, {
+            const result = await createNotification(ctx, {
               userId,
               type: NOTIFICATION_TYPES.UTILITY_BILL_REMINDER,
               title: `Overdue Utility Bill`,
@@ -780,7 +788,7 @@ export const generateNotificationsFromReminders = mutation({
                 amount: bill.totalAmount,
               },
             });
-            createdCount++;
+            if (result.created) createdCount++;
           } catch (error) {
             console.error("Error creating notification for overdue bill:", error);
           }
@@ -853,7 +861,7 @@ export const generateNotificationsFromReminders = mutation({
           const hasBill = billsByTypeAndMonth[utilityType]?.has(expectedMonth);
           if (!hasBill) {
             try {
-              await createNotification(ctx, {
+              const result = await createNotification(ctx, {
                 userId,
                 type: NOTIFICATION_TYPES.UTILITY_BILL_REMINDER,
                 title: `Missing Utility Reading`,
@@ -869,7 +877,7 @@ export const generateNotificationsFromReminders = mutation({
                   expectedMonth,
                 },
               });
-              createdCount++;
+              if (result.created) createdCount++;
             } catch (error) {
               console.error("Error creating notification for missing reading:", error);
             }
@@ -878,6 +886,32 @@ export const generateNotificationsFromReminders = mutation({
       }
     }
 
-    return { created: createdCount };
+    return createdCount;
+  }
+}
+
+export const generateNotificationsFromReminders = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const userId = await requireUser(ctx);
+    return { created: await notifyUtilityRemindersForUser(ctx, userId) };
+  },
+});
+
+/**
+ * Scheduled counterpart, run daily by convex/crons.ts. A cron has no signed-in
+ * user, so it fans out over every user that owns a utility bill.
+ */
+export const notifyUtilityRemindersForAllUsers = internalMutation({
+  args: {},
+  handler: async (ctx) => {
+    const userIds = new Set(
+      (await ctx.db.query("utilityBills").collect()).map((bill) => bill.userId)
+    );
+    let created = 0;
+    for (const userId of userIds) {
+      created += await notifyUtilityRemindersForUser(ctx, userId);
+    }
+    return { users: userIds.size, created };
   },
 });
