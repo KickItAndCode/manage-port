@@ -34,14 +34,26 @@ interface MonthlyTrendsChartProps {
   onDrillDown?: (data: any) => void;
   height?: number;
   className?: string;
+  /** Bills the account has in total, ignoring the selected timeframe. */
+  totalBillsAllTime?: number;
+  /** Earliest bill month on record, as YYYY-MM. */
+  oldestBillMonth?: string | null;
+  /** Months currently being charted, for the out-of-range message. */
+  timeframeMonths?: number;
 }
 
 export function MonthlyTrendsChart({ 
   data, 
   onDrillDown, 
   height = 400,
-  className 
+  className,
+  totalBillsAllTime = 0,
+  oldestBillMonth = null,
+  timeframeMonths,
 }: MonthlyTrendsChartProps) {
+  // An empty chart has two very different causes. Treating them the same told
+  // users with 33 bills on file that they had none, and offered to add a first.
+  const hasBillsOutsideTimeframe = totalBillsAllTime > 0;
   const [selectedMetric, setSelectedMetric] = useState<"total" | "breakdown">("total");
   const [hoveredMonth, setHoveredMonth] = useState<string | null>(null);
 
@@ -271,19 +283,38 @@ export function MonthlyTrendsChart({
                 </div>
               </div>
               
-              <h3 className="text-lg font-semibold mb-2">No Utility Bills Yet</h3>
+              <h3 className="text-lg font-semibold mb-2">
+                {hasBillsOutsideTimeframe
+                  ? "No bills in this period"
+                  : "No Utility Bills Yet"}
+              </h3>
               <p className="text-sm text-muted-foreground mb-6 max-w-md">
-                Your Monthly Cost Trends will appear here once you add utility bills. 
-                Track spending patterns, identify anomalies, and discover savings opportunities.
+                {hasBillsOutsideTimeframe ? (
+                  <>
+                    You have {totalBillsAllTime} bill
+                    {totalBillsAllTime === 1 ? "" : "s"} on record
+                    {oldestBillMonth ? `, going back to ${oldestBillMonth}` : ""}
+                    {timeframeMonths
+                      ? `, but none in the last ${timeframeMonths} months.`
+                      : ", but none in the selected period."}{" "}
+                    Widen the timeframe to see them.
+                  </>
+                ) : (
+                  <>
+                    Your Monthly Cost Trends will appear here once you add utility
+                    bills. Track spending patterns, identify anomalies, and
+                    discover savings opportunities.
+                  </>
+                )}
               </p>
-              
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <button
                   onClick={() => window.location.href = '/utility-bills'}
                   className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
                 >
                   <Plus className="w-4 h-4" />
-                  Add Your First Bill
+                  {hasBillsOutsideTimeframe ? "View All Bills" : "Add Your First Bill"}
                 </button>
                 <button
                   onClick={() => {

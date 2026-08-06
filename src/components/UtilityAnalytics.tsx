@@ -315,6 +315,9 @@ export const UtilityAnalytics = memo(function UtilityAnalytics({
             data={enhancedMonthlyTrends}
             onDrillDown={handleUtilityTrendDrillDown}
             height={400}
+            totalBillsAllTime={analyticsData?.totalBillsAllTime ?? 0}
+            oldestBillMonth={analyticsData?.oldestBillMonth ?? null}
+            timeframeMonths={timeframe}
           />
         </div>
 

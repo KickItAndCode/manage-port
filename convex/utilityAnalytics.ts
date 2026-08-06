@@ -35,6 +35,8 @@ export const getEnhancedUtilityAnalytics = query({
         },
         utilityBreakdown: [],
         propertyComparison: [],
+        totalBillsAllTime: 0,
+        oldestBillMonth: null as string | null,
       };
     }
 
@@ -180,6 +182,14 @@ export const getEnhancedUtilityAnalytics = query({
       insights,
       utilityBreakdown,
       propertyComparison,
+      // Counted before the timeframe filter. Without this the UI cannot tell
+      // an empty account from an account whose bills all predate the window,
+      // and it told users with 33 bills that they had none.
+      totalBillsAllTime: allBills.length,
+      oldestBillMonth: allBills.reduce<string | null>(
+        (oldest, b) => (oldest === null || b.billMonth < oldest ? b.billMonth : oldest),
+        null
+      ),
     };
   },
 });
