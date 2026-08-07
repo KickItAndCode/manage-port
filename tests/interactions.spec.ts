@@ -44,6 +44,46 @@ test.describe("global search shortcut", () => {
   });
 });
 
+test.describe("the properties list answers a financial question", () => {
+  test("shows what each property nets, not just its bedrooms", async ({ page }) => {
+    await page.goto("/properties");
+    const rows = page.locator("tbody tr");
+    const empty = page.getByText(/No properties found/i);
+    await expect(rows.first().or(empty)).toBeVisible({ timeout: 30_000 });
+    test.skip(await empty.isVisible(), "no properties on this account to rank");
+
+    // The list described the building — type, status, bed/bath — and never
+    // what it earns, which is the question an owner opens it to answer.
+    const headers = page.locator("thead th");
+    await expect(headers.filter({ hasText: "Net / mo" })).toHaveCount(1);
+    await expect(headers.filter({ hasText: "Return" })).toHaveCount(1);
+  });
+
+  test("net is a real currency figure, and return is either a rate or a dash", async ({
+    page,
+  }) => {
+    await page.goto("/properties");
+    const rows = page.locator("tbody tr");
+    const empty = page.getByText(/No properties found/i);
+    await expect(rows.first().or(empty)).toBeVisible({ timeout: 30_000 });
+    test.skip(await empty.isVisible(), "no properties on this account to rank");
+
+    // Located by testid rather than column index: columns hide by priority at
+    // narrower widths, so header position does not map to cell position.
+    const net = page.getByTestId("property-net-income-cell").first();
+    await expect(net).toBeVisible();
+    expect((await net.innerText()).trim(), "net income is not rendered as currency")
+      .toMatch(/^-?\$[\d,]+$/);
+
+    // A property with neither a value nor cash invested has no return, and a
+    // dash is the honest answer rather than 0%.
+    const ret = page.getByTestId("property-return-cell").first();
+    await expect(ret).toBeVisible();
+    expect((await ret.innerText()).replace(/\s+/g, " ").trim())
+      .toMatch(/^(—|-?\d+\.\d% (cash|cap))$/);
+  });
+});
+
 test.describe("deep links into bill dialogs", () => {
   test("?action=add opens the add-bill form", async ({ page }) => {
     await page.goto("/utility-bills?action=add");

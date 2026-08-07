@@ -3,6 +3,7 @@ import { v, ConvexError } from "convex/values";
 import { logActivity, ACTIVITY_TYPES, ACTIVITY_ACTIONS } from "./activityLog";
 import { requireUser } from "./lib/auth";
 import { filterActiveLeases } from "./lib/leaseStatus";
+import { averageMonthlyCost, monthlyNetIncome } from "./lib/finance";
 
 // Rate limiting for mutations (simple in-memory store)
 const rateLimitStore = new Map<string, { count: number; resetTime: number }>();
@@ -496,10 +497,37 @@ export const getProperties = query({
               ? "Occupied"
               : "Available";
 
+        /**
+         * The property's own monthly utility cost, averaged over the same
+         * trailing three months the dashboard and the property page use, via
+         * the same helper. Without it a net income shown in this list would
+         * disagree with the one on the property page, which is the drift that
+         * made "net income" mean two different things in the first place.
+         */
+        const cutoff = new Date();
+        cutoff.setMonth(cutoff.getMonth() - 3);
+        const cutoffDay = cutoff.toISOString().slice(0, 10);
+        const recentBills = (
+          await ctx.db
+            .query("utilityBills")
+            .withIndex("by_property", (q) => q.eq("propertyId", property._id))
+            .collect()
+        ).filter((bill) => bill.billDate.slice(0, 10) >= cutoffDay);
+
+        const monthlyUtilities = averageMonthlyCost(recentBills, 3);
+
         return {
           ...property,
           status: derivedStatus,
           monthlyRent,
+          monthlyUtilities,
+          // Computed here so the list can sort by it. Derived, never stored.
+          netIncome: monthlyNetIncome({
+            monthlyRent,
+            monthlyUtilities,
+            monthlyMortgage: property.monthlyMortgage ?? 0,
+            monthlyCapEx: property.monthlyCapEx ?? 0,
+          }),
         };
       })
     );

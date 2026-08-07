@@ -9,6 +9,8 @@ import { DocumentViewer } from "@/components/DocumentViewer";
 import { cn } from "@/lib/utils";
 import { Id } from "@/../convex/_generated/dataModel";
 import { describeDueDate, formatDate, getPaymentStatus } from "@/utils/utilityBillHelpers";
+import { capRate, cashOnCash, valueOf } from "@/../convex/lib/investment";
+import { monthlyNetIncome, monthlyNetOperatingIncome } from "@/../convex/lib/finance";
 import { PaymentStatusBadge } from "@/components/ui/payment-status-badge";
 
 // Type definitions for our data models
@@ -25,6 +27,13 @@ export interface Property {
   purchaseDate?: string;
   monthlyMortgage?: number;
   monthlyCapEx?: number;
+  /** Trailing three-month average, supplied by getProperties. */
+  monthlyUtilities?: number;
+  /** Derived server-side so the list can sort by it. */
+  netIncome?: number;
+  purchasePrice?: number;
+  currentValue?: number;
+  cashInvested?: number;
 }
 
 export interface UtilityBill {
@@ -152,9 +161,73 @@ export function createPropertyTableConfig(
       )
     },
     {
+      // What the property actually keeps. Computed through the same shared
+      // function the dashboard and property page use, so a figure here can
+      // never disagree with the one on the property itself.
+      key: 'netIncome',
+      label: 'Net / mo',
+      priority: 'essential',
+      sortable: true,
+      render: (_value, item) => {
+        const net = item.netIncome ?? monthlyNetIncome({
+          monthlyRent: item.monthlyRent ?? 0,
+          monthlyUtilities: item.monthlyUtilities ?? 0,
+          monthlyMortgage: item.monthlyMortgage ?? 0,
+          monthlyCapEx: item.monthlyCapEx ?? 0,
+        });
+        return (
+          <span
+            data-testid="property-net-income-cell"
+            className={cn("font-semibold", net >= 0 ? "text-green-600" : "text-red-600")}
+          >
+            {net < 0 ? "-" : ""}${Math.abs(Math.round(net)).toLocaleString()}
+          </span>
+        );
+      }
+    },
+    {
+      // Cash-on-cash where the owner recorded what they put in, otherwise the
+      // cap rate, otherwise nothing. A dash beats an invented number.
+      // Not sortable: some rows show cash-on-cash and others a cap rate, and
+      // ordering a column that mixes the two would rank unlike things against
+      // each other. Sort by Net instead.
+      key: 'currentValue',
+      label: 'Return',
+      priority: 'important',
+      sortable: false,
+      render: (_value, item) => {
+        const inputs = {
+          monthlyRent: item.monthlyRent ?? 0,
+          monthlyUtilities: item.monthlyUtilities ?? 0,
+          monthlyMortgage: item.monthlyMortgage ?? 0,
+          monthlyCapEx: item.monthlyCapEx ?? 0,
+        };
+        const coc = cashOnCash(monthlyNetIncome(inputs) * 12, item.cashInvested);
+        const cap = capRate(monthlyNetOperatingIncome(inputs) * 12, valueOf(item));
+        const shown = coc ?? cap;
+        if (shown === null) {
+          return (
+            <span data-testid="property-return-cell" className="text-muted-foreground text-sm">
+              —
+            </span>
+          );
+        }
+        return (
+          <div className="text-sm" data-testid="property-return-cell">
+            <span className={cn("font-semibold", shown >= 0 ? "text-green-600" : "text-red-600")}>
+              {shown.toFixed(1)}%
+            </span>
+            <span className="text-xs text-muted-foreground ml-1">
+              {coc !== null ? "cash" : "cap"}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
       key: 'bedrooms',
       label: 'Bed/Bath',
-      priority: 'important',
+      priority: 'contextual',
       sortable: true,
       render: (value, item) => (
         <div className="text-sm">
