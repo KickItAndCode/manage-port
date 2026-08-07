@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
@@ -50,7 +50,9 @@ import { TenantStatementGenerator } from "@/components/TenantStatementGenerator"
 import { UtilityResponsibilitySnapshot } from "@/components/UtilityResponsibilitySnapshot";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { getLeaseStatus } from "@/lib/lease-status";
-import { appreciation, cashOnCash, valueOf } from "@/../convex/lib/investment";
+import { appreciation, capRate, cashOnCash, valueOf } from "@/../convex/lib/investment";
+import { averageMonthlyCost, monthlyNetIncome, monthlyNetOperatingIncome } from "@/../convex/lib/finance";
+import { formatLocalDate } from "@/utils/utilityBillHelpers";
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -103,6 +105,36 @@ export default function PropertyDetailsPage() {
     api.properties.getPropertyWithUnits,
     user && isValidPropertyId ? { propertyId: propertyId as any } : "skip"
   );
+
+  /**
+   * This property's utility bills, so its net income can include them.
+   *
+   * The page previously left utilities out entirely and said so in a comment,
+   * which is why the portfolio total disagreed with the sum of its properties.
+   */
+  const propertyBills = useQuery(
+    api.utilityBills.getUtilityBills,
+    user && isValidPropertyId ? { propertyId: propertyId as any } : "skip"
+  );
+
+  /**
+   * Averaged over the same trailing three months the dashboard uses, through
+   * the same helper, so the two cannot disagree about what a month costs.
+   *
+   * Declared here with the other hooks rather than beside the figures it feeds:
+   * this component returns early for an invalid id, a missing property and the
+   * loading state, and a hook below those runs in a different order on
+   * different renders.
+   */
+  const monthlyUtilities = useMemo(() => {
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - 3);
+    const cutoffDay = formatLocalDate(cutoff);
+    const recent = (propertyBills ?? []).filter(
+      (bill) => bill.billDate.slice(0, 10) >= cutoffDay
+    );
+    return averageMonthlyCost(recent, 3);
+  }, [propertyBills]);
 
   // Lease status is derived from dates, never read from the stored column,
   // which is deprecated and drifts. See convex/lib/leaseStatus.ts.
@@ -400,16 +432,24 @@ export default function PropertyDetailsPage() {
   }
 
   const currentTenant = getCurrentTenant();
-  // No longer tracking utilities at property level - use utility bills instead
-  const monthlyExpenses = (property?.monthlyMortgage || 0) + 
-    (showCapEx ? (property?.monthlyCapEx || 0) : 0);
   const totalRentFromLeases = propertyWithUnits?.monthlyRent || 0; // Calculated from active leases
-  const netIncome = totalRentFromLeases - monthlyExpenses;
+
+  const netIncomeInputs = {
+    monthlyRent: totalRentFromLeases,
+    monthlyUtilities,
+    monthlyMortgage: property?.monthlyMortgage || 0,
+    monthlyCapEx: showCapEx ? property?.monthlyCapEx || 0 : 0,
+  };
+  const netIncome = monthlyNetIncome(netIncomeInputs);
 
   // Derived, never stored, and null whenever the inputs are missing.
   const propertyValue = valueOf(property);
   const propertyAppreciation = appreciation(property);
   const cashOnCashReturn = cashOnCash(netIncome * 12, property.cashInvested);
+  const propertyCapRate = capRate(
+    monthlyNetOperatingIncome(netIncomeInputs) * 12,
+    propertyValue
+  );
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
@@ -1085,7 +1125,19 @@ export default function PropertyDetailsPage() {
                         <span className="font-semibold">-${property.monthlyMortgage.toLocaleString()}</span>
                       </div>
                     )}
-                    {/* Utility costs now tracked in utility bills section */}
+                    {monthlyUtilities > 0 && (
+                      <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
+                        <span className="text-muted-foreground">
+                          Utilities
+                          <span className="text-xs text-muted-foreground ml-1">
+                            (3-month average)
+                          </span>
+                        </span>
+                        <span className="font-semibold" data-testid="property-utilities">
+                          -${Math.round(monthlyUtilities).toLocaleString()}
+                        </span>
+                      </div>
+                    )}
                     {showCapEx && property.monthlyCapEx && property.monthlyCapEx > 0 && (
                       <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
                         <span className="text-muted-foreground">
@@ -1101,8 +1153,11 @@ export default function PropertyDetailsPage() {
                   <div className="pt-3 border-t">
                     <div className="flex justify-between items-center p-3 bg-green-500/10 rounded-lg border border-green-500/20">
                       <span className="font-medium">Net Income</span>
-                      <span className={`font-bold text-lg ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        ${netIncome.toLocaleString()}
+                      <span
+                        className={`font-bold text-lg ${netIncome >= 0 ? 'text-green-600' : 'text-red-600'}`}
+                        data-testid="property-net-income"
+                      >
+                        ${Math.round(netIncome).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -1144,6 +1199,22 @@ export default function PropertyDetailsPage() {
                               ({propertyAppreciation.percent >= 0 ? "+" : "−"}
                               {Math.abs(propertyAppreciation.percent).toFixed(1)}%)
                             </span>
+                          </span>
+                        </div>
+                      )}
+                      {propertyCapRate !== null && (
+                        <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
+                          <span className="text-muted-foreground">
+                            Cap Rate
+                            <span className="text-xs text-muted-foreground ml-1">
+                              (excludes financing)
+                            </span>
+                          </span>
+                          <span
+                            className={`font-semibold ${propertyCapRate >= 0 ? "text-green-600" : "text-red-600"}`}
+                            data-testid="property-cap-rate"
+                          >
+                            {propertyCapRate.toFixed(1)}%
                           </span>
                         </div>
                       )}

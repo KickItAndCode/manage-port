@@ -16,6 +16,7 @@ import {
 import { cn } from "@/lib/utils";
 import { getPaymentStatus } from "@/utils/utilityBillHelpers";
 import { portfolioValue } from "@/../convex/lib/investment";
+import { monthlyNetIncome } from "@/../convex/lib/finance";
 import { useRouter } from "next/navigation";
 import { useMemo, memo, useCallback } from "react";
 import { DashboardFilters as DashboardFiltersType } from "./DashboardFilters";
@@ -237,10 +238,12 @@ export const DashboardKPIs = memo(function DashboardKPIs({
   const netIncome = useMemo(
     () =>
       metrics
-        ? metrics.totalMonthlyRent -
-          metrics.totalUtilityCost -
-          metrics.totalMonthlyMortgage -
-          metrics.totalMonthlyCapEx
+        ? monthlyNetIncome({
+            monthlyRent: metrics.totalMonthlyRent,
+            monthlyUtilities: metrics.totalUtilityCost,
+            monthlyMortgage: metrics.totalMonthlyMortgage,
+            monthlyCapEx: metrics.totalMonthlyCapEx,
+          })
         : 0,
     [
       metrics?.totalMonthlyRent,
@@ -462,6 +465,7 @@ export const DashboardKPIs = memo(function DashboardKPIs({
         bgColor={netIncome > 0 ? "bg-success/10" : "bg-destructive/10"}
         onClick={handleNetIncomeClick}
         compact={compact}
+        testId="kpi-net-income"
       />
     </div>
   );

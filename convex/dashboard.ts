@@ -3,6 +3,7 @@ import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { requireUser } from "./lib/auth";
 import { getLeaseStatus } from "./lib/leaseStatus";
+import { averageMonthlyCost } from "./lib/finance";
 
 
 // Helper function to calculate date range start date
@@ -173,24 +174,21 @@ export const getDashboardMetrics = query({
     
     const recentBills = filteredUtilityBills.filter(bill => new Date(bill.billDate) >= utilityDateStart);
     
-    // Calculate average monthly utility cost
-    // For date ranges, calculate based on the range duration
-    let totalUtilityCost = 0;
-    if (recentBills.length > 0) {
-      const totalCost = recentBills.reduce((sum, bill) => sum + bill.totalAmount, 0);
-      if (args.dateRange) {
-        // Calculate monthly average based on date range
-        const monthsInRange = args.dateRange === "week" ? 7/30 : 
-                             args.dateRange === "month" ? 1 : 
-                             args.dateRange === "quarter" ? 3 : 
-                             args.dateRange === "year" ? 12 : 3;
-        totalUtilityCost = totalCost / monthsInRange;
-      } else {
-        // Default: average over 3 months
-        totalUtilityCost = totalCost / 3;
-      }
-    }
-    
+    // Average monthly utility cost over the window being viewed, through the
+    // shared helper so the property page averages bills the same way.
+    const monthsInRange = args.dateRange
+      ? args.dateRange === "week"
+        ? 7 / 30
+        : args.dateRange === "month"
+          ? 1
+          : args.dateRange === "quarter"
+            ? 3
+            : args.dateRange === "year"
+              ? 12
+              : 3
+      : 3; // Default: trailing three months
+    const totalUtilityCost = averageMonthlyCost(recentBills, monthsInRange);
+
     // Calculate total mortgage and CapEx costs
     const totalMonthlyMortgage = properties.reduce((sum, p) => sum + (p.monthlyMortgage || 0), 0);
     const totalMonthlyCapEx = properties.reduce((sum, p) => sum + (p.monthlyCapEx || 0), 0);
