@@ -84,6 +84,48 @@ test.describe("the properties list answers a financial question", () => {
   });
 });
 
+test.describe("the year summary answers the tax-time question", () => {
+  test("shows a year, its net, and an export", async ({ page }) => {
+    await page.goto("/properties");
+    const rows = page.locator("tbody tr");
+    const empty = page.getByText(/No properties found/i);
+    await expect(rows.first().or(empty)).toBeVisible({ timeout: 30_000 });
+    test.skip(await empty.isVisible(), "no property to summarise");
+
+    await page.getByTestId("property-name-link").locator("visible=true").first().click();
+    await expect(page).toHaveURL(/\/properties\/[a-z0-9]+/i, { timeout: 30_000 });
+
+    const yearSelect = page.getByTestId("year-summary-select");
+    await expect(yearSelect).toBeVisible({ timeout: 30_000 });
+    // Years come from the data, and the current one is always offered even
+    // before it has any bills against it.
+    await expect(yearSelect).toHaveValue(String(new Date().getFullYear()));
+
+    await expect(page.getByTestId("year-summary-net")).toHaveText(/^-?\$[\d,]+$/);
+    await expect(page.getByTestId("year-summary-export")).toBeVisible();
+  });
+
+  test("switching year changes the figures", async ({ page }) => {
+    await page.goto("/properties");
+    const rows = page.locator("tbody tr");
+    const empty = page.getByText(/No properties found/i);
+    await expect(rows.first().or(empty)).toBeVisible({ timeout: 30_000 });
+    test.skip(await empty.isVisible(), "no property to summarise");
+
+    await page.getByTestId("property-name-link").locator("visible=true").first().click();
+    const yearSelect = page.getByTestId("year-summary-select");
+    await expect(yearSelect).toBeVisible({ timeout: 30_000 });
+
+    const options = await yearSelect.locator("option").allInnerTexts();
+    test.skip(options.length < 2, "only one year of data on this property");
+
+    const before = await page.getByTestId("year-summary-net").innerText();
+    await yearSelect.selectOption(options[1].trim());
+    // A summary that ignored the selected year would be the whole point missed.
+    await expect(page.getByTestId("year-summary-net")).not.toHaveText(before);
+  });
+});
+
 test.describe("deep links into bill dialogs", () => {
   test("?action=add opens the add-bill form", async ({ page }) => {
     await page.goto("/utility-bills?action=add");

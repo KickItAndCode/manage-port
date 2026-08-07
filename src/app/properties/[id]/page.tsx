@@ -49,6 +49,7 @@ import { PropertyUtilityAllocation } from "@/components/PropertyUtilityAllocatio
 import { TenantStatementGenerator } from "@/components/TenantStatementGenerator";
 import { UtilityResponsibilitySnapshot } from "@/components/UtilityResponsibilitySnapshot";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
+import { PropertyYearSummary } from "@/components/PropertyYearSummary";
 import { getLeaseStatus } from "@/lib/lease-status";
 import { appreciation, capRate, cashOnCash, valueOf } from "@/../convex/lib/investment";
 import { averageMonthlyCost, monthlyNetIncome, monthlyNetOperatingIncome } from "@/../convex/lib/finance";
@@ -1294,6 +1295,17 @@ export default function PropertyDetailsPage() {
             </Card>
 
             {/* Utilities now managed through Utility Bills section */}
+
+            {/* What the year looked like, for the accountant. */}
+            {property && (
+              <PropertyYearSummary
+                propertyName={property.name}
+                leases={leases as any}
+                bills={(propertyBills ?? []) as any}
+                monthlyMortgage={property.monthlyMortgage}
+                monthlyCapEx={showCapEx ? property.monthlyCapEx : 0}
+              />
+            )}
 
             {/* Documents */}
             <Card>
