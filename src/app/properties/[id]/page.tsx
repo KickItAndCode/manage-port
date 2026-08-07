@@ -519,13 +519,20 @@ export default function PropertyDetailsPage() {
           </div>
         </div>
 
-        {/* Key Metrics Overview */}
+        {/*
+          Money, not measurements. Three of the four cards here were square
+          feet, bedrooms and bathrooms — facts that never change and are already
+          stated once in Property Details below. An owner opening a property
+          wants to know what it earns, not how many bathrooms it has.
+        */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
           <Card className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-muted-foreground">Monthly Income</p>
-                <p className="text-xl sm:text-2xl font-bold">${totalRentFromLeases.toLocaleString()}</p>
+                <p className="text-xl sm:text-2xl font-bold" data-testid="property-monthly-income">
+                  ${totalRentFromLeases.toLocaleString()}
+                </p>
               </div>
               <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-full">
                 <DollarSign className="h-5 w-5 text-green-600 dark:text-green-400" />
@@ -535,217 +542,71 @@ export default function PropertyDetailsPage() {
           <Card className="p-3 sm:p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm text-muted-foreground">Square Feet</p>
-                <p className="text-xl sm:text-2xl font-bold">{property.squareFeet?.toLocaleString()}</p>
+                <p className="text-sm text-muted-foreground">Net Income</p>
+                <p
+                  className={`text-xl sm:text-2xl font-bold ${netIncome >= 0 ? "text-green-600" : "text-red-600"}`}
+                >
+                  ${Math.round(netIncome).toLocaleString()}
+                </p>
+                <p className="text-xs text-muted-foreground">after all costs</p>
+              </div>
+              <div className="p-3 bg-emerald-100 dark:bg-emerald-900/20 rounded-full">
+                <DollarSign className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              </div>
+            </div>
+          </Card>
+          <Card className="p-3 sm:p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-muted-foreground">Occupancy</p>
+                <p className="text-xl sm:text-2xl font-bold">
+                  {getActiveLeases().length > 0 ? "Occupied" : "Vacant"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {getActiveLeases().length} active {getActiveLeases().length === 1 ? "lease" : "leases"}
+                </p>
               </div>
               <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-full">
-                <Square className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
               </div>
             </div>
           </Card>
-          <Card className="p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Bedrooms</p>
-                <p className="text-xl sm:text-2xl font-bold">{property.bedrooms}</p>
+          {/* Value, when the owner has recorded one. No card rather than $0. */}
+          {propertyValue !== null && (
+            <Card className="p-3 sm:p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm text-muted-foreground">
+                    {property.currentValue !== undefined ? "Current Value" : "Purchase Price"}
+                  </p>
+                  <p className="text-xl sm:text-2xl font-bold">
+                    ${propertyValue.toLocaleString()}
+                  </p>
+                  {propertyAppreciation !== null && (
+                    <p
+                      className={`text-xs ${propertyAppreciation.amount >= 0 ? "text-green-600" : "text-red-600"}`}
+                    >
+                      {propertyAppreciation.amount >= 0 ? "+" : "−"}
+                      {Math.abs(propertyAppreciation.percent).toFixed(1)}% since purchase
+                    </p>
+                  )}
+                </div>
+                <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-full">
+                  <Home className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                </div>
               </div>
-              <div className="p-3 bg-purple-100 dark:bg-purple-900/20 rounded-full">
-                <Bed className="h-5 w-5 text-purple-600 dark:text-purple-400" />
-              </div>
-            </div>
-          </Card>
-          <Card className="p-3 sm:p-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-muted-foreground">Bathrooms</p>
-                <p className="text-xl sm:text-2xl font-bold">{property.bathrooms}</p>
-              </div>
-              <div className="p-3 bg-orange-100 dark:bg-orange-900/20 rounded-full">
-                <Bath className="h-5 w-5 text-orange-600 dark:text-orange-400" />
-              </div>
-            </div>
-          </Card>
+            </Card>
+          )}
         </div>
 
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
           {/* Main Content */}
           <div className="xl:col-span-2 space-y-4 lg:space-y-6">
-            {/* Property Images Gallery */}
-            <Card>
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <CardTitle className="flex items-center">
-                      <FileUp className="w-5 h-5 mr-2" />
-                      Property Images
-                    </CardTitle>
-                    <CardDescription>
-                      {propertyImages === undefined 
-                        ? "Loading images..." 
-                        : `${propertyImages.length} image${propertyImages.length !== 1 ? 's' : ''} uploaded`
-                      }
-                    </CardDescription>
-                  </div>
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    className="gap-2"
-                    onClick={() => setImageUploadOpen(true)}
-                  >
-                    <Plus className="h-4 w-4" />
-                    Add Images
-                  </Button>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <PropertyImageGallery propertyId={propertyId} />
-              </CardContent>
-            </Card>
-
-            {/* Property Details */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Home className="w-5 h-5 mr-2" />
-                  Property Details
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-background rounded-lg">
-                        <Bed className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">Bedrooms</span>
-                    </div>
-                    <span className="font-semibold">{property.bedrooms}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-background rounded-lg">
-                        <Bath className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">Bathrooms</span>
-                    </div>
-                    <span className="font-semibold">{property.bathrooms}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-background rounded-lg">
-                        <Square className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">Sq Ft</span>
-                    </div>
-                    <span className="font-semibold">{property.squareFeet?.toLocaleString()}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-background rounded-lg">
-                        <DollarSign className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">Monthly Rent</span>
-                    </div>
-                    <span className="font-semibold text-green-600">
-                      {totalRentFromLeases > 0 
-                        ? `$${totalRentFromLeases.toLocaleString()}` 
-                        : '$0'
-                      }
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-background rounded-lg">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">Purchase Date</span>
-                    </div>
-                    <span className="font-semibold">{formatDate(property.purchaseDate)}</span>
-                  </div>
-                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                    <div className="flex items-center gap-2">
-                      <div className="p-2 bg-background rounded-lg">
-                        <Tag className="w-4 h-4 text-muted-foreground" />
-                      </div>
-                      <span className="text-sm text-muted-foreground">Type</span>
-                    </div>
-                    <span className="font-semibold">{property.type}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Units Management - Only show for multi-family properties */}
-            {(property.propertyType === "multi-family" || (propertyWithUnits?.units && propertyWithUnits.units.length > 0)) && (
-              <Card>
-                <CardHeader>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <CardTitle className="flex items-center">
-                        <Home className="w-5 h-5 mr-2" />
-                        Units
-                      </CardTitle>
-                      <CardDescription>
-                        Manage individual units in this property
-                      </CardDescription>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="gap-2"
-                        onClick={() => setBulkUnitDialogOpen(true)}
-                      >
-                        <Plus className="h-4 w-4" />
-                        Bulk Add
-                      </Button>
-                    </div>
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <UnitList 
-                    propertyId={propertyId as any}
-                    onEditUnit={(unit) => {
-                      setEditingUnit(unit);
-                      setUnitDialogOpen(true);
-                    }}
-                    onAddUnit={() => {
-                      setEditingUnit(null);
-                      setUnitDialogOpen(true);
-                    }}
-                  />
-                </CardContent>
-              </Card>
-            )}
-
-            {/* Convert to Multi-Unit Property */}
-            {property.propertyType !== "multi-family" && !propertyWithUnits?.units?.length && (
-              <Card className="border-2 border-dashed">
-                <CardHeader>
-                  <CardTitle className="flex items-center">
-                    <Home className="w-5 h-5 mr-2" />
-                    Multi-Unit Property
-                  </CardTitle>
-                  <CardDescription>
-                    Convert this property to support multiple units
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    Managing a duplex, triplex, or apartment building? Add units to track multiple tenants and split utilities.
-                  </p>
-                  <Button 
-                    variant="outline"
-                    onClick={() => setBulkUnitDialogOpen(true)}
-                    className="w-full"
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    Add Units
-                  </Button>
-                </CardContent>
-              </Card>
-            )}
-
+            {/*
+              Leases come before the building. Who is in it and until when
+              is what an owner checks; bedrooms and square footage do not
+              change and are reference.
+            */}
             {/* All Leases */}
             <Card>
               <CardHeader>
@@ -1072,15 +933,193 @@ export default function PropertyDetailsPage() {
                 )}
               </CardContent>
             </Card>
+
+            {/* Property Details */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center">
+                  <Home className="w-5 h-5 mr-2" />
+                  Property Details
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-lg">
+                        <Bed className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Bedrooms</span>
+                    </div>
+                    <span className="font-semibold">{property.bedrooms}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-lg">
+                        <Bath className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Bathrooms</span>
+                    </div>
+                    <span className="font-semibold">{property.bathrooms}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-lg">
+                        <Square className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Sq Ft</span>
+                    </div>
+                    <span className="font-semibold">{property.squareFeet?.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-lg">
+                        <DollarSign className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Monthly Rent</span>
+                    </div>
+                    <span className="font-semibold text-green-600">
+                      {totalRentFromLeases > 0 
+                        ? `$${totalRentFromLeases.toLocaleString()}` 
+                        : '$0'
+                      }
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-lg">
+                        <Calendar className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Purchase Date</span>
+                    </div>
+                    <span className="font-semibold">{formatDate(property.purchaseDate)}</span>
+                  </div>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+                    <div className="flex items-center gap-2">
+                      <div className="p-2 bg-background rounded-lg">
+                        <Tag className="w-4 h-4 text-muted-foreground" />
+                      </div>
+                      <span className="text-sm text-muted-foreground">Type</span>
+                    </div>
+                    <span className="font-semibold">{property.type}</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Units Management - Only show for multi-family properties */}
+            {(property.propertyType === "multi-family" || (propertyWithUnits?.units && propertyWithUnits.units.length > 0)) && (
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="flex items-center">
+                        <Home className="w-5 h-5 mr-2" />
+                        Units
+                      </CardTitle>
+                      <CardDescription>
+                        Manage individual units in this property
+                      </CardDescription>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="gap-2"
+                        onClick={() => setBulkUnitDialogOpen(true)}
+                      >
+                        <Plus className="h-4 w-4" />
+                        Bulk Add
+                      </Button>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <UnitList 
+                    propertyId={propertyId as any}
+                    onEditUnit={(unit) => {
+                      setEditingUnit(unit);
+                      setUnitDialogOpen(true);
+                    }}
+                    onAddUnit={() => {
+                      setEditingUnit(null);
+                      setUnitDialogOpen(true);
+                    }}
+                  />
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Convert to Multi-Unit Property */}
+            {property.propertyType !== "multi-family" && !propertyWithUnits?.units?.length && (
+              <Card className="border-2 border-dashed">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <Home className="w-5 h-5 mr-2" />
+                    Multi-Unit Property
+                  </CardTitle>
+                  <CardDescription>
+                    Convert this property to support multiple units
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Managing a duplex, triplex, or apartment building? Add units to track multiple tenants and split utilities.
+                  </p>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setBulkUnitDialogOpen(true)}
+                    className="w-full"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Units
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
+
+            {/*
+              Photos sit below the numbers. They served the listing
+              integration that was removed in Aug 2026; for an owner
+              checking on a property they are reference, not the reason
+              the page was opened.
+            */}
+            <Card>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="flex items-center">
+                      <FileUp className="w-5 h-5 mr-2" />
+                      Property Images
+                    </CardTitle>
+                    <CardDescription>
+                      {propertyImages === undefined 
+                        ? "Loading images..." 
+                        : `${propertyImages.length} image${propertyImages.length !== 1 ? 's' : ''} uploaded`
+                      }
+                    </CardDescription>
+                  </div>
+                  <Button 
+                    size="sm" 
+                    variant="outline" 
+                    className="gap-2"
+                    onClick={() => setImageUploadOpen(true)}
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add Images
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <PropertyImageGallery propertyId={propertyId} />
+              </CardContent>
+            </Card>
+
+
           </div>
 
           {/* Sidebar */}
           <div className="space-y-4 lg:space-y-6">
-            {/* Activity Timeline */}
-            {isValidPropertyId && (
-              <ActivityTimeline propertyId={propertyId as any} limit={20} />
-            )}
-
             {/* Financial Summary */}
             <Card className="bg-gradient-to-br from-card to-muted/20">
               <CardHeader>
@@ -1317,6 +1356,12 @@ export default function PropertyDetailsPage() {
               <TenantStatementGenerator
                 propertyId={property._id as any}
               />
+            )}
+
+            {/* Activity Timeline. A changelog is reference, not the reason an
+                owner opened this page, so it sits below the money. */}
+            {isValidPropertyId && (
+              <ActivityTimeline propertyId={propertyId as any} limit={20} />
             )}
           </div>
         </div>
