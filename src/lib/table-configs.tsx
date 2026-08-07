@@ -20,9 +20,9 @@ export interface Property {
   address: string;
   type: string;
   status: string;
-  bedrooms: number;
-  bathrooms: number;
-  squareFeet: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  squareFeet?: number;
   monthlyRent: number;
   purchaseDate?: string;
   monthlyMortgage?: number;
@@ -231,7 +231,11 @@ export function createPropertyTableConfig(
       sortable: true,
       render: (value, item) => (
         <div className="text-sm">
-          <p>{value} bed, {item.bathrooms} bath</p>
+          {value === undefined && item.bathrooms === undefined ? (
+            <span className="text-muted-foreground">—</span>
+          ) : (
+            <p>{value ?? "—"} bed, {item.bathrooms ?? "—"} bath</p>
+          )}
         </div>
       )
     },
@@ -240,7 +244,7 @@ export function createPropertyTableConfig(
       label: 'Sq Ft',
       priority: 'contextual',
       sortable: true,
-      render: (value) => `${value.toLocaleString()} ft²`
+      render: (value) => (value === undefined ? "—" : `${value.toLocaleString()} ft²`)
     },
     {
       key: '_id',
@@ -725,15 +729,15 @@ export function PropertyMobileCard({
             <div className="grid grid-cols-3 gap-3 text-sm py-3 bg-muted/30 rounded-lg px-3">
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-1">Bedrooms</p>
-                <p className="font-semibold">{property.bedrooms}</p>
+                <p className="font-semibold">{property.bedrooms ?? "—"}</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-1">Bathrooms</p>
-                <p className="font-semibold">{property.bathrooms}</p>
+                <p className="font-semibold">{property.bathrooms ?? "—"}</p>
               </div>
               <div className="text-center">
                 <p className="text-xs text-muted-foreground mb-1">Sq Ft</p>
-                <p className="font-semibold">{property.squareFeet.toLocaleString()}</p>
+                <p className="font-semibold">{property.squareFeet?.toLocaleString() ?? "—"}</p>
               </div>
             </div>
           </div>

@@ -24,15 +24,23 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 // Schemas for each step
+/**
+ * Only the address is required.
+ *
+ * Getting a portfolio into the app was gated behind twelve fields across three
+ * steps, including a bathroom count and a utility split, before a single
+ * property could be saved. An owner who wants to see their properties should
+ * not be stopped at the door; everything here can be filled in later.
+ */
 const basicInfoSchema = z.object({
-  name: z.string().min(2, "Name is required"),
+  name: z.string().optional(),
   address: z.string().min(5, "Address is required"),
-  type: z.string().min(2, "Type is required"),
-  status: z.string().min(2, "Status is required"),
-  bedrooms: z.coerce.number().min(0, "Bedrooms required"),
-  bathrooms: z.coerce.number().min(0, "Bathrooms required"),
-  squareFeet: z.coerce.number().min(0, "Square feet required"),
-  purchaseDate: z.string().min(4, "Purchase date required"),
+  type: z.string().optional(),
+  status: z.string().optional(),
+  bedrooms: z.coerce.number().min(0).optional(),
+  bathrooms: z.coerce.number().min(0).optional(),
+  squareFeet: z.coerce.number().min(0).optional(),
+  purchaseDate: z.string().optional(),
   monthlyMortgage: z.coerce.number().min(0).optional(),
   monthlyCapEx: z.coerce.number().min(0).optional(),
   purchasePrice: z.coerce.number().min(0).optional(),
@@ -548,18 +556,17 @@ function BasicInfoStep({ form, isModal = false }: { form: any; isModal?: boolean
       <FormGrid cols={isModal ? 2 : 2} gap="lg">
         <FormField
           label="Property Name"
-          required
+          description="Defaults to the address"
           error={errors.name?.message}
         >
           <Input
             {...register("name")}
-            placeholder="Enter property name"
+            placeholder="Optional"
           />
         </FormField>
 
         <FormField
           label="Property Type"
-          required
           error={errors.type?.message}
         >
           <SelectNative {...register("type")}>
@@ -584,7 +591,6 @@ function BasicInfoStep({ form, isModal = false }: { form: any; isModal?: boolean
 
         <FormField
           label="Status"
-          required
           error={errors.status?.message}
         >
           <SelectNative {...register("status")}>

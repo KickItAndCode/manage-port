@@ -23,8 +23,8 @@ interface Property {
   address: string;
   type: string;
   status: string;
-  bedrooms: number;
-  bathrooms: number;
+  bedrooms?: number;
+  bathrooms?: number;
   monthlyRent: number;
 }
 

@@ -241,10 +241,12 @@ function PropertiesContent() {
     try {
       const result = await createPropertyWithUnits({
         // Basic property info
-        name: data.name,
+        // Only the address is required by the wizard now; the rest are
+        // sensible starting points the owner can correct later.
+        name: data.name?.trim() || data.address,
         address: data.address,
-        type: data.type,
-        status: data.status,
+        type: data.type || "Single Family",
+        status: data.status || "Available",
         bedrooms: data.bedrooms,
         bathrooms: data.bathrooms,
         squareFeet: data.squareFeet,

@@ -960,7 +960,7 @@ export default function PropertyDetailsPage() {
                       </div>
                       <span className="text-sm text-muted-foreground">Bedrooms</span>
                     </div>
-                    <span className="font-semibold">{property.bedrooms}</span>
+                    <span className="font-semibold">{property.bedrooms ?? "—"}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                     <div className="flex items-center gap-2">
@@ -969,7 +969,7 @@ export default function PropertyDetailsPage() {
                       </div>
                       <span className="text-sm text-muted-foreground">Bathrooms</span>
                     </div>
-                    <span className="font-semibold">{property.bathrooms}</span>
+                    <span className="font-semibold">{property.bathrooms ?? "—"}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                     <div className="flex items-center gap-2">
@@ -978,7 +978,7 @@ export default function PropertyDetailsPage() {
                       </div>
                       <span className="text-sm text-muted-foreground">Sq Ft</span>
                     </div>
-                    <span className="font-semibold">{property.squareFeet?.toLocaleString()}</span>
+                    <span className="font-semibold">{property.squareFeet?.toLocaleString() ?? "—"}</span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                     <div className="flex items-center gap-2">
@@ -1001,7 +1001,9 @@ export default function PropertyDetailsPage() {
                       </div>
                       <span className="text-sm text-muted-foreground">Purchase Date</span>
                     </div>
-                    <span className="font-semibold">{formatDate(property.purchaseDate)}</span>
+                    <span className="font-semibold">
+                      {property.purchaseDate ? formatDate(property.purchaseDate) : "—"}
+                    </span>
                   </div>
                   <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                     <div className="flex items-center gap-2">

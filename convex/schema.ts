@@ -8,10 +8,13 @@ export default defineSchema({
     address: v.string(),
     type: v.string(),
     status: v.string(),
-    bedrooms: v.number(),
-    bathrooms: v.number(),
-    squareFeet: v.number(),
-    purchaseDate: v.string(),
+    // Optional so a property can be recorded from its address alone and filled
+    // in later. An owner adding their portfolio should not be blocked at the
+    // door by a bathroom count.
+    bedrooms: v.optional(v.number()),
+    bathrooms: v.optional(v.number()),
+    squareFeet: v.optional(v.number()),
+    purchaseDate: v.optional(v.string()),
     monthlyMortgage: v.optional(v.number()), // Monthly mortgage payment
     monthlyCapEx: v.optional(v.number()), // Capital expenditure reserve (10% of mortgage)
 

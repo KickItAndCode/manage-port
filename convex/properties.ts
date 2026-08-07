@@ -120,11 +120,11 @@ const validatePropertyData = (args: any) => {
     });
   }
 
-  // Numeric validations
+  // Numeric validations. Each is optional now — a range is only meaningful for
+  // a figure that was actually given.
   if (
-    args.bedrooms < 0 ||
-    args.bedrooms > 20 ||
-    !Number.isInteger(args.bedrooms)
+    args.bedrooms !== undefined &&
+    (args.bedrooms < 0 || args.bedrooms > 20 || !Number.isInteger(args.bedrooms))
   ) {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
@@ -133,7 +133,7 @@ const validatePropertyData = (args: any) => {
     });
   }
 
-  if (args.bathrooms < 0 || args.bathrooms > 20) {
+  if (args.bathrooms !== undefined && (args.bathrooms < 0 || args.bathrooms > 20)) {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message: "Bathrooms must be between 0 and 20",
@@ -142,9 +142,8 @@ const validatePropertyData = (args: any) => {
   }
 
   if (
-    args.squareFeet < 50 ||
-    args.squareFeet > 50000 ||
-    !Number.isInteger(args.squareFeet)
+    args.squareFeet !== undefined &&
+    (args.squareFeet < 50 || args.squareFeet > 50000 || !Number.isInteger(args.squareFeet))
   ) {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
@@ -153,10 +152,10 @@ const validatePropertyData = (args: any) => {
     });
   }
 
-  // Date validation
-  const purchaseDate = new Date(args.purchaseDate);
+  // Date validation, when a purchase date was given at all.
+  const purchaseDate = new Date(args.purchaseDate ?? "");
   const now = new Date();
-  if (isNaN(purchaseDate.getTime()) || purchaseDate > now) {
+  if (args.purchaseDate && (isNaN(purchaseDate.getTime()) || purchaseDate > now)) {
     throw new ConvexError({
       code: "VALIDATION_ERROR",
       message: "Purchase date must be a valid date in the past",
@@ -199,10 +198,10 @@ export const addProperty = mutation({
     address: v.string(),
     type: v.string(),
     status: v.string(),
-    bedrooms: v.number(),
-    bathrooms: v.number(),
-    squareFeet: v.number(),
-    purchaseDate: v.string(),
+    bedrooms: v.optional(v.number()),
+    bathrooms: v.optional(v.number()),
+    squareFeet: v.optional(v.number()),
+    purchaseDate: v.optional(v.string()),
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
     purchasePrice: v.optional(v.number()),
@@ -269,10 +268,10 @@ export const createPropertyWithUnits = mutation({
     address: v.string(),
     type: v.string(),
     status: v.string(),
-    bedrooms: v.number(),
-    bathrooms: v.number(),
-    squareFeet: v.number(),
-    purchaseDate: v.string(),
+    bedrooms: v.optional(v.number()),
+    bathrooms: v.optional(v.number()),
+    squareFeet: v.optional(v.number()),
+    purchaseDate: v.optional(v.string()),
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
     purchasePrice: v.optional(v.number()),
@@ -664,10 +663,10 @@ export const updateProperty = mutation({
     address: v.string(),
     type: v.string(),
     status: v.string(),
-    bedrooms: v.number(),
-    bathrooms: v.number(),
-    squareFeet: v.number(),
-    purchaseDate: v.string(),
+    bedrooms: v.optional(v.number()),
+    bathrooms: v.optional(v.number()),
+    squareFeet: v.optional(v.number()),
+    purchaseDate: v.optional(v.string()),
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
     purchasePrice: v.optional(v.number()),

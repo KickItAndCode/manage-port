@@ -94,7 +94,7 @@ export const getDashboardMetrics = query({
 
     // Calculate metrics
     const totalProperties = properties.length;
-    const totalSquareFeet = properties.reduce((sum, p) => sum + p.squareFeet, 0);
+    const totalSquareFeet = properties.reduce((sum, p) => sum + (p.squareFeet ?? 0), 0);
     
     // Get units using index (optimized) - batch query by propertyId
     const propertyIds = properties.map(p => p._id);
