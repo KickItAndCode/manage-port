@@ -339,7 +339,14 @@ function UtilityBillsContent() {
     if (month) {
       urlParams.dateRange = [month, month];
     }
-    
+
+    // Payment status, so the dashboard's overdue card can land here already
+    // narrowed to what is late rather than on the full list.
+    const status = searchParams.get('status');
+    if (status === 'overdue' || status === 'paid' || status === 'unpaid') {
+      urlParams.paidStatus = status;
+    }
+
     // Apply URL parameters if any exist
     if (Object.keys(urlParams).length > 0) {
       updateFilters(urlParams);

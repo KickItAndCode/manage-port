@@ -26,6 +26,9 @@ test.describe("global search shortcut", () => {
   test("Escape releases search without closing anything else", async ({ page }) => {
     await page.goto("/dashboard");
     const search = page.getByTestId("global-search-input");
+    // Wait for hydration before pressing: the shortcut is a document listener
+    // attached on mount, and a keypress sent before that lands nowhere.
+    await expect(search).toBeVisible();
 
     await page.keyboard.press("ControlOrMeta+k");
     await expect(search).toBeFocused();
@@ -88,6 +91,39 @@ test.describe("overdue bills read as overdue", () => {
     // unpaid — that was the state a landlord could not act on.
     const overdue = page.getByText("Overdue", { exact: true });
     await expect(overdue.first()).toBeVisible();
+  });
+
+  test("the dashboard agrees with the bills page about what is late", async ({
+    page,
+  }) => {
+    // Asserted against the bills page rather than a fixed number, so this does
+    // not depend on which account the suite signs in as. The card is
+    // deliberately absent when nothing is overdue — a permanent "Overdue: 0"
+    // is noise — so both directions are checked.
+    await page.goto("/utility-bills");
+    const billsCount = page.getByTestId("overdue-bills-count");
+    await expect(billsCount).toBeVisible();
+    const expected = Number((await billsCount.textContent())?.trim());
+
+    await page.goto("/dashboard");
+    const card = page.getByTestId("kpi-overdue-value");
+
+    if (expected === 0) {
+      await expect(card).toHaveCount(0);
+      return;
+    }
+
+    await expect(card).toBeVisible({ timeout: 15_000 });
+    // A count, not a currency amount: KPICard formats every number it is
+    // given as USD, which rendered 33 bills as "$33".
+    await expect(card).toHaveText(String(expected));
+  });
+
+  test("the dashboard card lands on the bills already filtered", async ({ page }) => {
+    await page.goto("/utility-bills?status=overdue");
+
+    await expect(page.locator("#paidStatus")).toHaveValue("overdue");
+    await expect(page.getByText("Paid", { exact: true })).toHaveCount(0);
   });
 
   test("the overdue filter narrows the list", async ({ page }) => {

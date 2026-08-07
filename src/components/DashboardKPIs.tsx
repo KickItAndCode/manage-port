@@ -10,9 +10,11 @@ import {
   TrendingUp,
   Receipt,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  AlertCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getPaymentStatus } from "@/utils/utilityBillHelpers";
 import { useRouter } from "next/navigation";
 import { useMemo, memo, useCallback } from "react";
 import { DashboardFilters as DashboardFiltersType } from "./DashboardFilters";
@@ -39,6 +41,8 @@ interface KPICardProps {
   bgColor: string;
   onClick?: () => void;
   compact?: boolean;
+  /** Set on cards a test needs to read; omitted elsewhere. */
+  testId?: string;
 }
 
 const KPICard = memo(function KPICard({
@@ -50,7 +54,8 @@ const KPICard = memo(function KPICard({
   iconColor,
   bgColor,
   onClick,
-  compact = false
+  compact = false,
+  testId
 }: KPICardProps) {
   const formattedValue = useMemo(
     () =>
@@ -90,6 +95,7 @@ const KPICard = memo(function KPICard({
                 "font-bold text-foreground mb-1",
                 compact ? "text-lg" : "text-2xl"
               )}
+              data-testid={testId ? `${testId}-value` : undefined}
             >
               {formattedValue}
             </p>
@@ -175,6 +181,30 @@ export const DashboardKPIs = memo(function DashboardKPIs({
     isAuthenticated ? {} : "skip"
   );
 
+  /**
+   * Unpaid bills, so the dashboard can say what is actually late.
+   *
+   * The landing page reported occupancy, rent and utility spend but never that
+   * money was overdue — the one thing on it that needs acting on today. Only
+   * unpaid bills are fetched; a paid bill can never be overdue.
+   */
+  const unpaidBills = useQuery(
+    api.utilityBills.getUtilityBills,
+    isAuthenticated
+      ? { propertyId: filters?.propertyId, landlordPaid: false }
+      : "skip"
+  );
+
+  const overdue = useMemo(() => {
+    const bills = (unpaidBills ?? []).filter(
+      (bill) => getPaymentStatus(bill).status === "overdue"
+    );
+    return {
+      count: bills.length,
+      amount: bills.reduce((sum, bill) => sum + bill.totalAmount, 0),
+    };
+  }, [unpaidBills]);
+
   // Get properties to show property name when filter is active
   const propertiesResult = useQuery(
     api.properties.getProperties,
@@ -250,6 +280,13 @@ export const DashboardKPIs = memo(function DashboardKPIs({
     }
   }, [selectedProperty, router]);
 
+  // Lands on the bills list already filtered to what is late, so the card
+  // answers "what?" and the click answers "which?".
+  const handleOverdueClick = useCallback(() => {
+    const property = selectedProperty ? `propertyId=${selectedProperty._id}&` : "";
+    router.push(`/utility-bills?${property}status=overdue`);
+  }, [router, selectedProperty]);
+
   const handleUtilityClick = useCallback(() => {
     if (selectedProperty) {
       router.push(`/utility-bills?propertyId=${selectedProperty._id}`);
@@ -287,10 +324,36 @@ export const DashboardKPIs = memo(function DashboardKPIs({
   return (
     <div
       className={cn(
-        "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6",
+        "grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6",
+        overdue.count > 0 ? "lg:grid-cols-5" : "lg:grid-cols-4",
         compact && "gap-2"
       )}
     >
+      {/*
+        Shown only when something is actually late, and shown first. This is an
+        alert rather than a metric — a permanent "Overdue: 0" is noise, and
+        burying a real one behind occupancy and rent is worse.
+      */}
+      {overdue.count > 0 && (
+        <KPICard
+          title="Overdue Bills"
+          // A string: KPICard formats every number as currency, which turned a
+          // count of 33 bills into "$33".
+          value={String(overdue.count)}
+          subtitle={`${new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: "USD",
+            maximumFractionDigits: 0,
+          }).format(overdue.amount)} past due`}
+          icon={AlertCircle}
+          iconColor="text-red-600 dark:text-red-400"
+          bgColor="bg-red-50 dark:bg-red-950/20"
+          onClick={handleOverdueClick}
+          compact={compact}
+          testId="kpi-overdue"
+        />
+      )}
+
       {/* Occupancy Rate */}
       <KPICard
         title="Occupancy Rate"
