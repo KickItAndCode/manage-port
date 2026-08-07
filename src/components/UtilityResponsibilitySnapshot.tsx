@@ -30,6 +30,13 @@ interface UtilityResponsibilitySnapshotProps {
   userId: string;
   /** Show edit button */
   showEdit?: boolean;
+  /**
+   * Called instead of navigating when the edit action is used.
+   *
+   * Without it the button routes to `?tab=utilities`, a tab the property page
+   * does not have, so the control looked live and did nothing.
+   */
+  onEdit?: () => void;
   /** Compact mode for smaller displays */
   compact?: boolean;
 }
@@ -71,6 +78,7 @@ export function UtilityResponsibilitySnapshot({
   userId,
   showEdit = false,
   compact = false,
+  onEdit,
 }: UtilityResponsibilitySnapshotProps) {
   const router = useRouter();
 
@@ -216,6 +224,7 @@ export function UtilityResponsibilitySnapshot({
                 size="sm"
                 className="mt-4"
                 onClick={() => {
+                  if (onEdit) return onEdit();
                   if (propertyId) {
                     router.push(`/properties/${propertyId}?tab=utilities`);
                   } else if (leaseId) {
@@ -245,6 +254,7 @@ export function UtilityResponsibilitySnapshot({
               variant="ghost"
               size="sm"
               onClick={() => {
+                if (onEdit) return onEdit();
                 if (propertyId) {
                   router.push(`/properties/${propertyId}?tab=utilities`);
                 } else if (leaseId) {

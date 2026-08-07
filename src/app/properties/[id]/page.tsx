@@ -68,6 +68,7 @@ export default function PropertyDetailsPage() {
   const [bulkUnitDialogOpen, setBulkUnitDialogOpen] = useState(false);
   const [editingUnit, setEditingUnit] = useState<any>(null);
   const [showExpiredLeases, setShowExpiredLeases] = useState(false);
+  const [utilityEditorOpen, setUtilityEditorOpen] = useState(false);
   
   const updateProperty = useMutation(api.properties.updateProperty);
   const addUnit = useMutation(api.units.addUnit);
@@ -433,6 +434,12 @@ export default function PropertyDetailsPage() {
 
   const currentTenant = getCurrentTenant();
   const totalRentFromLeases = propertyWithUnits?.monthlyRent || 0; // Calculated from active leases
+
+  // The allocation editor only means anything once there are units to split
+  // between; the same condition that used to gate the second card.
+  const canAllocateUtilities =
+    property?.propertyType === "multi-family" ||
+    (propertyWithUnits?.units?.length ?? 0) > 0;
 
   const netIncomeInputs = {
     monthlyRent: totalRentFromLeases,
@@ -1288,20 +1295,20 @@ export default function PropertyDetailsPage() {
               </CardContent>
             </Card>
 
-            {/* Utility Responsibility Snapshot */}
+            {/*
+              One utility section, not two. The snapshot summarises who is
+              responsible for what; the allocation editor used to sit stacked
+              directly beneath it answering the same question in an editable
+              form. The editor now opens from the snapshot's own Edit action,
+              which previously routed to `?tab=utilities` — a tab this page does
+              not have — and so did nothing at all.
+            */}
             {property && (
               <UtilityResponsibilitySnapshot
                 propertyId={property._id as any}
                 userId={user!.id}
-                showEdit={true}
-              />
-            )}
-
-            {/* Property Utility Allocation */}
-            {property && (property.propertyType === "multi-family" || (propertyWithUnits?.units && propertyWithUnits.units.length > 0)) && (
-              <PropertyUtilityAllocation
-                propertyId={property._id as any}
-                userId={user!.id}
+                showEdit={canAllocateUtilities}
+                onEdit={() => setUtilityEditorOpen(true)}
               />
             )}
 
@@ -1315,6 +1322,23 @@ export default function PropertyDetailsPage() {
         </div>
       </div>
       
+      {/* Utility split editor, opened from the responsibility summary */}
+      <Dialog open={utilityEditorOpen} onOpenChange={setUtilityEditorOpen}>
+        <DialogContent className="w-[95vw] max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-lg md:text-xl">
+              Utility Split
+            </DialogTitle>
+          </DialogHeader>
+          {property && (
+            <PropertyUtilityAllocation
+              propertyId={property._id as any}
+              userId={user!.id}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
       {/* Edit Property Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={(isOpen) => {
         setEditDialogOpen(isOpen);
