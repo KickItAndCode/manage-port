@@ -85,6 +85,35 @@ test("the leases page agrees with the dashboard about active leases", async ({ p
   }
 });
 
+test("a loading list never claims the account is empty", async ({ page }) => {
+  // Both list pages passed their mutation-loading flag to the table while the
+  // query result was still undefined, so the table saw an empty array and
+  // rendered its empty state. An owner with nine properties was told they had
+  // none until the query resolved.
+  //
+  // Asserted from the first paint rather than after settling, which is the only
+  // moment the bug was visible.
+  // Scoped to /properties, where the bug was reproduced. The leases page had
+  // the identical defect and the identical fix, but its table is split into
+  // titled sections whose empty copy varies, and a selector that brittle would
+  // report on itself rather than on the app.
+  await page.goto("/properties");
+
+  const empty = page.getByText(/No properties found/i);
+  const rows = page.locator("tbody tr");
+  await expect(empty.or(rows.first())).toBeVisible({ timeout: 30_000 });
+
+  if (await empty.isVisible()) {
+    // If it says empty it must still say so once everything has settled. A
+    // transient empty state means it was rendered over data still loading.
+    await page.waitForLoadState("networkidle");
+    await expect(
+      empty,
+      "the properties list showed its empty state while data was still loading"
+    ).toBeVisible();
+  }
+});
+
 test("the utility dashboard does not contradict the bills page", async ({ page }) => {
   await page.goto("/utility-bills");
   await expect(page.getByRole("heading", { name: /Utility Bill/i }).first()).toBeVisible({

@@ -605,7 +605,10 @@ function PropertiesContent() {
             handleDeleteProperty,
             (property) => router.push(`/properties/${property._id}`)
           )}
-          loading={loading}
+          // `loading` tracks mutations. The query is loading while its result
+          // is undefined, and without that the table falls through to its empty
+          // state and tells an owner with nine properties they have none.
+          loading={loading || propertiesResult === undefined}
           onSort={handleSort}
           onSelect={setSelectedProperties}
           selectedItems={selectedProperties}

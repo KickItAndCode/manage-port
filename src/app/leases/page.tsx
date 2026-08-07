@@ -388,7 +388,9 @@ function LeasesPageContent() {
         <ResponsiveTable
           data={leaseList}
           config={leaseTableConfig}
-          loading={loading}
+          // See the properties page: `loading` is mutation state, so the query
+          // being undefined is what actually means "still loading".
+          loading={loading || leasesResult === undefined}
           onSort={handleSort}
           onSelect={setSelectedItems}
           selectedItems={selectedItems}
