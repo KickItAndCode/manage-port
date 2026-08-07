@@ -34,7 +34,10 @@ const basicInfoSchema = z.object({
   squareFeet: z.coerce.number().min(0, "Square feet required"),
   purchaseDate: z.string().min(4, "Purchase date required"),
   monthlyMortgage: z.coerce.number().min(0).optional(),
-  monthlyCapEx: z.coerce.number().min(0).optional()
+  monthlyCapEx: z.coerce.number().min(0).optional(),
+  purchasePrice: z.coerce.number().min(0).optional(),
+  currentValue: z.coerce.number().min(0).optional(),
+  cashInvested: z.coerce.number().min(0).optional()
 });
 
 const propertyTypeSchema = z.object({
@@ -664,6 +667,45 @@ function BasicInfoStep({ form, isModal = false }: { form: any; isModal?: boolean
             min={0}
             {...register("monthlyCapEx", { valueAsNumber: true })}
             placeholder="Auto-calculated (10% of mortgage)"
+          />
+        </FormField>
+
+        {/* What it cost and is worth — the basis for every return metric. */}
+        <FormField
+          label="Purchase Price ($)"
+          error={errors.purchasePrice?.message}
+        >
+          <Input
+            type="number"
+            min={0}
+            {...register("purchasePrice", { valueAsNumber: true })}
+            placeholder="Optional"
+          />
+        </FormField>
+
+        <FormField
+          label="Current Value ($)"
+          error={errors.currentValue?.message}
+          description="Used for equity and cap rate"
+        >
+          <Input
+            type="number"
+            min={0}
+            {...register("currentValue", { valueAsNumber: true })}
+            placeholder="Optional"
+          />
+        </FormField>
+
+        <FormField
+          label="Cash Invested ($)"
+          error={errors.cashInvested?.message}
+          description="Deposit, closing and rehab — needed for cash-on-cash"
+        >
+          <Input
+            type="number"
+            min={0}
+            {...register("cashInvested", { valueAsNumber: true })}
+            placeholder="Optional"
           />
         </FormField>
       </FormGrid>

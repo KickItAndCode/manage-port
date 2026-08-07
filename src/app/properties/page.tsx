@@ -251,6 +251,9 @@ function PropertiesContent() {
         purchaseDate: data.purchaseDate,
         monthlyMortgage: data.monthlyMortgage,
         monthlyCapEx: data.monthlyCapEx,
+        purchasePrice: data.purchasePrice,
+        currentValue: data.currentValue,
+        cashInvested: data.cashInvested,
 
         // Property type and units
         propertyType: data.propertyType,

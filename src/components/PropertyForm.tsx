@@ -21,6 +21,9 @@ export interface PropertyFormProps {
     purchaseDate: string;
     monthlyMortgage?: number;
     monthlyCapEx?: number;
+    purchasePrice?: number;
+    currentValue?: number;
+    cashInvested?: number;
   };
   onSubmit: (data: {
     name: string;
@@ -33,6 +36,9 @@ export interface PropertyFormProps {
     purchaseDate: string;
     monthlyMortgage?: number;
     monthlyCapEx?: number;
+    purchasePrice?: number;
+    currentValue?: number;
+    cashInvested?: number;
   }) => void;
   onCancel?: () => void;
   loading?: boolean;
@@ -49,6 +55,9 @@ const propertySchema = z.object({
   purchaseDate: z.string().min(4, "Purchase date required"),
   monthlyMortgage: z.coerce.number().min(0).optional(),
   monthlyCapEx: z.coerce.number().min(0).optional(),
+  purchasePrice: z.coerce.number().min(0).optional(),
+  currentValue: z.coerce.number().min(0).optional(),
+  cashInvested: z.coerce.number().min(0).optional(),
 });
 type PropertyFormType = z.infer<typeof propertySchema>;
 
@@ -262,6 +271,54 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
           />
         </FormField>
       </div>
+
+      {/*
+        What the property cost and is worth. Without these the app can show
+        money moving each month but never whether the property is a good one.
+        All optional — an owner who does not track valuations is not blocked.
+      */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <FormField
+          label="Purchase Price ($)"
+          error={errors.purchasePrice?.message}
+        >
+          <Input
+            type="number"
+            min={0}
+            {...register("purchasePrice", { valueAsNumber: true })}
+            placeholder="Optional"
+            data-testid="property-purchase-price-input"
+          />
+        </FormField>
+
+        <FormField
+          label="Current Value ($)"
+          description="Used for equity and cap rate"
+          error={errors.currentValue?.message}
+        >
+          <Input
+            type="number"
+            min={0}
+            {...register("currentValue", { valueAsNumber: true })}
+            placeholder="Optional"
+            data-testid="property-current-value-input"
+          />
+        </FormField>
+      </div>
+
+      <FormField
+        label="Cash Invested ($)"
+        description="Deposit, closing costs and rehab — needed for cash-on-cash return"
+        error={errors.cashInvested?.message}
+      >
+        <Input
+          type="number"
+          min={0}
+          {...register("cashInvested", { valueAsNumber: true })}
+          placeholder="Optional"
+          data-testid="property-cash-invested-input"
+        />
+      </FormField>
       <div className="flex gap-2 justify-end pt-4">
         {onCancel && (
           <Button 

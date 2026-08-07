@@ -163,6 +163,20 @@ const validatePropertyData = (args: any) => {
     });
   }
 
+  // Money figures, all optional. Zero is allowed — a property written down to
+  // nothing, or one that was inherited, is a real case. Negatives are not.
+  for (const field of ["purchasePrice", "currentValue", "cashInvested"] as const) {
+    const value = args[field];
+    if (value === undefined || value === null) continue;
+    if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+      throw new ConvexError({
+        code: "VALIDATION_ERROR",
+        message: "Amount must be zero or greater",
+        field,
+      });
+    }
+  }
+
   // URL validation (if provided)
   if (args.imageUrl && args.imageUrl !== "") {
     try {
@@ -190,6 +204,9 @@ export const addProperty = mutation({
     purchaseDate: v.string(),
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
+    purchasePrice: v.optional(v.number()),
+    currentValue: v.optional(v.number()),
+    cashInvested: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
@@ -256,6 +273,9 @@ export const createPropertyWithUnits = mutation({
     purchaseDate: v.string(),
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
+    purchasePrice: v.optional(v.number()),
+    currentValue: v.optional(v.number()),
+    cashInvested: v.optional(v.number()),
 
     // Property type and units
     propertyType: v.union(
@@ -329,6 +349,9 @@ export const createPropertyWithUnits = mutation({
         purchaseDate: args.purchaseDate,
         monthlyMortgage: args.monthlyMortgage,
         monthlyCapEx: args.monthlyCapEx,
+        purchasePrice: args.purchasePrice,
+        currentValue: args.currentValue,
+        cashInvested: args.cashInvested,
         propertyType: args.propertyType,
 
         // Save utility wizard settings as property defaults
@@ -610,6 +633,9 @@ export const updateProperty = mutation({
     purchaseDate: v.string(),
     monthlyMortgage: v.optional(v.number()),
     monthlyCapEx: v.optional(v.number()),
+    purchasePrice: v.optional(v.number()),
+    currentValue: v.optional(v.number()),
+    cashInvested: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
@@ -668,6 +694,9 @@ export const updateProperty = mutation({
         purchaseDate: args.purchaseDate,
         monthlyMortgage: args.monthlyMortgage,
         monthlyCapEx: args.monthlyCapEx,
+        purchasePrice: args.purchasePrice,
+        currentValue: args.currentValue,
+        cashInvested: args.cashInvested,
       });
 
       // Log activity

@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getPaymentStatus } from "@/utils/utilityBillHelpers";
+import { portfolioValue } from "@/../convex/lib/investment";
 import { useRouter } from "next/navigation";
 import { useMemo, memo, useCallback } from "react";
 import { DashboardFilters as DashboardFiltersType } from "./DashboardFilters";
@@ -215,6 +216,15 @@ export const DashboardKPIs = memo(function DashboardKPIs({
       ? propertiesResult.properties
       : [];
 
+  /**
+   * What the portfolio is worth, and how much of it could be valued.
+   *
+   * The count travels with the total so the card can say "across 2 of 3" —
+   * presenting a partial sum as the whole portfolio would understate it
+   * silently, which is worse than admitting the gap.
+   */
+  const portfolio = useMemo(() => portfolioValue(properties), [properties]);
+
   // Get utility bills for property breakdown
 
   // Get property name when property filter is active
@@ -324,8 +334,11 @@ export const DashboardKPIs = memo(function DashboardKPIs({
   return (
     <div
       className={cn(
-        "grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6",
-        overdue.count > 0 ? "lg:grid-cols-5" : "lg:grid-cols-4",
+        // A fixed column count that lets cards wrap, rather than one column per
+        // card. Between four and six render depending on what the account has,
+        // and squeezing six across a 1280px screen clipped "$812,000" to
+        // "$812,00" and ran titles into their icons.
+        "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-6",
         compact && "gap-2"
       )}
     >
@@ -351,6 +364,29 @@ export const DashboardKPIs = memo(function DashboardKPIs({
           onClick={handleOverdueClick}
           compact={compact}
           testId="kpi-overdue"
+        />
+      )}
+
+      {/*
+        Shown only once at least one property has a price or a value on file.
+        An owner who has not entered any gets no card rather than "$0", which
+        would read as a portfolio worth nothing.
+      */}
+      {portfolio.valued > 0 && (
+        <KPICard
+          title="Portfolio Value"
+          value={portfolio.total}
+          subtitle={
+            portfolio.unvalued > 0
+              ? `across ${portfolio.valued} of ${portfolio.valued + portfolio.unvalued} properties`
+              : `across ${portfolio.valued} ${portfolio.valued === 1 ? "property" : "properties"}`
+          }
+          icon={Building2}
+          iconColor="text-emerald-600 dark:text-emerald-400"
+          bgColor="bg-emerald-50 dark:bg-emerald-950/20"
+          onClick={() => router.push("/properties")}
+          compact={compact}
+          testId="kpi-portfolio-value"
         />
       )}
 

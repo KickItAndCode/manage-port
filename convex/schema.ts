@@ -14,6 +14,16 @@ export default defineSchema({
     purchaseDate: v.string(),
     monthlyMortgage: v.optional(v.number()), // Monthly mortgage payment
     monthlyCapEx: v.optional(v.number()), // Capital expenditure reserve (10% of mortgage)
+
+    // What the property cost, what it is worth, and what the owner actually put
+    // in. Without these the app can compute cash flow but never return. All
+    // optional: properties created before this existed must still work, and an
+    // owner who does not track valuations should not be blocked.
+    purchasePrice: v.optional(v.number()),
+    currentValue: v.optional(v.number()),
+    // Deposit plus closing costs and rehab. Only equals purchasePrice for an
+    // all-cash buyer, which is why cash-on-cash return needs its own figure.
+    cashInvested: v.optional(v.number()),
     propertyType: v.optional(
       v.union(v.literal("single-family"), v.literal("multi-family"))
     ), // New field

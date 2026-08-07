@@ -50,6 +50,7 @@ import { TenantStatementGenerator } from "@/components/TenantStatementGenerator"
 import { UtilityResponsibilitySnapshot } from "@/components/UtilityResponsibilitySnapshot";
 import { ActivityTimeline } from "@/components/ActivityTimeline";
 import { getLeaseStatus } from "@/lib/lease-status";
+import { appreciation, cashOnCash, valueOf } from "@/../convex/lib/investment";
 
 export default function PropertyDetailsPage() {
   const params = useParams();
@@ -404,6 +405,11 @@ export default function PropertyDetailsPage() {
     (showCapEx ? (property?.monthlyCapEx || 0) : 0);
   const totalRentFromLeases = propertyWithUnits?.monthlyRent || 0; // Calculated from active leases
   const netIncome = totalRentFromLeases - monthlyExpenses;
+
+  // Derived, never stored, and null whenever the inputs are missing.
+  const propertyValue = valueOf(property);
+  const propertyAppreciation = appreciation(property);
+  const cashOnCashReturn = cashOnCash(netIncome * 12, property.cashInvested);
 
   return (
     <div className="min-h-screen bg-background p-4 sm:p-6 lg:p-8">
@@ -1101,6 +1107,63 @@ export default function PropertyDetailsPage() {
                     </div>
                   </div>
                   
+                  {/*
+                    Investment position. Each row appears only when the figures
+                    behind it are on file — a property with no valuation has no
+                    cap rate, it does not have a cap rate of zero.
+
+                    Cash-on-cash divides the annual version of the net income
+                    above, so when that definition is unified across the app the
+                    return follows automatically rather than drifting from it.
+                  */}
+                  {(propertyValue !== null || cashOnCashReturn !== null) && (
+                    <div className="pt-3 border-t space-y-2">
+                      <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Investment
+                      </p>
+                      {propertyValue !== null && (
+                        <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
+                          <span className="text-muted-foreground">
+                            {property.currentValue !== undefined ? "Current Value" : "Purchase Price"}
+                          </span>
+                          <span className="font-semibold" data-testid="property-value">
+                            ${propertyValue.toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                      {propertyAppreciation !== null && (
+                        <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
+                          <span className="text-muted-foreground">Appreciation</span>
+                          <span
+                            className={`font-semibold ${propertyAppreciation.amount >= 0 ? "text-green-600" : "text-red-600"}`}
+                            data-testid="property-appreciation"
+                          >
+                            {propertyAppreciation.amount >= 0 ? "+" : "−"}$
+                            {Math.abs(propertyAppreciation.amount).toLocaleString()}
+                            <span className="text-xs ml-1">
+                              ({propertyAppreciation.percent >= 0 ? "+" : "−"}
+                              {Math.abs(propertyAppreciation.percent).toFixed(1)}%)
+                            </span>
+                          </span>
+                        </div>
+                      )}
+                      {cashOnCashReturn !== null && (
+                        <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
+                          <span className="text-muted-foreground">
+                            Cash-on-Cash
+                            <span className="text-xs text-muted-foreground ml-1">(annual)</span>
+                          </span>
+                          <span
+                            className={`font-semibold ${cashOnCashReturn >= 0 ? "text-green-600" : "text-red-600"}`}
+                            data-testid="property-cash-on-cash"
+                          >
+                            {cashOnCashReturn.toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                   {currentTenant?.securityDeposit && (
                     <div className="pt-3 border-t">
                       <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
@@ -1205,6 +1268,9 @@ export default function PropertyDetailsPage() {
                 purchaseDate: property.purchaseDate,
                 monthlyMortgage: property.monthlyMortgage,
                 monthlyCapEx: property.monthlyCapEx,
+                purchasePrice: property.purchasePrice,
+                currentValue: property.currentValue,
+                cashInvested: property.cashInvested,
               }}
               onSubmit={async (data) => {
                 if (!user) return;
