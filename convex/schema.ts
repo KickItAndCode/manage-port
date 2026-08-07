@@ -24,6 +24,16 @@ export default defineSchema({
     // Deposit plus closing costs and rehab. Only equals purchasePrice for an
     // all-cash buyer, which is why cash-on-cash return needs its own figure.
     cashInvested: v.optional(v.number()),
+
+    /**
+     * Whether utility bills for this property pass through the owner at all.
+     *
+     * Distinct from utilityPreset, which says who bears the cost of a bill the
+     * owner still records. Where the tenant is billed directly by the utility,
+     * no bill ever reaches the owner and the whole splitting surface is noise.
+     * Undefined means true, so properties created before this keep working.
+     */
+    tracksUtilities: v.optional(v.boolean()),
     propertyType: v.optional(
       v.union(v.literal("single-family"), v.literal("multi-family"))
     ), // New field

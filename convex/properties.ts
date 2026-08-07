@@ -208,6 +208,7 @@ export const addProperty = mutation({
     purchasePrice: v.optional(v.number()),
     currentValue: v.optional(v.number()),
     cashInvested: v.optional(v.number()),
+    tracksUtilities: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
@@ -277,6 +278,7 @@ export const createPropertyWithUnits = mutation({
     purchasePrice: v.optional(v.number()),
     currentValue: v.optional(v.number()),
     cashInvested: v.optional(v.number()),
+    tracksUtilities: v.optional(v.boolean()),
 
     // Property type and units
     propertyType: v.union(
@@ -353,6 +355,7 @@ export const createPropertyWithUnits = mutation({
         purchasePrice: args.purchasePrice,
         currentValue: args.currentValue,
         cashInvested: args.cashInvested,
+        tracksUtilities: args.tracksUtilities,
         propertyType: args.propertyType,
 
         // Save utility wizard settings as property defaults
@@ -514,7 +517,13 @@ export const getProperties = query({
             .collect()
         ).filter((bill) => bill.billDate.slice(0, 10) >= cutoffDay);
 
-        const monthlyUtilities = averageMonthlyCost(recentBills, 3);
+        // Zero where the owner never receives the bills, so this list agrees
+        // with the property page rather than charging them an expense they do
+        // not carry.
+        const monthlyUtilities =
+          property.tracksUtilities === false
+            ? 0
+            : averageMonthlyCost(recentBills, 3);
 
         return {
           ...property,
@@ -664,6 +673,7 @@ export const updateProperty = mutation({
     purchasePrice: v.optional(v.number()),
     currentValue: v.optional(v.number()),
     cashInvested: v.optional(v.number()),
+    tracksUtilities: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const userId = await requireUser(ctx);
@@ -725,6 +735,7 @@ export const updateProperty = mutation({
         purchasePrice: args.purchasePrice,
         currentValue: args.currentValue,
         cashInvested: args.cashInvested,
+        tracksUtilities: args.tracksUtilities,
       });
 
       // Log activity

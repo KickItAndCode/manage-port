@@ -436,6 +436,13 @@ export default function PropertyDetailsPage() {
   const currentTenant = getCurrentTenant();
   const totalRentFromLeases = propertyWithUnits?.monthlyRent || 0; // Calculated from active leases
 
+  /**
+   * Undefined counts as true: properties created before this flag existed did
+   * have their bills recorded here, and flipping them silently would remove a
+   * section an owner relies on.
+   */
+  const tracksUtilities = property?.tracksUtilities !== false;
+
   // The allocation editor only means anything once there are units to split
   // between; the same condition that used to gate the second card.
   const canAllocateUtilities =
@@ -444,7 +451,8 @@ export default function PropertyDetailsPage() {
 
   const netIncomeInputs = {
     monthlyRent: totalRentFromLeases,
-    monthlyUtilities,
+    // A bill the owner never receives is not their expense.
+    monthlyUtilities: tracksUtilities ? monthlyUtilities : 0,
     monthlyMortgage: property?.monthlyMortgage || 0,
     monthlyCapEx: showCapEx ? property?.monthlyCapEx || 0 : 0,
   };
@@ -1172,7 +1180,7 @@ export default function PropertyDetailsPage() {
                         <span className="font-semibold">-${property.monthlyMortgage.toLocaleString()}</span>
                       </div>
                     )}
-                    {monthlyUtilities > 0 && (
+                    {tracksUtilities && monthlyUtilities > 0 && (
                       <div className="flex justify-between items-center p-3 bg-background/50 rounded-lg">
                         <span className="text-muted-foreground">
                           Utilities
@@ -1301,7 +1309,7 @@ export default function PropertyDetailsPage() {
               <PropertyYearSummary
                 propertyName={property.name}
                 leases={leases as any}
-                bills={(propertyBills ?? []) as any}
+                bills={(tracksUtilities ? propertyBills ?? [] : []) as any}
                 monthlyMortgage={property.monthlyMortgage}
                 monthlyCapEx={showCapEx ? property.monthlyCapEx : 0}
               />
@@ -1354,7 +1362,7 @@ export default function PropertyDetailsPage() {
               which previously routed to `?tab=utilities` — a tab this page does
               not have — and so did nothing at all.
             */}
-            {property && (
+            {property && tracksUtilities && (
               <UtilityResponsibilitySnapshot
                 propertyId={property._id as any}
                 userId={user!.id}
@@ -1423,6 +1431,7 @@ export default function PropertyDetailsPage() {
                 purchasePrice: property.purchasePrice,
                 currentValue: property.currentValue,
                 cashInvested: property.cashInvested,
+                tracksUtilities: property.tracksUtilities,
               }}
               onSubmit={async (data) => {
                 if (!user) return;

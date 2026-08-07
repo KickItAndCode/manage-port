@@ -24,6 +24,7 @@ export interface PropertyFormProps {
     purchasePrice?: number;
     currentValue?: number;
     cashInvested?: number;
+    tracksUtilities?: boolean;
   };
   onSubmit: (data: {
     name: string;
@@ -39,6 +40,7 @@ export interface PropertyFormProps {
     purchasePrice?: number;
     currentValue?: number;
     cashInvested?: number;
+    tracksUtilities?: boolean;
   }) => void;
   onCancel?: () => void;
   loading?: boolean;
@@ -58,6 +60,7 @@ const propertySchema = z.object({
   purchasePrice: z.coerce.number().min(0).optional(),
   currentValue: z.coerce.number().min(0).optional(),
   cashInvested: z.coerce.number().min(0).optional(),
+  tracksUtilities: z.boolean().optional(),
 });
 type PropertyFormType = z.infer<typeof propertySchema>;
 
@@ -305,6 +308,30 @@ export function PropertyForm({ initial, onSubmit, onCancel, loading }: PropertyF
           />
         </FormField>
       </div>
+
+      {/*
+        Where the tenant is billed directly by the utility company, no bill ever
+        reaches the owner and the entire splitting surface is noise on this
+        property. Defaults to on, and undefined counts as on, so nothing
+        created before this changes behaviour.
+      */}
+      <FormField
+        label="I receive the utility bills for this property"
+        description="Turn off when tenants are billed directly by the utility company"
+      >
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            defaultChecked={initial?.tracksUtilities !== false}
+            {...register("tracksUtilities")}
+            className="h-4 w-4 rounded border-input"
+            data-testid="property-tracks-utilities-input"
+          />
+          <span className="text-muted-foreground">
+            Bills for this property are mine to record and split
+          </span>
+        </label>
+      </FormField>
 
       <FormField
         label="Cash Invested ($)"

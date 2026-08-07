@@ -21,6 +21,7 @@ import type * as documentFolders from "../documentFolders.js";
 import type * as documents from "../documents.js";
 import type * as leaseUtilitySettings from "../leaseUtilitySettings.js";
 import type * as leases from "../leases.js";
+import type * as lib_annualSummary from "../lib/annualSummary.js";
 import type * as lib_auth from "../lib/auth.js";
 import type * as lib_finance from "../lib/finance.js";
 import type * as lib_investment from "../lib/investment.js";
@@ -57,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   documents: typeof documents;
   leaseUtilitySettings: typeof leaseUtilitySettings;
   leases: typeof leases;
+  "lib/annualSummary": typeof lib_annualSummary;
   "lib/auth": typeof lib_auth;
   "lib/finance": typeof lib_finance;
   "lib/investment": typeof lib_investment;
