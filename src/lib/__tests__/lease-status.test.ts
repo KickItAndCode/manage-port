@@ -8,12 +8,43 @@ import {
 } from '../lease-status';
 
 describe('Lease Status Utilities', () => {
-  // Helper to get date strings
-  const getDateString = (daysFromNow: number): string => {
+  /**
+   * These two helpers exist because the module under test does not use one
+   * definition of "today".
+   *
+   * `getLeaseStatus` compares against `today()` in convex/lib/leaseStatus.ts,
+   * which is the UTC day — a deliberate choice documented there, so that the
+   * browser and the Convex server cannot disagree about whether a lease is
+   * active. `getDaysUntilExpiry` and `isExpiringSoon` delegate to `daysUntil`,
+   * which works in local days.
+   *
+   * A single helper therefore cannot serve both: whichever frame it picked,
+   * the other set of assertions broke once the local clock crossed the UTC
+   * date boundary — early evening in the Americas — which is why these tests
+   * failed for a few hours each evening and passed again overnight.
+   *
+   * That the two functions disagree is a real inconsistency, not a test
+   * artefact: a lease can report "expired" while its days-until-expiry is 0.
+   * Resolving it means choosing one frame for both, which changes behaviour,
+   * so it is left as-is here and each test builds dates in the frame its
+   * subject actually uses.
+   */
+  const utcDateString = (daysFromNow: number): string => {
     const date = new Date();
     date.setDate(date.getDate() + daysFromNow);
     return date.toISOString().split('T')[0];
   };
+
+  const localDateString = (daysFromNow: number): string => {
+    const date = new Date();
+    date.setDate(date.getDate() + daysFromNow);
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${date.getFullYear()}-${month}-${day}`;
+  };
+
+  // Most assertions here exercise getLeaseStatus, which works in UTC days.
+  const getDateString = utcDateString;
 
   describe('getLeaseStatus', () => {
     it('should return "pending" for future leases', () => {
@@ -55,39 +86,39 @@ describe('Lease Status Utilities', () => {
 
   describe('getDaysUntilExpiry', () => {
     it('should return positive days for future expiry', () => {
-      const endDate = getDateString(30);
+      const endDate = localDateString(30);
       expect(getDaysUntilExpiry(endDate)).toBe(30);
     });
 
     it('should return 0 for today\'s expiry', () => {
-      const endDate = getDateString(0);
+      const endDate = localDateString(0);
       expect(getDaysUntilExpiry(endDate)).toBe(0);
     });
 
     it('should return negative days for past expiry', () => {
-      const endDate = getDateString(-10);
+      const endDate = localDateString(-10);
       expect(getDaysUntilExpiry(endDate)).toBe(-10);
     });
   });
 
   describe('isExpiringSoon', () => {
     it('should return true for leases expiring within default 60 days', () => {
-      expect(isExpiringSoon(getDateString(30))).toBe(true);
-      expect(isExpiringSoon(getDateString(60))).toBe(true);
+      expect(isExpiringSoon(localDateString(30))).toBe(true);
+      expect(isExpiringSoon(localDateString(60))).toBe(true);
     });
 
     it('should return false for leases expiring after 60 days', () => {
-      expect(isExpiringSoon(getDateString(61))).toBe(false);
-      expect(isExpiringSoon(getDateString(365))).toBe(false);
+      expect(isExpiringSoon(localDateString(61))).toBe(false);
+      expect(isExpiringSoon(localDateString(365))).toBe(false);
     });
 
     it('should return false for already expired leases', () => {
-      expect(isExpiringSoon(getDateString(-1))).toBe(false);
+      expect(isExpiringSoon(localDateString(-1))).toBe(false);
     });
 
     it('should respect custom threshold', () => {
-      expect(isExpiringSoon(getDateString(89), 90)).toBe(true);
-      expect(isExpiringSoon(getDateString(91), 90)).toBe(false);
+      expect(isExpiringSoon(localDateString(89), 90)).toBe(true);
+      expect(isExpiringSoon(localDateString(91), 90)).toBe(false);
     });
   });
 
